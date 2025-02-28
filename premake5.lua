@@ -28,7 +28,7 @@ project "GZEngine"
 		defines
 		{
 			"GZ_PLATFORM_WINDOWS",
-			"HZ_BUILD_DLL",
+			"GZ_BUILD_DLL",
 		}
 
 		postbuildcommands
@@ -65,7 +65,7 @@ project "GZEditor"
 	-- Include path
 	includedirs
 	{
-		"GZEngine/src"
+		"GZEngine/"
 	}
 
 	links
