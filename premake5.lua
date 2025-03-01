@@ -50,6 +50,7 @@ project "GZEngine"
 		"%{file_maps.imgui}/**.frag",
 		"%{file_maps.imgui}/**.vert",
 		"%{file_maps.imgui}/*.cpp",
+		"%{file_maps.imgui}misc/cpp/imgui_stdlib/*.cpp",
 		-- Imgui backend vulkan + sdl3
 		"%{file_maps.imgui_backend}/imgui_impl_sdl3.cpp",
 		-- "%{file_maps.imgui_backend}/imgui_impl_vulkan.cpp",
@@ -79,6 +80,7 @@ project "GZEngine"
 
 	filter { "system:windows", "action:vs2022" }
         buildoptions { "/utf-8" }
+        files { "%{file_maps.imgui}/misc/debuggers/imgui.natvis", "%{file_maps.imgui}/misc/debuggers/imgui.natstepfilter" }
 
 	filter "system:windows"
 		systemversion "latest"
