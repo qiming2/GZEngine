@@ -1,9 +1,8 @@
 #ifndef GZ_APP_H
 #define GZ_APP_H
 
-#include "Core.h"
 namespace GZ {
-	class GZ_API GZApp {
+	class GZApp {
 		
 	public:
 		GZApp() = default;

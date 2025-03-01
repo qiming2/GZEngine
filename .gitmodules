@@ -1,0 +1,9 @@
+[submodule "GZEngine/vendor/spdlog"]
+	path = GZEngine/vendor/spdlog
+	url = git@github.com:qiming2/spdlog.git
+[submodule "GZEngine/vendor/SDL3"]
+	path = GZEngine/vendor/SDL3
+	url = git@github.com:qiming2/SDL3.git
+[submodule "GZEngine/vendor/imgui"]
+	path = GZEngine/vendor/imgui
+	url = git@github.com:qiming2/imgui.git
