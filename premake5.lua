@@ -9,12 +9,23 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 include_maps={}
 include_maps["spdlog"] = "%{wks.location}/GZEngine/vendor/spdlog/include"
 include_maps["SDL3"] = "%{wks.location}/GZEngine/vendor/SDL3/include"
+include_maps["imgui"] = "%{wks.location}/GZEngine/vendor/imgui"
+
+-- Not every deps need files, usually just need to include include_maps .h files to
+-- make api visible in editor
+file_maps={}
+file_maps["imgui"]="%{wks.location}/GZEngine/vendor/imgui"
+file_maps["imgui_backend"]="%{wks.location}/GZEngine/vendor/imgui/backends"
+
+libdir_map={}
+-- Different Config????
+libdir_map["SDL3"] = "%{wks.location}/GZEngine/vendor/SDL3/lib/windows"
 
 group "Dependencies"
 -- include "GZEngine/vendor/SDL3" // Too hard to build ourselves, use the correct lib instead
 group ""
 
--- defines { "_CRT_SECURE_NO_WARNINGS" }
+defines { "_CRT_SECURE_NO_WARNINGS" }
 
 project "GZEngine"
 	location "GZEngine"
@@ -33,32 +44,41 @@ project "GZEngine"
 	{ 
 		"%{prj.location}/src/**.h",
 		"%{prj.location}/src/**.cpp",
+		"%{prj.location}/include/**.h",
 		"%{include_maps.SDL3}/**.h",
+		"%{file_maps.imgui}/**.h",
+		"%{file_maps.imgui}/**.frag",
+		"%{file_maps.imgui}/**.vert",
+		"%{file_maps.imgui}/*.cpp",
+		-- Imgui backend vulkan + sdl3
+		"%{file_maps.imgui_backend}/imgui_impl_sdl3.cpp",
+		-- "%{file_maps.imgui_backend}/imgui_impl_vulkan.cpp",
+
+		-- opengl to start, will delete later
+		"%{file_maps.imgui_backend}/imgui_impl_opengl3.cpp",
 	}
 
 	-- Include path
 	includedirs
 	{
-		".",
 		"%{prj.location}/", -- for pcheader
 		"%{prj.location}/src/",
 		"%{prj.location}/src/**",
 		include_maps.spdlog,
 		include_maps.SDL3,
-		-- "%{prj.location}/vendor/**"
+		include_maps.imgui,
+		"%{include_maps.imgui}/**",
 	}
-
-	libdir_map={}
-
-	-- Different Config????
-	libdir_map["SDL3"] = "%{prj.location}/vendor/SDL3/lib/windows"
 
 	libdirs { libdir_map.SDL3 }
 
-	links { "SDL3" }
+	links { "SDL3", "opengl32"}
+
+	filter { "files:GZEngine/vendor/imgui/**.cpp" }
+	    flags "NoPCH"
 
 	filter { "system:windows", "action:vs2022" }
-	        buildoptions { "/utf-8" }
+        buildoptions { "/utf-8" }
 
 	filter "system:windows"
 		systemversion "latest"
@@ -103,6 +123,8 @@ project "GZEditor"
 		-- "%{wks.location}/GZEngine/vendor/**",
 		include_maps.spdlog,
 		include_maps.SDL3,
+		include_maps.imgui,
+		"%{include_maps.imgui}/**",
 	}
 
 	links
