@@ -176,7 +176,6 @@ namespace GZ {
 			SDL_free(wkd);
 
 			io.Fonts->AddFontFromFileTTF(path.c_str(), 20);
-
 			// Setup Dear ImGui style
 			//ImGui::StyleColorsDark();
 			//ImGui::StyleColorsLight();
@@ -185,8 +184,6 @@ namespace GZ {
 			// Setup Platform/Renderer backends
 			ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
 			ImGui_ImplOpenGL3_Init(glsl_version);
-
-
 		}
 
 		virtual ~EditorApp() override {
@@ -246,6 +243,9 @@ namespace GZ {
 				ImGui_ImplSDL3_NewFrame();
 				ImGui::NewFrame();
 
+				// TODO(Qiming): Dockspace will block viewport clear color?
+				// Need to understand viewport and dockspace more!
+				ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 				if (show_demo_window)
 					ImGui::ShowDemoWindow(&show_demo_window);
 				
@@ -283,6 +283,7 @@ namespace GZ {
 
 				// Rendering
 				ImGui::Render();
+				
 				glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
 				glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
 				glClear(GL_COLOR_BUFFER_BIT);
