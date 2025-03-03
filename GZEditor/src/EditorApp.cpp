@@ -1,4 +1,4 @@
-﻿#include <include/GZ_Include.h>
+﻿#include <GZ_Include.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <imgui.h>
@@ -175,7 +175,7 @@ namespace GZ {
 			}
 			SDL_free(wkd);
 
-			io.Fonts->AddFontFromFileTTF(path.c_str(), 20);
+			io.Fonts->AddFontFromFileTTF(path.c_str(), 22);
 			// Setup Dear ImGui style
 			//ImGui::StyleColorsDark();
 			//ImGui::StyleColorsLight();

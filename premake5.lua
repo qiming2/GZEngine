@@ -121,6 +121,7 @@ project "GZEditor"
 	{
 		"%{wks.location}/src/",
 
+		"%{wks.location}/GZEngine/include",
 		"%{wks.location}/GZEngine/",
 		-- "%{wks.location}/GZEngine/vendor/**",
 		include_maps.spdlog,
