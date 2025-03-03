@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(GZEngine)
 
+add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine/vendor/flecs")
 # Set configurations
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Dist" CACHE STRING "Configurations" FORCE)
 set(CMAKE_CXX_STANDARD 17)
@@ -21,6 +22,7 @@ set(INCLUDE_MAPS
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui/backends"
     "${CMAKE_SOURCE_DIR}/GZEngine"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui/misc/cpp"
+    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/flecs/include"
 )
 
 # Library directories
@@ -75,9 +77,10 @@ target_include_directories(GZEngine PUBLIC
 )
 
 # Link libraries for GZEngine
-target_link_libraries(GZEngine PRIVATE
+target_link_libraries(GZEngine
     ${SDL3_LIBRARY}
     ${OPENGL_LIBRARY}
+    flecs::flecs_static
 )
 
 project(GZEditor)
@@ -141,13 +144,13 @@ if (WIN32)
 # Post-build commands (e.g., copy SDL3 DLL for Windows)
 add_custom_command(TARGET GZEditor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-    "${LIBDIR_MAPS}/SDL3.dll"
+    "${LIBDIR_MAPS}/windows/SDL3.dll"
     "$<TARGET_FILE_DIR:GZEditor>"
 )
 
 add_custom_command(TARGET GZEditor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-    "${LIBDIR_MAPS}/SDL3.pdb"
+    "${LIBDIR_MAPS}/windows/SDL3.pdb"
     "$<TARGET_FILE_DIR:GZEditor>"
 )
 endif()

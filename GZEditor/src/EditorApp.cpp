@@ -2,6 +2,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <imgui.h>
+#include <flecs.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_stdlib.h>
@@ -115,11 +116,22 @@ namespace GZ {
 				exit(1);
 			}
 
-			working_dir = SDL_GetCurrentDirectory();
+			auto ent = world.entity("GZEnt");
+			gz_info("First entity created using flecs: {}!", ent.name().c_str());
+			struct TransformComponent {
+				ImVec2 a = ImVec2(1.0f, 0.5f);
+				ImVec2 b = ImVec2(0.5f, 1.0f);;
+			};
 
+			ent.add<TransformComponent>();
+			
+			gz_info(ent.get<TransformComponent>()->a.x);
+
+			working_dir = SDL_GetCurrentDirectory();
+			
 			// TODO(Qiming)(VULKAN)
 			// Setup imgui and graphics api...
-			// GL 3.0 + GLSL 130
+			// GL 3.0 + GLSL 150
 			const char* glsl_version = "#version 150";
             
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
@@ -300,6 +312,9 @@ namespace GZ {
 		}
 	private:
 		// Most of these setup should be handled by engine
+		
+		// flecs ecs
+		flecs::world world;
 
 		// TODO(Qiming): temp var in editor app
 		bool show_demo_window = true;
@@ -310,7 +325,7 @@ namespace GZ {
 		// Asset
 		std::string working_dir;
 		
-		//
+		// window
 		SDL_Window *window = nullptr;
 		bool is_running = true;
 	};

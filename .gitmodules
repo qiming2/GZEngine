@@ -4,3 +4,6 @@
 [submodule "GZEngine/vendor/imgui"]
 	path = GZEngine/vendor/imgui
 	url = git@github.com:qiming2/imgui.git
+[submodule "GZEngine/vendor/flecs"]
+	path = GZEngine/vendor/flecs
+	url = git@github.com:qiming2/flecs.git
