@@ -1,4 +1,4 @@
-﻿#include <GZ_Include.h>
+#include <GZ_Include.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <imgui.h>
@@ -8,7 +8,7 @@
 #include <filesystem>
 
 namespace GZ {
-	
+	// Add another style maybe
 	static void SetupImGuiStyle()
 	{
 		// Primary style from ImThemes
@@ -120,7 +120,8 @@ namespace GZ {
 			// TODO(Qiming)(VULKAN)
 			// Setup imgui and graphics api...
 			// GL 3.0 + GLSL 130
-			const char* glsl_version = "#version 130";
+			const char* glsl_version = "#version 150";
+            
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -161,7 +162,12 @@ namespace GZ {
 			// Filesystem is werid!
 			char *wkd = SDL_GetCurrentDirectory();
 			gz_info("{} in bytes {}, {}", strlen(wkd), wkd[21], std::string(wkd).size());
+            
+            #ifdef GZ_PLATFORM_WINDOWS
 			std::string path = std::string(wkd) + std::string("asset\\font\\NotoSansTC-Medium.ttf");
+            #elif GZ_PLATFORM_APPLE
+            std::string path = std::string(wkd) + std::string("asset/font/NotoSansTC-Medium.ttf");
+            #endif
 			
 			SDL_PathInfo info;
 			if (!SDL_GetPathInfo(path.c_str(), &info)) {

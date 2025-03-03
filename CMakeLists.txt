@@ -25,19 +25,22 @@ set(INCLUDE_MAPS
 
 # Library directories
 set(LIBDIR_MAPS
-    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/SDL3/lib/windows"
+    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/SDL3/lib/"
 )
 if (MSV)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
+find_package(OpenGL REQUIRED)
 # Define platform-specific settings
 if(WIN32)
     set(PLATFORM_DEFINES "GZ_PLATFORM_WINDOWS")
-    set(SDL3_LIBRARY "${LIBDIR_MAPS}/SDL3.lib")
-    set(OPENGL_LIBRARY "opengl32.lib")
-else()
-    message(FATAL_ERROR "Unsupported platform. This CMake configuration is for Windows.")
+    set(SDL3_LIBRARY "${LIBDIR_MAPS}/windows/SDL3.lib")
+    # set(OPENGL_LIBRARY "opengl32.lib")
+elseif(APPLE)
+    set(PLATFORM_DEFINES "GZ_PLATFORM_APPLE")
+    set(SDL3_LIBRARY "${LIBDIR_MAPS}/mac/libSDL3.dylib")
+    
 endif()
 
 # target_sources(SDL3-shared PRIVATE ${shared_sources} ${both_sources})
@@ -72,7 +75,7 @@ target_include_directories(GZEngine PUBLIC
 )
 
 # Link libraries for GZEngine
-target_link_libraries(GZEngine PUBLIC
+target_link_libraries(GZEngine PRIVATE
     ${SDL3_LIBRARY}
     ${OPENGL_LIBRARY}
 )
@@ -86,7 +89,14 @@ file(GLOB editor_src
 add_executable(GZEditor 
     ${editor_src}
 )
-set_property(TARGET GZEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/${PROJECT_NAME}")
+
+if (WIN32)
+    set_property(TARGET GZEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/${PROJECT_NAME}")
+elseif (APPLE)
+    set_target_properties(GZEditor PROPERTIES 
+                      XCODE_GENERATE_SCHEME TRUE
+                      XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/${PROJECT_NAME}")
+endif()
 target_sources(GZEditor PRIVATE ${editor_src})
 
 # Include directories for GZEditor
@@ -123,7 +133,11 @@ set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
 set(CMAKE_CXX_FLAGS_DIST "${CMAKE_CXX_FLAGS_DIST} -DGZ_DIST")
 set(CMAKE_EXE_LINKER_FLAGS_DIST "${CMAKE_EXE_LINKER_FLAGS_DIST}")
 
-# set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT GZEditor)
+if (MSVC)
+    # set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT GZEditor)
+endif()
+
+if (WIN32)
 # Post-build commands (e.g., copy SDL3 DLL for Windows)
 add_custom_command(TARGET GZEditor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
@@ -136,3 +150,4 @@ add_custom_command(TARGET GZEditor POST_BUILD
     "${LIBDIR_MAPS}/SDL3.pdb"
     "$<TARGET_FILE_DIR:GZEditor>"
 )
+endif()
