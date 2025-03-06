@@ -1,12 +1,15 @@
 #include <GZ_Include.h>
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #include <SDL3/SDL_opengl.h>
 #include <imgui.h>
 #include <flecs.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
+#include <imgui_impl_vulkan.h>
 #include <imgui_stdlib.h>
 #include <filesystem>
+#include <vulkan/vulkan.h>
 
 namespace GZ {
 	// Add another style maybe
@@ -108,6 +111,18 @@ namespace GZ {
 		style.TabBarBorderSize = 1.0f;
 	}
 
+	static void check_vk_result(VkResult err)
+	{
+		if (err == VK_SUCCESS)
+			return;
+		fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+		if (err < 0)
+			abort();
+	}
+
+	static VkAllocationCallbacks*   g_Allocator = nullptr;
+	static VkInstance               g_Instance = VK_NULL_HANDLE;
+
 	class EditorApp : public GZApp {
 	public:
 		EditorApp() {
@@ -115,6 +130,44 @@ namespace GZ {
 				gz_error("SDL init failed: {}", SDL_GetError());
 				exit(1);
 			}
+			
+//			// Create Vulkan Instance
+//			{
+				//VkInstanceCreateInfo create_info = {};
+				//create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+//
+//				// Enumerate available extensions
+				//uint32_t properties_count;
+				//ImVector<VkExtensionProperties> properties;
+				//vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, nullptr);
+				//properties.resize(properties_count);
+				//VkResult err = vkEnumerateInstanceExtensionProperties(nullptr, &properties_count, properties.Data);
+				//check_vk_result(err);
+				//std::vector<const char *> instance_extensions;
+				// enable required extensions
+				/*if (isextensionavailable(properties, vk_khr_get_physical_device_properties_2_extension_name))
+					instance_extensions.push_back(vk_khr_get_physical_device_properties_2_extension_name);*/
+#ifdef vk_khr_portability_enumeration_extension_name
+				/*if (isextensionavailable(properties, vk_khr_portability_enumeration_extension_name))
+				{
+					instance_extensions.push_back(vk_khr_portability_enumeration_extension_name);
+					create_info.flags |= vk_instance_create_enumerate_portability_bit_khr;
+				}*/
+#endif
+
+				// enabling validation layers
+#ifdef app_use_vulkan_debug_report
+				const char* layers[] = { "vk_layer_khronos_validation" };
+				create_info.enabledlayercount = 1;
+				create_info.ppenabledlayernames = layers;
+				instance_extensions.push_back("vk_ext_debug_report");
+#endif
+
+				// create vulkan instance
+				/*create_info.enabledextensioncount = (uint32_t)instance_extensions.size;
+				create_info.ppenabledextensionnames = instance_extensions.data;*/
+				//err = vkCreateInstance(&create_info, g_Allocator, &g_Instance);
+//			}
 
 			auto ent = world.entity("GZEnt");
 			gz_info("First entity created using flecs: {}!", ent.name().c_str());

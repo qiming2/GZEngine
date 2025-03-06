@@ -1,0 +1,124 @@
+cmake_minimum_required(VERSION 3.16)
+project(GZEngine)
+
+message("Building engine!")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan")
+
+# Include directories
+list(APPEND INCLUDE_MAPS
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends"
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/include"
+)
+
+# Got all sources so that ide can see it
+# # Define a function to collect .h files from a list of directories
+# function(collect_header_files DIRECTORIES OUTPUT_VARIABLE)
+#     # Initialize an empty list to store all header files
+#     set(ALL_HEADER_FILES "")
+#     message("Enter")
+#     # Loop through each directory in the input list
+#     foreach(DIR ${DIRECTORIES})
+
+#         message("Enter ${DIR}")
+#         if (IS_DIRECTORY ${DIR})
+#         # Use GLOB_RECURSE to find all .h files in the directory
+#             foreach(SUB_DIR ${DIR})
+#                 message("Enter ${SUB_DIR}")
+#                 file(GLOB_RECURSE HEADER_FILES "${SUB_DIR}/*.h")
+
+#                 # Append the found files to the global list
+#                 list(APPEND ALL_HEADER_FILES ${HEADER_FILES})
+
+
+#             endforeach()
+#         else()
+#             file(GLOB_RECURSE HEADER_FILES "${DIR}/*.h")
+
+#             # Append the found files to the global list
+#             list(APPEND ALL_HEADER_FILES ${HEADER_FILES})
+#         endif()
+        
+#     endforeach()
+#     message("Out ${DIR}")
+
+#     # Return the collected header files in the output variable
+#     set(${OUTPUT_VARIABLE} ${ALL_HEADER_FILES} PARENT_SCOPE)
+# endfunction()
+
+# collect_header_files(${INCLUDE_MAPS} INCLUDE_MAPS_HEADERS)
+
+foreach(HEADER ${INCLUDE_MAPS_HEADERS})
+    message(STATUS "Found header file: ${HEADER}")
+endforeach()
+
+# Library directories
+set(LIBDIR_MAPS
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/lib/"
+)
+if (MSV)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+find_package(OpenGL REQUIRED)
+# Add GZEngine as a static library
+
+file(GLOB vendorSources
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/include/vulkan/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include/SDL3/*.h"
+)
+
+file(GLOB generatedSources 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp/imgui_stdlib/*.cpp"
+    # Imgui backend vulkan + sdl3
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends/imgui_impl_sdl3.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends/imgui_impl_vulkan.cpp"
+    # -- opengl to start, will delete later
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends/imgui_impl_opengl3.cpp"
+    ${vendor_sources}
+)
+
+
+# Define platform-specific settings
+if(WIN32)
+    set(SDL3_LIBRARY "${LIBDIR_MAPS}/windows/SDL3.lib")
+    # set(OPENGL_LIBRARY "opengl32.lib")
+elseif(APPLE)
+    set(SDL3_LIBRARY "${LIBDIR_MAPS}/mac/libSDL3.dylib")
+    
+endif()
+
+add_library(GZEngine STATIC
+    ${generatedSources}
+    ${vendorSources}
+)
+
+source_group("Vendor sources" FILES ${vendorSources})
+
+
+# Include directories for GZEngine
+target_include_directories(GZEngine PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    ${INCLUDE_MAPS}
+)
+
+# Link libraries for GZEngine
+target_link_libraries(GZEngine
+    ${SDL3_LIBRARY}
+    ${OPENGL_LIBRARY}
+    flecs::flecs_static
+    vulkan
+)
