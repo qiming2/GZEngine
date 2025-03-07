@@ -189,7 +189,7 @@ namespace GZ {
 			glm::mat4 matrix(1.0f);
 			glm::vec4 vec = {2.0f, 2.0f, 2.0f, 1.0f};
 			auto test = matrix * vec;
-			auto test1 = vec.xyzz;
+			auto test1 = vec.xyzz();
 			gz_info("vec x: {}", test.x);
 
 			ent.add<TransformComponent>();
