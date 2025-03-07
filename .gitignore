@@ -59,4 +59,4 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 
-vendor/vulkan/*.*
+GZEngine/vendor/vulkan/1.4.304.1/*
