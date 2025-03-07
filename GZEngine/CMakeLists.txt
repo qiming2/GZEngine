@@ -5,7 +5,7 @@ message("Building engine!")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs")
 
 set(Vulkan_FOUND OFF)
-find_package(Vulkan REQUIRED)
+find_package(Vulkan)
 # Instead of adding vulkan which is huge, find the package
 if (NOT Vulkan_FOUND)
     find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)

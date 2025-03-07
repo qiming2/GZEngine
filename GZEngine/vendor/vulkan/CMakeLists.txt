@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 message("Use fallback vulkan!")
 
 set(VULKAN_SDK
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan"
 )
 
 set(VULKAN_LIB_PATH
