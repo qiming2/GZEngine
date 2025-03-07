@@ -5,6 +5,17 @@ message("Building engine!")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan")
 
+
+if (MSVC)
+    add_compile_options("$<$<C_COMPILER_ID:MSVC>:/bigobj>")
+    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/bigobj>")
+endif()
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm")
+target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=ON)
+target_compile_definitions(glm INTERFACE GLM_FORCE_RADIANS=ON)
+target_compile_definitions(glm INTERFACE GLM_ENABLE_CXX_17=ON)
+target_compile_definitions(glm INTERFACE GLM_FORCE_SWIZZLE=ON)
+
 # Include directories
 list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog/include"
@@ -15,6 +26,7 @@ list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor"
 )
 
 # Got all sources so that ide can see it
@@ -67,26 +79,28 @@ if (MSV)
 endif()
 
 find_package(OpenGL REQUIRED)
-# Add GZEngine as a static library
 
 file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/include/vulkan/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include/SDL3/*.h"
-)
-
-file(GLOB generatedSources 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp/imgui_stdlib/*.cpp"
     # Imgui backend vulkan + sdl3
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends/imgui_impl_sdl3.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends/imgui_impl_vulkan.cpp"
     # -- opengl to start, will delete later
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends/imgui_impl_opengl3.cpp"
-    ${vendor_sources}
+
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor/*.h"
+)
+
+file(GLOB generatedSources 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"   
 )
 
 
@@ -121,4 +135,5 @@ target_link_libraries(GZEngine
     ${OPENGL_LIBRARY}
     flecs::flecs_static
     vulkan
+    glm::glm
 )

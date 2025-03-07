@@ -7,3 +7,9 @@
 [submodule "GZEngine/vendor/flecs"]
 	path = GZEngine/vendor/flecs
 	url = git@github.com:qiming2/flecs.git
+[submodule "GZEngine/vendor/glm"]
+	path = GZEngine/vendor/glm
+	url = git@github.com:qiming2/glm.git
+[submodule "GZEngine/vendor/imgui-node-editor"]
+	path = GZEngine/vendor/imgui-node-editor
+	url = git@github.com:qiming2/imgui-node-editor.git

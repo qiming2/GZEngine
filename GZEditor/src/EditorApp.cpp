@@ -11,6 +11,16 @@
 #include <filesystem>
 #include <vulkan/vulkan.h>
 
+// #define GLM_FORCE_SWIZZLE
+// These already defined in cmake files
+#include <glm/glm.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+
+#include <imgui_node_editor.h>
+namespace ed = ax::NodeEditor;
+
+
 namespace GZ {
 	// Add another style maybe
 	static void SetupImGuiStyle()
@@ -176,6 +186,12 @@ namespace GZ {
 				ImVec2 b = ImVec2(0.5f, 1.0f);;
 			};
 
+			glm::mat4 matrix(1.0f);
+			glm::vec4 vec = {2.0f, 2.0f, 2.0f, 1.0f};
+			auto test = matrix * vec;
+			auto test1 = vec.xyzz;
+			gz_info("vec x: {}", test.x);
+
 			ent.add<TransformComponent>();
 			
 			gz_info(ent.get<TransformComponent>()->a.x);
@@ -255,6 +271,11 @@ namespace GZ {
 			// Setup Platform/Renderer backends
 			ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
 			ImGui_ImplOpenGL3_Init(glsl_version);
+
+			// Node editor
+			ed::Config config;
+			config.SettingsFile = "Simple.json";
+			m_Context = ed::CreateEditor(&config);
 		}
 
 		virtual ~EditorApp() override {
@@ -317,6 +338,30 @@ namespace GZ {
 				// TODO(Qiming): Dockspace will block viewport clear color?
 				// Need to understand viewport and dockspace more!
 				ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+
+
+				if (show_node_editor) {
+					ImGui::Begin("New editor window");
+					ed::SetCurrentEditor(m_Context);
+					ed::Begin("My Editor", ImVec2(0.0, 0.0f));
+					int uniqueId = 1;
+					// Start drawing nodes.
+					ed::BeginNode(uniqueId++);
+					ImGui::Text("Node A");
+					ed::BeginPin(uniqueId++, ed::PinKind::Input);
+					ImGui::Text("-> In");
+					ed::EndPin();
+					ImGui::SameLine();
+					ed::BeginPin(uniqueId++, ed::PinKind::Output);
+					ImGui::Text("Out ->");
+					ed::EndPin();
+					ed::EndNode();
+					ed::End();
+					ed::SetCurrentEditor(nullptr);
+					ImGui::End();
+				}
+				
+
 				if (show_demo_window)
 					ImGui::ShowDemoWindow(&show_demo_window);
 				
@@ -329,6 +374,7 @@ namespace GZ {
 					ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
 					ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
 					ImGui::Checkbox("Another Window", &show_another_window);
+					ImGui::Checkbox("Node editor", &show_node_editor);
 
 					ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
 					ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
@@ -372,8 +418,11 @@ namespace GZ {
 		// TODO(Qiming): temp var in editor app
 		bool show_demo_window = true;
 		bool show_another_window = true;
+		bool show_node_editor = true;
 		ImVec4 clear_color = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
 		SDL_GLContext gl_context;
+		
+		ed::EditorContext *m_Context = nullptr;
 		
 		// Asset
 		std::string working_dir;
