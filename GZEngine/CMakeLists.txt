@@ -3,8 +3,24 @@ project(GZEngine)
 
 message("Building engine!")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs")
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan")
 
+set(Vulkan_FOUND OFF)
+find_package(Vulkan REQUIRED)
+# Instead of adding vulkan which is huge, find the package
+if (NOT Vulkan_FOUND)
+    find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
+
+    IF (Vulkan_LIBRARY)
+        set(Vulkan_FOUND ON)
+        MESSAGE("Using bundled Vulkan library version")
+    ENDIF()
+ENDIF()
+
+if (NOT Vulkan_FOUND)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/CMakeLists.txt")
+endif()
+
+message("Vulkan found: ${Vulkan_LIBRARY}")
 
 if (MSVC)
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/bigobj>")
@@ -25,7 +41,7 @@ list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/Include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor"
 )
 
@@ -81,7 +97,7 @@ endif()
 find_package(OpenGL REQUIRED)
 
 file(GLOB vendorSources
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/include/vulkan/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/Include/vulkan/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include/SDL3/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.h"
@@ -129,11 +145,10 @@ target_include_directories(GZEngine PUBLIC
     ${INCLUDE_MAPS}
 )
 
-# Link libraries for GZEngine
 target_link_libraries(GZEngine
     ${SDL3_LIBRARY}
     ${OPENGL_LIBRARY}
     flecs::flecs_static
-    vulkan
+    ${Vulkan_LIBRARY}
     glm::glm
 )
