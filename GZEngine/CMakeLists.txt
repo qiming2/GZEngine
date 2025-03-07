@@ -27,10 +27,10 @@ if (MSVC)
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/bigobj>")
 endif()
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm")
-target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE)
-target_compile_definitions(glm INTERFACE GLM_FORCE_RADIANS)
-target_compile_definitions(glm INTERFACE GLM_ENABLE_CXX_17)
-target_compile_definitions(glm INTERFACE GLM_FORCE_SWIZZLE)
+target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=ON)
+target_compile_definitions(glm INTERFACE GLM_FORCE_RADIANS=ON)
+target_compile_definitions(glm INTERFACE GLM_ENABLE_CXX_17=ON)
+target_compile_definitions(glm INTERFACE GLM_FORCE_SWIZZLE=ON)
 
 # Include directories
 list(APPEND INCLUDE_MAPS
