@@ -1,21 +1,26 @@
 cmake_minimum_required(VERSION 3.16)
-message("Including vulkan!")
+message("Building vulkan!")
 
 add_library(vulkan INTERFACE)
-set(VULKAN_SDK 
-    "${CMAKE_CURRENT_SOURCE_DIR}/1.4.304.1")
+set(VULKAN_SDK
+    "${CMAKE_CURRENT_SOURCE_DIR}/1.4.304.1"
+)
+
+set(VULKAN_LIB_PATH
+    "${VULKAN_SDK}/Lib"    
+)
 
 if (WIN32)
     set(VULKAN_LIB
-        "${VULKAN_SDK}/Lib/vulkan-1.lib"
+        "${VULKAN_LIB_PATH}/windows/vulkan-1.lib"
     )
 elseif (UNIX AND NOT APPLE)
     set(VULKAN_LIB
-        "${VULKAN_SDK}/Lib/libvulkan.so"
+        "${VULKAN_LIB_PATH}/linux/libvulkan.so"
     )
 elseif (APPLE)
     set(VULKAN_LIB
-        "${VULKAN_SDK}/Lib/libvulkan.dylib"
+        "${VULKAN_LIB_PATH}/macOS/libvulkan.dylib"
     )
 endif()
 
