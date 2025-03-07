@@ -61,5 +61,5 @@ CMakeUserPresets.json
 
 GZEngine/vendor/vulkan/VULKAN_SDK/*
 
-GZEngine/GZEditor/imgui.ini
-GZEngine/GZEditor/Simple.json
+GZEditor/imgui.ini
+GZEditor/Simple.json
