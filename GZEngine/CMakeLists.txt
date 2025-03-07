@@ -25,7 +25,7 @@ list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/1.4.304.1/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor"
 )
 
