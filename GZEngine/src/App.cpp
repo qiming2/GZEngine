@@ -8,6 +8,7 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_stdlib.h>
 #include <filesystem>
+
 #include <vulkan/vulkan.h>
 #include <imgui.h>
 #include <flecs.h>
@@ -18,7 +19,6 @@
 
 #include "Log.h"
 #include "Renderer/Renderer.h"
-
 
 #define USE_IMGUI 1
 
@@ -182,7 +182,7 @@ namespace GZ {
 	namespace ed = ax::NodeEditor;
 	App::App(const AppSpec& spec)
 	{
-		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK)) {
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS)) {
 			gz_error("SDL init failed: {}", SDL_GetError());
 			exit(1);
 		}
@@ -193,7 +193,7 @@ namespace GZ {
 		working_dir = wkd;
 		SDL_free((void*)wkd);
 
-		SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+		SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 		window = SDL_CreateWindow("GZ Editor", 1960, 1080, window_flags);
 		if (window == nullptr) {
 			gz_error("SDL Create window Failed!: {}", SDL_GetError());
@@ -229,7 +229,6 @@ namespace GZ {
 		// Setup Dear ImGui style
 		//ImGui::StyleColorsDark();
 		//ImGui::StyleColorsLight();
-		
 		SetupImGuiStyle();
 
 		// Setup Platform/Renderer backends

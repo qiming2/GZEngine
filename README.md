@@ -7,6 +7,8 @@ Install VulkanSDK yourself, fallback will use lib in the vendor which might not 
 For debug version, it uses validation layer which is not included in the libs, so you have to
 download VulkanSDK to run in debug mode, and make sure the appropriate env is set
 
+!!! OnMacOS: need to opt install into global system, otherwise app can't find the right MTV lib
+
 git clone repo
 
 git submodule init

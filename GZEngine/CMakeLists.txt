@@ -95,6 +95,8 @@ elseif(APPLE)
     
 endif()
 
+message("SDL3 lib: ${SDL3_LIBRARY}")
+
 add_library(GZEngine STATIC
     ${generatedSources}
     ${vendorSources}

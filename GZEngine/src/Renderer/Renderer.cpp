@@ -1,5 +1,6 @@
 #include <gzpch.h>
 #include <vulkan/vulkan.h>
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
 #include "Renderer.h"
@@ -49,7 +50,7 @@ static bool checkValidationLayerSupport() {
 		bool layerFound = false;
 
 		for (const auto& layerProperties : availableLayers) {
-			gz_info("Available Layerproperties {}", layerProperties.layerName);
+			gz_core_info("Available Layerproperties {}", layerProperties.layerName);
 			if (strcmp(layerName, layerProperties.layerName) == 0) {
 				layerFound = true;
 				break;
@@ -76,9 +77,9 @@ static std::vector<const char*> getRequiredExtensions() {
 	// Maybe need one more for macOS
 	extensions.reserve(sdl_extension_count + 2);
 
-	gz_info("Required extensions:");
+	gz_core_info("SDL Required extensions:");
 	for (u32 i = 0; i < sdl_extension_count; ++i) {
-		gz_info("{}", sdl_extensions[i]);
+		gz_core_info("\t{}", sdl_extensions[i]);
 		extensions.emplace_back(sdl_extensions[i]);
 	}
 	if (enableValidationLayers) {
@@ -94,7 +95,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData) {
 
-	gz_warn("validation layer: {}", pCallbackData->pMessage);
+	gz_core_warn("validation layer: {}", pCallbackData->pMessage);
 
 	return VK_FALSE;
 }
@@ -191,11 +192,11 @@ namespace GZ {
 
 			// We need to do linear to srgb, in shader...
 			if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM && availableFormat.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
-				gz_info("Using SRGB Color format for presentation");
+				gz_core_info("Using SRGB Color format for presentation");
 				return availableFormat;
 			}
 		}
-		gz_info("Using random format to present {} {}", (u32)availableFormats[0].format, (u32)availableFormats[0].colorSpace);
+		gz_core_info("Using random format to present {} {}", (u32)availableFormats[0].format, (u32)availableFormats[0].colorSpace);
 		return availableFormats[0];
 	}
 
@@ -484,8 +485,9 @@ namespace GZ {
 
 	static std::vector<char> readFile(const std::string& filename) {
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
+        gz_core_info("Read file: {}", filename);
 		if (!file.is_open()) {
+            perror("open failure");
 			throw std::runtime_error("failed to open file!");
 		}
 
@@ -516,13 +518,15 @@ namespace GZ {
 	{
 		// Working directory is in Editor
 		// asserts are also in editor
+        gz_core_info("Cur wkd: ", SDL_GetCurrentDirectory());
 #ifdef GZ_PLATFORM_WINDOWS
 		auto vertShaderCode = readFile("asset\\shader\\basic_vert.spv");
 		auto fragShaderCode = readFile("asset\\shader\\basic_frag.spv");
 #else
-		auto vertShaderCode = readFile("asset/shader/vert.spv");
-		auto fragShaderCode = readFile("asset/shader/frag.spv");
+		auto vertShaderCode = readFile("asset/shader/basic_vert.spv");
+		auto fragShaderCode = readFile("asset/shader/basic_frag.spv");
 #endif
+        
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
@@ -785,7 +789,7 @@ namespace GZ {
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "GZ Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_3;
+		appInfo.apiVersion = VK_API_VERSION_1_4;
 
 		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -804,7 +808,7 @@ namespace GZ {
 	#endif
 
 	#ifdef GZ_PLATFORM_APPLE
-		requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 		createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 	#endif
 
@@ -813,15 +817,15 @@ namespace GZ {
 
 		vk_check_result(vkCreateInstance(&createInfo, nullptr, &instance));
 
-		uint32_t extensionCount = 0;
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-		std::vector<VkExtensionProperties> extensions(extensionCount);
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+        uint32_t extensionCount = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-		gz_info("available extensions:");
-		for (const auto& extension : extensions) {
-			gz_info("\t {}", extension.extensionName);
-		}
+        gz_core_info("available extensions:");
+        for (const auto& extension : extensions) {
+            gz_core_info("\t {}", extension.extensionName);
+        }
 
 	}
 
@@ -874,7 +878,7 @@ namespace GZ {
 	{		
 		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 		auto &init_info = *init_info_ptr;
-		init_info.ApiVersion = VK_API_VERSION_1_3;              // Pass in your value of VkApplicationInfo::apiVersion, otherwise will default to header version.
+		init_info.ApiVersion = VK_API_VERSION_1_4;              // Pass in your value of VkApplicationInfo::apiVersion, otherwise will default to header version.
 		init_info.Instance = instance;
 		init_info.PhysicalDevice = physicalDevice;
 		init_info.Device = device;

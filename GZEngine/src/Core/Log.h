@@ -15,6 +15,7 @@ namespace GZ {
 #ifdef GZ_PLATFORM_WINDOWS
 #define gz_debugbreak __debugbreak()
 #else
+#include <signal.h>
 #define gz_debugbreak raise(SIGTRAP)
 #endif
 
