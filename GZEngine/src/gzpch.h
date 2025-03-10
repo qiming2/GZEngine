@@ -24,5 +24,8 @@
 #include <vector>
 #include <filesystem>
 #include <thread>
+#include <optional>
+
+#include <defines.h>
 
 #endif

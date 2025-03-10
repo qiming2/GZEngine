@@ -3,13 +3,15 @@ project(GZEngine)
 
 message("Building engine!")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/VulkanMemoryAllocator")
 
 set(Vulkan_FOUND OFF)
 find_package(Vulkan)
 # Instead of adding vulkan which is huge, find the package
+# In order to use vulkan validation lib, needs to let the installer set the path
+# For debug version, need to have installer
 if (NOT Vulkan_FOUND)
     find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
-
     IF (Vulkan_LIBRARY)
         set(Vulkan_FOUND ON)
         MESSAGE("Using bundled Vulkan library version")
@@ -45,43 +47,6 @@ list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor"
 )
 
-# Got all sources so that ide can see it
-# # Define a function to collect .h files from a list of directories
-# function(collect_header_files DIRECTORIES OUTPUT_VARIABLE)
-#     # Initialize an empty list to store all header files
-#     set(ALL_HEADER_FILES "")
-#     message("Enter")
-#     # Loop through each directory in the input list
-#     foreach(DIR ${DIRECTORIES})
-
-#         message("Enter ${DIR}")
-#         if (IS_DIRECTORY ${DIR})
-#         # Use GLOB_RECURSE to find all .h files in the directory
-#             foreach(SUB_DIR ${DIR})
-#                 message("Enter ${SUB_DIR}")
-#                 file(GLOB_RECURSE HEADER_FILES "${SUB_DIR}/*.h")
-
-#                 # Append the found files to the global list
-#                 list(APPEND ALL_HEADER_FILES ${HEADER_FILES})
-
-
-#             endforeach()
-#         else()
-#             file(GLOB_RECURSE HEADER_FILES "${DIR}/*.h")
-
-#             # Append the found files to the global list
-#             list(APPEND ALL_HEADER_FILES ${HEADER_FILES})
-#         endif()
-        
-#     endforeach()
-#     message("Out ${DIR}")
-
-#     # Return the collected header files in the output variable
-#     set(${OUTPUT_VARIABLE} ${ALL_HEADER_FILES} PARENT_SCOPE)
-# endfunction()
-
-# collect_header_files(${INCLUDE_MAPS} INCLUDE_MAPS_HEADERS)
-
 foreach(HEADER ${INCLUDE_MAPS_HEADERS})
     message(STATUS "Found header file: ${HEADER}")
 endforeach()
@@ -112,11 +77,12 @@ file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor/*.h"
 )
 
-file(GLOB generatedSources 
+file(GLOB_RECURSE generatedSources 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"   
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/"
 )
 
 
@@ -134,6 +100,8 @@ add_library(GZEngine STATIC
     ${vendorSources}
 )
 
+target_precompile_headers(GZEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gzpch.h")
+
 source_group("Vendor sources" FILES ${vendorSources})
 
 
@@ -141,14 +109,16 @@ source_group("Vendor sources" FILES ${vendorSources})
 target_include_directories(GZEngine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     ${INCLUDE_MAPS}
 )
 
-target_link_libraries(GZEngine
+target_link_libraries(GZEngine PUBLIC
     ${SDL3_LIBRARY}
     ${OPENGL_LIBRARY}
     flecs::flecs_static
     ${Vulkan_LIBRARY}
     glm::glm
+    PRIVATE GPUOpen::VulkanMemoryAllocator
 )

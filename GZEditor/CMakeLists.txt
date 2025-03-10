@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(GZEditor)
 # Add GZEditor as an executable
+
+message("Building editor!")
 file(GLOB editor_src
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
@@ -16,8 +18,6 @@ elseif (APPLE)
                       XCODE_GENERATE_SCHEME TRUE
                       XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
-
-message("Building editor!")
 
 # Link GZEngine to GZEditor
 target_link_libraries(GZEditor PUBLIC GZEngine)

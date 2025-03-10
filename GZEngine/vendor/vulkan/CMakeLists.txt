@@ -6,7 +6,7 @@ set(VULKAN_SDK
 )
 
 set(VULKAN_LIB_PATH
-    "${VULKAN_SDK}"    
+    "${VULKAN_SDK}"
 )
 
 if (WIN32)

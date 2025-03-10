@@ -1,19 +1,20 @@
-#ifndef GZ_ENTRY_POINT_H
-#define GZ_ENTRY_POINT_H
-
-#include "GZApp.h"
+#pragma once
+#include "App.h"
+#include "Log.h"
 
 namespace GZ {
-    extern GZApp *create_application();
+    extern App *create_application();
 }
 
 // This gets 
 int main(int argc, char **argv) {
-    GZ::Log::init();
     
-    GZ::GZApp *newApp = GZ::create_application();
+    // Init core stuff
+    GZ::Log::init();
+
+    
+    GZ::App *newApp = GZ::create_application();
     newApp->run();
     delete newApp;
+    return 0;
 }
-
-#endif
