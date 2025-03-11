@@ -28,4 +28,11 @@
 
 #include <defines.h>
 
+// All glm defines are predefined in cmake
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+// stb
+#include <stb_image.h>
+
 #endif

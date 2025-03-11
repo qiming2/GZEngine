@@ -5,18 +5,22 @@ message("Building engine!")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/VulkanMemoryAllocator")
 
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm")
+target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=ON)
+target_compile_definitions(glm INTERFACE GLM_FORCE_RADIANS=ON)
+target_compile_definitions(glm INTERFACE GLM_ENABLE_CXX_17=ON)
+target_compile_definitions(glm INTERFACE GLM_FORCE_SWIZZLE=ON)
+
 set(Vulkan_FOUND OFF)
-find_package(Vulkan)
+find_package(Vulkan REQUIRED)
 # Instead of adding vulkan which is huge, find the package
 # In order to use vulkan validation lib, needs to let the installer set the path
 # For debug version, need to have installer
+set(GZ_VULKAN_VERSION, "1.4.304.1")
 if (NOT Vulkan_FOUND)
-    find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
-    IF (Vulkan_LIBRARY)
-        set(Vulkan_FOUND ON)
-        MESSAGE("Using bundled Vulkan library version")
-    ENDIF()
-ENDIF()
+    message("You don't have VulkanSDK please download version or above: ${GZ_VULKAN_VERSION} at
+        https://vulkan.lunarg.com/")
+endif()
 
 if (NOT Vulkan_FOUND)
     include("${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/CMakeLists.txt")
@@ -28,11 +32,7 @@ if (MSVC)
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/bigobj>")
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/bigobj>")
 endif()
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm")
-target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=ON)
-target_compile_definitions(glm INTERFACE GLM_FORCE_RADIANS=ON)
-target_compile_definitions(glm INTERFACE GLM_ENABLE_CXX_17=ON)
-target_compile_definitions(glm INTERFACE GLM_FORCE_SWIZZLE=ON)
+
 
 # Include directories
 list(APPEND INCLUDE_MAPS
@@ -43,13 +43,10 @@ list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/Include"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/include"
+    "${Vulkan_INCLUDE_DIRS}"
 )
-
-foreach(HEADER ${INCLUDE_MAPS_HEADERS})
-    message(STATUS "Found header file: ${HEADER}")
-endforeach()
 
 # Library directories
 set(LIBDIR_MAPS
@@ -58,8 +55,6 @@ set(LIBDIR_MAPS
 if (MSV)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
-
-find_package(OpenGL REQUIRED)
 
 file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/Include/vulkan/*.h"
@@ -75,6 +70,8 @@ file(GLOB vendorSources
 
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/include/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/*.cpp"
 )
 
 file(GLOB_RECURSE generatedSources 
@@ -89,7 +86,6 @@ file(GLOB_RECURSE generatedSources
 # Define platform-specific settings
 if(WIN32)
     set(SDL3_LIBRARY "${LIBDIR_MAPS}/windows/SDL3.lib")
-    # set(OPENGL_LIBRARY "opengl32.lib")
 elseif(APPLE)
     set(SDL3_LIBRARY "${LIBDIR_MAPS}/mac/libSDL3.dylib")
     
@@ -106,7 +102,6 @@ target_precompile_headers(GZEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/gzpc
 
 source_group("Vendor sources" FILES ${vendorSources})
 
-
 # Include directories for GZEngine
 target_include_directories(GZEngine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -118,9 +113,8 @@ target_include_directories(GZEngine PUBLIC
 
 target_link_libraries(GZEngine PUBLIC
     ${SDL3_LIBRARY}
-    ${OPENGL_LIBRARY}
     flecs::flecs_static
-    ${Vulkan_LIBRARY}
+    ${Vulkan_LIBRARIES}
     glm::glm
-    PRIVATE GPUOpen::VulkanMemoryAllocator
+    GPUOpen::VulkanMemoryAllocator
 )

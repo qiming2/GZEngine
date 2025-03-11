@@ -20,7 +20,7 @@
 #include "Log.h"
 #include "Renderer/Renderer.h"
 
-#define USE_IMGUI 1
+#define USE_IMGUI 0
 
 namespace GZ {
 	// Add another style maybe
@@ -259,14 +259,18 @@ namespace GZ {
 		SDL_DestroyWindow(window);
 		SDL_Quit();
 	}
-
+	
 	void App::run() {
 		SDL_Event e;
+		u64 prevTime = SDL_GetTicksNS();
 #if USE_IMGUI
         ImGuiIO& io = ImGui::GetIO();
 #endif
 		while (is_running) {
-
+			
+			u64 curTime = SDL_GetTicksNS();
+			f32 deltaTime = (curTime - prevTime) / (f32) SDL_NS_PER_SECOND;
+			prevTime = curTime;
 			while (SDL_PollEvent(&e)) {
 
 				switch (e.type) {
@@ -382,7 +386,10 @@ namespace GZ {
 			// Render here
 			vk_renderer->set_imgui_draw_data(main_draw_data);
 #endif
+			//gz_info("Delta time: {}, fps: {}", deltaTime, 1.0f / deltaTime);
+			vk_renderer->begin_frame(deltaTime);
 			vk_renderer->render_frame();
+			vk_renderer->end_frame();
 		}
 
 	}

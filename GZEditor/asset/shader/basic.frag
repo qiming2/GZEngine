@@ -1,9 +1,10 @@
 #version 450
 
 layout(location = 0) in vec3 in_color;
-
+layout(location = 1) in vec2 in_uv;
 
 layout(location = 0) out vec4 out_color;
+layout(binding = 1) uniform sampler2D texSampler;
 
 // Converts a color from linear light gamma to sRGB gamma
 vec4 from_linear(vec4 linearRGB)
@@ -26,6 +27,6 @@ vec4 to_linear(vec4 sRGB)
 }
 
 void main() {
-    out_color = vec4(in_color, 1.0);
+    out_color = texture(texSampler, in_uv);
     out_color = from_linear(out_color);
 }
