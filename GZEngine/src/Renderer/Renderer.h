@@ -2,6 +2,7 @@
 #include <gzpch.h>
 #include <imgui_impl_vulkan.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_beta.h>
 
 namespace GZ {
 	struct QueueFamilyIndices {
@@ -19,7 +20,6 @@ namespace GZ {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 	struct Renderer {
-	
 	public:
 		b8 init(void *window_handle);
 		b8 deinit();
@@ -29,6 +29,7 @@ namespace GZ {
 		void render_frame();
 		void set_imgui_draw_data(ImDrawData *imgui_data);
 		void will_deinit();
+        void handle_window_resized();
 	private:
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
@@ -52,17 +53,20 @@ namespace GZ {
 		std::vector<VkFramebuffer> swapChainFramebuffers;
 
 		VkCommandPool commandPool;
-		VkCommandBuffer commandBuffer;
+		std::vector<VkCommandBuffer> commandBuffers;
 
 		// Sync objects
-		VkSemaphore imageAvailableSemaphore;
-		VkSemaphore renderFinishedSemaphore;
-		VkFence inFlightFence;
+		std::vector<VkSemaphore> imageAvailableSemaphores;
+		std::vector<VkSemaphore> renderFinishedSemaphores;
+		std::vector<VkFence> inFlightFences;
 
 		void *window_handle; // Platform specific
 		
 		// Imgui draw list
-		ImDrawData *imgui_data;
+		ImDrawData *imgui_data = nullptr;
+        
+        u32 current_frame_index = 0;
+        static const int MAX_FRAMES_IN_FLIGHT = 2;
 	private: // Can expect the order to be the same order as defined here
 		void create_instance();
 		void setup_debug_messenger();
@@ -80,6 +84,11 @@ namespace GZ {
 
 		// Render command potentially
 		void record_command_buffer(VkCommandBuffer commandBuffer, u32 imageIndex);
+        
+        void recreate_swapchain();
+        void cleanup_swapchain();
+        
+        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 	private: // helper util
 		SwapChainSupportDetails query_swapchain_support(VkPhysicalDevice device);

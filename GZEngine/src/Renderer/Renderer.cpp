@@ -167,7 +167,10 @@ namespace GZ {
 	}
 
 	static const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef GZ_PLATFORM_APPLE
+        VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
+#endif
 	};
 
 	static b8 check_device_extensions_support(VkPhysicalDevice device) {
@@ -212,12 +215,13 @@ namespace GZ {
 
 	VkExtent2D Renderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
 		if (capabilities.currentExtent.width != std::numeric_limits<u32>::max()) {
+            gz_core_info("Creating swapchain images with current w: {} h: {}", capabilities.currentExtent.width, capabilities.currentExtent.height);
 			return capabilities.currentExtent;
 		}
 		else {
 			i32 width, height;
 			SDL_GetWindowSizeInPixels((SDL_Window *)window_handle, &width, &height);
-
+            
 			VkExtent2D actualExtent = {
 				static_cast<u32>(width),
 				static_cast<u32>(height)
@@ -225,7 +229,8 @@ namespace GZ {
 
 			actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 			actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
+            
+            gz_core_info("Creating swapchain images with w: {} h: {}", actualExtent.width, actualExtent.height);
 			return actualExtent;
 		}
 	}
@@ -329,6 +334,12 @@ namespace GZ {
 
 		createInfo.pEnabledFeatures = &deviceFeatures;
 
+#if GZ_DEBUG
+        gz_core_info("Opt in device extensions:");
+        for (auto &device_extension: deviceExtensions) {
+            gz_core_info("\t {}", device_extension);
+        }
+#endif
 		// Enabled device extensions
 		createInfo.enabledExtensionCount = static_cast<u32>(deviceExtensions.size());
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -354,6 +365,30 @@ namespace GZ {
 		}
 	}
 
+    void Renderer::cleanup_swapchain() {
+        for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
+            vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
+        }
+
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(device, swapChain, nullptr);
+    }
+
+    void Renderer::recreate_swapchain() {
+        vkDeviceWaitIdle(device);
+        cleanup_swapchain();
+        create_swapchain();
+        create_swapchain_image_views();
+        create_framebuffers();
+
+    }
+
+    void Renderer::handle_window_resized() {
+        recreate_swapchain();
+    }
 	void Renderer::create_swapchain()
 	{
 		SwapChainSupportDetails swapChainSupport = query_swapchain_support(physicalDevice);
@@ -518,7 +553,7 @@ namespace GZ {
 	{
 		// Working directory is in Editor
 		// asserts are also in editor
-        gz_core_info("Cur wkd: ", SDL_GetCurrentDirectory());
+        gz_core_info("Cur wkd: {}", SDL_GetCurrentDirectory());
 #ifdef GZ_PLATFORM_WINDOWS
 		auto vertShaderCode = readFile("asset\\shader\\basic_vert.spv");
 		auto fragShaderCode = readFile("asset\\shader\\basic_frag.spv");
@@ -705,17 +740,22 @@ namespace GZ {
 
 	void Renderer::create_command_buffer()
 	{
+        commandBuffers.resize(Renderer::MAX_FRAMES_IN_FLIGHT);
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.commandPool = commandPool;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandBufferCount = 1;
+		allocInfo.commandBufferCount = 2;
 
-		vk_check_result(vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer));
+		vk_check_result(vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()));
 	}
 
 	void Renderer::create_sync_objects()
 	{
+        
+        imageAvailableSemaphores.resize(Renderer::MAX_FRAMES_IN_FLIGHT);
+        renderFinishedSemaphores.resize(Renderer::MAX_FRAMES_IN_FLIGHT);
+        inFlightFences.resize(Renderer::MAX_FRAMES_IN_FLIGHT);
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -723,12 +763,59 @@ namespace GZ {
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-		vk_check_result(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore));
-		vk_check_result(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore));
-		vk_check_result(vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence));
-
+        for (u32 i = 0; i < Renderer::MAX_FRAMES_IN_FLIGHT; ++i) {
+            vk_check_result(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]));
+            vk_check_result(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]));
+            vk_check_result(vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]));
+        }
+		
 	}
 
+void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = (float) swapChainExtent.width;
+            viewport.height = (float) swapChainExtent.height;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+            VkRect2D scissor{};
+            scissor.offset = {0, 0};
+            scissor.extent = swapChainExtent;
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+            vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(commandBuffer);
+
+        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+    }
 	void Renderer::record_command_buffer(VkCommandBuffer commandBuffer, u32 imageIndex)
 	{
 		VkCommandBufferBeginInfo beginInfo{};
@@ -771,7 +858,9 @@ namespace GZ {
 
 		// Draw Imgui stuff
 		// Record dear imgui primitives into command buffer
-		ImGui_ImplVulkan_RenderDrawData(imgui_data, commandBuffer);
+        if (imgui_data != nullptr) {
+            ImGui_ImplVulkan_RenderDrawData(imgui_data, commandBuffer);
+        }
 
 		vkCmdEndRenderPass(commandBuffer);
 		vk_check_result(vkEndCommandBuffer(commandBuffer));
@@ -797,15 +886,15 @@ namespace GZ {
 
 		std::vector<const char*> requiredExtensions = getRequiredExtensions();
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-	#ifdef GZ_DEBUG
+#ifdef GZ_DEBUG
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 		createInfo.ppEnabledLayerNames = validationLayers.data();
 		populateDebugMessengerCreateInfo(&debugCreateInfo);
 		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
-	#elif GZ_RELEASE
+#elif GZ_RELEASE
 		createInfo.enabledLayerCount = 0;
 		creatInfo.pNext = nullptr;
-	#endif
+#endif
 
 	#ifdef GZ_PLATFORM_APPLE
         requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
@@ -844,30 +933,27 @@ namespace GZ {
 		create_command_pool();
 		create_command_buffer();
 		create_sync_objects();
-
+        gz_core_info("Renderer::Finished intializing...");
 		return true;
 	}
 
 	b8 Renderer::deinit() {
-		vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
-		vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
-		vkDestroyFence(device, inFlightFence, nullptr);
-
+        cleanup_swapchain();
+        vkDestroyPipeline(device, graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+        vkDestroyRenderPass(device, renderPass, nullptr);
+        for (u32 i = 0; i < Renderer::MAX_FRAMES_IN_FLIGHT; ++i) {
+            vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+            vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+            vkDestroyFence(device, inFlightFences[i], nullptr);
+        }
+        
 		vkDestroyCommandPool(device, commandPool, nullptr);
-		for (auto framebuffer : swapChainFramebuffers) {
-			vkDestroyFramebuffer(device, framebuffer, nullptr);
-		}
-		vkDestroyPipeline(device, graphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyRenderPass(device, renderPass, nullptr);
-		for (auto imageView : swapChainImageViews) {
-			vkDestroyImageView(device, imageView, nullptr);
-		}
-		vkDestroySwapchainKHR(device, swapChain, nullptr);
+        vkDestroyDevice(device, nullptr);
 		if (enableValidationLayers) {
 			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 		}
-		vkDestroyDevice(device, nullptr);
+		
 		SDL_Vulkan_DestroySurface(instance, surface, nullptr);
 		vkDestroyInstance(instance, nullptr);
 
@@ -889,8 +975,8 @@ namespace GZ {
 		init_info.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE + 1;
 		init_info.RenderPass = renderPass;
 		init_info.Subpass = 0;
-		init_info.MinImageCount = swapChainImages.size();
-		init_info.ImageCount = swapChainImages.size();
+		init_info.MinImageCount = static_cast<u32>(swapChainImages.size());
+		init_info.ImageCount = static_cast<u32>(swapChainImages.size());
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		init_info.Allocator = nullptr;
 		init_info.CheckVkResultFn = check_vk_result_imgui_callback;
@@ -898,32 +984,39 @@ namespace GZ {
 
 	void Renderer::render_frame()
 	{
-		vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-		vkResetFences(device, 1, &inFlightFence);
+
+        vkWaitForFences(device, 1, &inFlightFences[current_frame_index], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
-		vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-
-		vkResetCommandBuffer(commandBuffer, 0);
-		record_command_buffer(commandBuffer, imageIndex);
+        VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[current_frame_index], VK_NULL_HANDLE, &imageIndex);
+        
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            gz_core_info("Recreating swapchain return early...");
+            return;
+        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+            gz_core_error("failed to acquire swap chain image!");
+        }
+        vkResetFences(device, 1, &inFlightFences[current_frame_index]);
+        vkResetCommandBuffer(commandBuffers[current_frame_index], 0);
+        record_command_buffer(commandBuffers[current_frame_index], imageIndex);
 
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
+        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[current_frame_index] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pCommandBuffers = &commandBuffers[current_frame_index];
 
-		VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+        VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[current_frame_index] };
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 		
-		vk_check_result(vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence));
+        vk_check_result(vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[current_frame_index]));
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -937,7 +1030,15 @@ namespace GZ {
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr; // Optional
 
-		vkQueuePresentKHR(presentQueue, &presentInfo);
+        result = vkQueuePresentKHR(presentQueue, &presentInfo);
+        
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            gz_core_critical("Present out of date or suboptimal swapchain");
+        } else if (result != VK_SUCCESS) {
+            gz_core_error("failed to acquire swap chain image!");
+        }
+        
+        current_frame_index = (current_frame_index + 1) % Renderer::MAX_FRAMES_IN_FLIGHT;
 	}
 
 	void Renderer::set_imgui_draw_data(ImDrawData* imgui_data)

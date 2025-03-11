@@ -262,8 +262,9 @@ namespace GZ {
 
 	void App::run() {
 		SDL_Event e;
-		ImGuiIO &io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
+#if USE_IMGUI
+        ImGuiIO& io = ImGui::GetIO();
+#endif
 		while (is_running) {
 
 			while (SDL_PollEvent(&e)) {
@@ -275,14 +276,18 @@ namespace GZ {
 					is_running = false;
 					break;
 				case SDL_EVENT_KEY_DOWN:
-					if (e.key.key == SDLK_ESCAPE) {
+                    if (e.key.key == SDLK_ESCAPE) {
 						is_running = false;
 					}
 					break;
+                case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+                    gz_info("Window pixel size has changed, need to signal renderer to recreate swapchain...");
+                    vk_renderer->handle_window_resized();
+                    break;
 				}
 
 #if USE_IMGUI
-				ImGuiIO& io = ImGui::GetIO();
+                
 				ImGui_ImplSDL3_ProcessEvent(&e);
 				if (io.WantCaptureKeyboard || io.WantCaptureMouse) {
 					continue;
@@ -303,7 +308,6 @@ namespace GZ {
 				continue;
 			}
 #if USE_IMGUI
-			
 			// Start the Dear ImGui frame
 			ImGui_ImplVulkan_NewFrame();
 			ImGui_ImplSDL3_NewFrame();

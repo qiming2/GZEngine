@@ -1,4 +1,4 @@
-#include <GZ_include.h>
+#include <GZ_Include.h>
 #include <defines.h>
 
 namespace ed = ax::NodeEditor;
