@@ -120,6 +120,10 @@ namespace GZ {
 		std::vector<VkDeviceMemory> uniformBuffersMemory;
 		std::vector<void*> uniformBuffersMapped;
 
+		VkImage depthImage;
+		VkDeviceMemory depthImageMemory;
+		VkImageView depthImageView;
+
 		// Image textures
 		VkImage textureImage;
 		VkDeviceMemory textureImageMemory;
@@ -147,6 +151,7 @@ namespace GZ {
 		void create_render_pass();
 		void create_descriptor_set_layout();
 		void create_graphics_pipeline();
+		void create_depth_resources();
 		void create_framebuffers();
 		void create_command_pool();
 		void create_texture_image();
@@ -177,7 +182,11 @@ namespace GZ {
 		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 		u32 rateDevice(VkPhysicalDevice device);
 		u32 findMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
-		
+
+		VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+		VkFormat find_depth_format();
+
 		// Transition image layout
 		void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
@@ -189,11 +198,12 @@ namespace GZ {
 
 		void create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
-		VkImageView create_image_view(VkImage image, VkFormat format);
+		VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
 		// buffer related
 		void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 		void copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
 	private: // helper member var
 		QueueFamilyIndices queue_family_indices;
 

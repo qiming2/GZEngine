@@ -18,6 +18,8 @@ git submodule update
 If you have not, download vulkan sdk:
 https://vulkan.lunarg.com/
 
+Download cmake: minimum currently 3.16, but higher is better, some packages use 3.5 and above(currently it does not cause any issue)
+
 ### macOS
 
 ./temp_compile_shader.sh
