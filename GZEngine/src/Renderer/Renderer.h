@@ -132,6 +132,14 @@ namespace GZ {
 
 		u32 current_frame_index = 0;
 		static const int MAX_FRAMES_IN_FLIGHT = 2;
+    private: // temp test model
+        // Test obj:
+        const uint32_t viking_texture_width = 800;
+        const uint32_t viking_texture_height = 600;
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+
 	private: // Provided by application
 		// Imgui draw list
 		ImDrawData *imgui_data = nullptr;
@@ -157,6 +165,7 @@ namespace GZ {
 		void create_texture_image();
 		void create_texture_image_view();
 		void create_texture_sampler();
+        void load_model();
 		void create_vertex_buffer();
 		void create_index_buffer();
 		void create_uniform_buffer();

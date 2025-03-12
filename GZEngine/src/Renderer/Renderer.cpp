@@ -2,10 +2,10 @@
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
+#include <tiny_obj_loader.h>
 
 #include "Renderer.h"
 #include "Log.h"
-#include "vk_mem_alloc.h"
 
 
 #define STR_VALUE(arg)      #arg
@@ -962,11 +962,16 @@ namespace GZ {
 	{
 #ifdef GZ_PLATFORM_APPLE
 		std::string image_path = "asset/texture/yuanshenqidong.png";
+        std::string viking_texture_path = "asset/texture/viking_room.png";
+        std::string meng_yuan_texture_path = "asset/texture/meng_yuan.png";
+        
 #else
 		std::string image_path = "asset\\texture\\yuanshenqidong.png";
+        std::string viking_texture_path = "asset\\texture\\viking_room.png";
+        std::string meng_yuan_texture_path = "asset\\texture\\meng_yuan.png";
 #endif
 		i32 texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load(image_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(meng_yuan_texture_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 		if (!pixels) {
@@ -1167,22 +1172,72 @@ namespace GZ {
 		end_single_time_commands(commandBuffer);
 	}
 
-	// Quad
-	const std::vector<Vertex> vertices = {
-		{{-0.5f, 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0, 0.0}},
-		{{0.5f, 0.0f, -0.5f},  {0.0f, 1.0f, 0.0f}, {1.0, 0.0}},
-		{{0.5f, 0.0f, 0.5f},   {0.0f, 0.0f, 1.0f}, {1.0, 1.0}},
-		{{-0.5f, 0.0f, 0.5f},  {1.0f, 1.0f, 1.0f}, {0.0, 1.0}},
 
-		{{-0.5f, -1.0f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0, 0.0}},
-		{{0.5f, -1.0f, -0.5f},  {0.0f, 1.0f, 0.0f}, {1.0, 0.0}},
-		{{0.5f, -1.0f, 0.5f},   {0.0f, 0.0f, 1.0f}, {1.0, 1.0}},
-		{{-0.5f, -1.0f, 0.5f},  {1.0f, 1.0f, 1.0f}, {0.0, 1.0}},
-	};
+    #ifdef GZ_PLATFORM_APPLE
+        const std::string viking_obj_path = "asset/model/viking_room.obj";
+        
+        const std::string meng_yuan_obj_path = "asset/model/meng_yuan.obj";
+    #else
+        const std::string viking_obj_path = "asset\\model\\viking_room.obj";
+        const std::string meng_yuan_obj_path = "asset\\model\\meng_yuan.obj";
+    #endif
+    void Renderer::load_model() {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
 
-	static const std::vector<u32> indices = {
-		0, 2, 1, 3, 2, 0, 4, 6, 5, 7, 6, 4
-	};
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, meng_yuan_obj_path.c_str())) {
+            gz_core_error("Load model failed!");
+        }
+        
+        for (const auto &shape: shapes) {
+            for (const auto &index: shape.mesh.indices) {
+                static u32 cur_index = 0;
+                Vertex vert{};
+                
+                vert.pos = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2],
+                };
+                
+                vert.uv = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+                
+                vert.color = {
+                    1.0f, 1.0f, 1.0f
+                };
+                
+                vertices.emplace_back(vert);
+//                if (cur_index == 0)
+//                    indices.emplace_back(indices.size() + 1);
+//                else if (cur_index == 1)
+//                    indices.emplace_back(indices.size() - 1);
+//                else
+                    indices.emplace_back(indices.size());
+                cur_index = (cur_index + 1) % 3;
+            }
+        }
+    }
+//	// Quad
+//	const std::vector<Vertex> vertices = {
+//		{{-0.5f, 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0, 0.0}},
+//		{{0.5f, 0.0f, -0.5f},  {0.0f, 1.0f, 0.0f}, {1.0, 0.0}},
+//		{{0.5f, 0.0f, 0.5f},   {0.0f, 0.0f, 1.0f}, {1.0, 1.0}},
+//		{{-0.5f, 0.0f, 0.5f},  {1.0f, 1.0f, 1.0f}, {0.0, 1.0}},
+//
+//		{{-0.5f, -1.0f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0, 0.0}},
+//		{{0.5f, -1.0f, -0.5f},  {0.0f, 1.0f, 0.0f}, {1.0, 0.0}},
+//		{{0.5f, -1.0f, 0.5f},   {0.0f, 0.0f, 1.0f}, {1.0, 1.0}},
+//		{{-0.5f, -1.0f, 0.5f},  {1.0f, 1.0f, 1.0f}, {0.0, 1.0}},
+//	};
+//
+//	static const std::vector<u32> indices = {
+//		0, 2, 1, 3, 2, 0, 4, 6, 5, 7, 6, 4
+//	};
 	void Renderer::create_vertex_buffer()
 	{
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -1465,6 +1520,7 @@ namespace GZ {
 		create_texture_image();
 		create_texture_image_view();
 		create_texture_sampler();
+        load_model();
 		create_vertex_buffer();
 		create_index_buffer();
 		create_uniform_buffer();

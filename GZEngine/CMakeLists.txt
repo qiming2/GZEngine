@@ -45,6 +45,7 @@ list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tiny_obj/include"
     "${Vulkan_INCLUDE_DIRS}"
 )
 
@@ -72,6 +73,8 @@ file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui-node-editor/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/include/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tiny_obj/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tiny_obj/include/*.h"
 )
 
 file(GLOB_RECURSE generatedSources 
