@@ -127,8 +127,6 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 }
 namespace GZ {
 
-	
-
 	void Renderer::setup_debug_messenger() {
 		if (!enableValidationLayers) return;
 

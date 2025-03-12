@@ -15,12 +15,17 @@ git submodule init
 
 git submodule update
 
+If you have not, download vulkan sdk:
+https://vulkan.lunarg.com/
+
 ### macOS
 
+./temp_compile_shader.sh
 ./build.sh
 
 ### window
 
+temp_compile_shader.bat
 build.bat
 
 ### linux
