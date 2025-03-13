@@ -20,7 +20,7 @@
 #include "Log.h"
 #include "Renderer/Renderer.h"
 
-#define USE_IMGUI 0
+#define USE_IMGUI 1
 
 namespace GZ {
 	// Add another style maybe
@@ -237,6 +237,8 @@ namespace GZ {
 		vk_renderer->init_imgui_vulkan(&init_info);
 		ImGui_ImplVulkan_Init(&init_info);
 
+		// Load texture
+		main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
 
 		// Node editor
 		ed::Config config;
@@ -377,6 +379,16 @@ namespace GZ {
 				ImGui::Text("Hello from another window!");
 				if (ImGui::Button("Close Me"))
 					show_another_window = false;
+				ImGui::End();
+			}
+
+			// 4. Show main shaing
+			if (show_main_scene) {
+				ImGui::Begin("Main Scene", &show_main_scene);
+				ImVec2 window_size = ImGui::GetWindowSize();
+				// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+				
+				ImGui::Image((ImTextureID)main_tex_id, window_size, {0, 0}, {1, 1});
 				ImGui::End();
 			}
 

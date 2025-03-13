@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <tiny_obj_loader.h>
+#include <imgui_impl_vulkan.h>
 
 #include "Renderer.h"
 #include "Log.h"
@@ -255,7 +256,6 @@ namespace GZ {
 			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
 		}
 
-
 		return details;
 	}
 
@@ -273,9 +273,12 @@ namespace GZ {
 
 		VkPhysicalDeviceFeatures supportedFeatures;
 		vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-		if (indices.isComplete() && extension_supported && swapChainAdequate && supportedFeatures.samplerAnisotropy) {
+		if (indices.isComplete() && extension_supported && swapChainAdequate && supportedFeatures.samplerAnisotropy && supportedFeatures.sampleRateShading) {
 			// Just fullfill the requirement
 			start_rating += 1;
+		}
+		else {
+			gz_core_error("Does not fulfill the minimum requirment!");
 		}
 
 		VkPhysicalDeviceProperties deviceProperties;
@@ -306,6 +309,7 @@ namespace GZ {
 			if (cur_rating > global_rating) {
 				physicalDevice = device;
 				global_rating = cur_rating;
+				msaaSamples = get_max_usable_sample_count();
 			}
 		}
 
@@ -347,6 +351,7 @@ namespace GZ {
 
 		VkPhysicalDeviceFeatures deviceFeatures{};
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
+		deviceFeatures.sampleRateShading = VK_TRUE;
 
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -387,6 +392,10 @@ namespace GZ {
 	}
 
     void Renderer::cleanup_swapchain() {
+		vkDestroyImageView(device, colorImageView, nullptr);
+		vkDestroyImage(device, colorImage, nullptr);
+		vkFreeMemory(device, colorImageMemory, nullptr);
+
 		vkDestroyImageView(device, depthImageView, nullptr);
 		vkDestroyImage(device, depthImage, nullptr);
 		vkFreeMemory(device, depthImageMemory, nullptr);
@@ -406,8 +415,9 @@ namespace GZ {
 	{
 		UniformBufferObject ubo{};
 		ubo.model = glm::rotate(glm::mat4(1.0f), accumulatedTime * glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//ubo.model = glm::mat4(1.0f);
 
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 2.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		
 		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f);
 		
@@ -416,11 +426,44 @@ namespace GZ {
 		memcpy(uniformBuffersMapped[current_frame_index], &ubo, sizeof(ubo));
 	}
 
+	VkSampleCountFlagBits Renderer::get_max_usable_sample_count() {
+		VkPhysicalDeviceProperties physicalDeviceProperties;
+		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+		return VK_SAMPLE_COUNT_1_BIT;
+
+		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+		if (counts & VK_SAMPLE_COUNT_64_BIT) { 
+			return VK_SAMPLE_COUNT_4_BIT; 
+		}
+
+		// TODO(Qiming): only use msaa 4
+		if (counts & VK_SAMPLE_COUNT_32_BIT) {
+			gz_core_info("MSAA sampled count: 32");
+			return VK_SAMPLE_COUNT_4_BIT; 
+		}
+		if (counts & VK_SAMPLE_COUNT_16_BIT) {
+			gz_core_info("MSAA sampled count: 16");
+			return VK_SAMPLE_COUNT_4_BIT; 
+		}
+		if (counts & VK_SAMPLE_COUNT_8_BIT) {
+			gz_core_info("MSAA sampled count: 8");
+			return VK_SAMPLE_COUNT_4_BIT; 
+		}
+		if (counts & VK_SAMPLE_COUNT_4_BIT) {
+			gz_core_info("MSAA sampled count: 4");
+			return VK_SAMPLE_COUNT_4_BIT; 
+		}
+
+		gz_core_error("MSAA sampled count: 1");
+		return VK_SAMPLE_COUNT_1_BIT;
+	}
+
 	void Renderer::recreate_swapchain() {
         vkDeviceWaitIdle(device);
         cleanup_swapchain();
         create_swapchain();
         create_swapchain_image_views();
+		create_color_resources();
 		create_depth_resources();
         create_framebuffers();
     }
@@ -452,7 +495,7 @@ namespace GZ {
 		createInfo.imageArrayLayers = 1;
 
 		// TODO(Qiming): Need to change this for imgui viewport rendering
-		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		/*createInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT*/
 
 		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
@@ -488,7 +531,7 @@ namespace GZ {
 	{
 		swapChainImageViews.resize(swapChainImages.size());
 		for (u32 i = 0; i < swapChainImages.size(); i++) {
-			swapChainImageViews[i] = create_image_view(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+			swapChainImageViews[i] = create_image_view(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
 	}
 
@@ -496,7 +539,7 @@ namespace GZ {
 	{
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = swapChainImageFormat;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.samples = msaaSamples;
 
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -505,17 +548,27 @@ namespace GZ {
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentDescription depthAttachment{};
 		depthAttachment.format = find_depth_format();
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.samples = msaaSamples;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentDescription colorAttachmentResolve{};
+		colorAttachmentResolve.format = swapChainImageFormat;
+		colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 		VkAttachmentReference colorAttachmentRef{};
 		colorAttachmentRef.attachment = 0;
@@ -525,10 +578,15 @@ namespace GZ {
 		depthAttachmentRef.attachment = 1;
 		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		VkAttachmentReference colorAttachmentResolveRef{};
+		colorAttachmentResolveRef.attachment = 2;
+		colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
+		subpass.pResolveAttachments = &colorAttachmentResolveRef;
 		subpass.pDepthStencilAttachment = &depthAttachmentRef;
 		
 		VkSubpassDependency dependency{};
@@ -541,7 +599,7 @@ namespace GZ {
 		dependency.dstStageMask =  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.dstAccessMask =  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-		std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+		std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
@@ -708,7 +766,7 @@ namespace GZ {
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampling.rasterizationSamples = msaaSamples;
 		multisampling.minSampleShading = 1.0f; // Optional
 		multisampling.pSampleMask = nullptr; // Optional
 		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
@@ -787,9 +845,10 @@ namespace GZ {
 	{
 		swapChainFramebuffers.resize(swapChainImageViews.size());
 		for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-			std::array<VkImageView, 2> attachments = {
+			std::array<VkImageView, 3> attachments = {
+				colorImageView,
+				depthImageView,
 				swapChainImageViews[i],
-				depthImageView
 			};
 
 			VkFramebufferCreateInfo framebufferInfo{};
@@ -852,15 +911,22 @@ namespace GZ {
 	void Renderer::create_depth_resources()
 	{
 		VkFormat depthFormat = find_depth_format();
-		create_image(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-		depthImageView = create_image_view(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+		create_image(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+		depthImageView = create_image_view(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
-		transition_image_layout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		transition_image_layout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
 
 	}
 
-	void Renderer::transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+	void Renderer::create_color_resources() {
+		VkFormat colorFormat = swapChainImageFormat;
+
+		create_image(swapChainExtent.width, swapChainExtent.height, 1, msaaSamples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage, colorImageMemory);
+		colorImageView = create_image_view(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	}
+
+	void Renderer::transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels) {
 		VkCommandBuffer commandBuffer = begin_single_time_commands();
 
 		VkImageMemoryBarrier barrier{};
@@ -884,7 +950,7 @@ namespace GZ {
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		}
 		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.levelCount = mipLevels;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
 
@@ -978,6 +1044,10 @@ namespace GZ {
 			gz_core_error("failed to load texture image!");
 		}
 
+		// extra +1 for the base level
+		mipLevels = static_cast<u32>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+		gz_core_info("mipmaps level: {}", mipLevels);
+
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
 		
@@ -990,19 +1060,116 @@ namespace GZ {
 
 		stbi_image_free(pixels);
 
-		create_image(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+		// using blit to blit high mip to low mip data
+		create_image(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-		transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 		copy_buffer_to_image(stagingBuffer, textureImage, static_cast<u32>(texWidth), static_cast<u32>(texHeight));
-		transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		// Using blit so we don't need to transition
+		/*transition_image_layout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);*/
+		generate_mipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
 
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 	}
 
+	void Renderer::generate_mipmaps(VkImage image, VkFormat imageFormat, i32 texWidth, i32 texHeight, u32 mipLevels) {
+		// Check if image format supports linear blitting
+		VkFormatProperties formatProperties;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
+		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+			gz_core_error("Linear sampled image filter not supported on device");
+		}
+			
+
+		VkCommandBuffer commandBuffer = begin_single_time_commands();
+		
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.image = image;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+		barrier.subresourceRange.levelCount = 1;
+		// all above parameters will remain the same but the dstaccess bit
+
+		i32 mipWidth = texWidth;
+		i32 mipHeight = texHeight;
+
+		for (u32 i = 1; i < mipLevels; i++) {
+			barrier.subresourceRange.baseMipLevel = i - 1;
+
+			// from copy_to_buffer to dst_optimal
+			// or from src_optimal to dst_optimal from last blit
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			VkImageBlit blit{};
+			blit.srcOffsets[0] = { 0, 0, 0 };
+			blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+			blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.srcSubresource.mipLevel = i - 1;
+			blit.srcSubresource.baseArrayLayer = 0;
+			blit.srcSubresource.layerCount = 1;
+			blit.dstOffsets[0] = { 0, 0, 0 };
+			blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+			blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.dstSubresource.mipLevel = i;
+			blit.dstSubresource.baseArrayLayer = 0;
+			blit.dstSubresource.layerCount = 1;
+
+			// blit from i - 1 -> i
+			vkCmdBlitImage(commandBuffer,
+				image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1, &blit,
+				VK_FILTER_LINEAR);
+			
+			// transfer 
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			if (mipWidth > 1) mipWidth /= 2;
+			if (mipHeight > 1) mipHeight /= 2;
+		}
+
+		barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(commandBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);
+
+		end_single_time_commands(commandBuffer);
+	}
+
 	void Renderer::create_texture_image_view()
 	{
-		textureImageView = create_image_view(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+		textureImageView = create_image_view(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
 	}
 
 	void Renderer::create_texture_sampler()
@@ -1031,7 +1198,7 @@ namespace GZ {
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo.mipLodBias = 0.0f;
 		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
+		samplerInfo.maxLod = static_cast<f32>(mipLevels);
 
 		vk_check_result(vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler));
 	}
@@ -1051,7 +1218,7 @@ namespace GZ {
 		return 0;
 	}
 
-	void Renderer::create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+	void Renderer::create_image(u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 	{
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1059,14 +1226,14 @@ namespace GZ {
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = mipLevels;
 		imageInfo.arrayLayers = 1;
 		imageInfo.format = format;
 		imageInfo.tiling = tiling;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = usage;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.samples = numSamples;
 		imageInfo.flags = 0; // Optional
 
 		vk_check_result(vkCreateImage(device, &imageInfo, nullptr, &image));
@@ -1084,7 +1251,7 @@ namespace GZ {
 		vkBindImageMemory(device, image, imageMemory, 0);
 	}
 
-	VkImageView Renderer::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+	VkImageView Renderer::create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels)
 	{
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1093,7 +1260,7 @@ namespace GZ {
 		viewInfo.format = format;
 		viewInfo.subresourceRange.aspectMask = aspectFlags;
 		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.levelCount = mipLevels;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
@@ -1217,7 +1384,7 @@ namespace GZ {
 //                else if (cur_index == 1)
 //                    indices.emplace_back(indices.size() - 1);
 //                else
-                    indices.emplace_back(indices.size());
+                indices.emplace_back((u32)indices.size());
                 cur_index = (cur_index + 1) % 3;
             }
         }
@@ -1442,11 +1609,12 @@ namespace GZ {
 
 		// Draw Imgui stuff
 		// Record dear imgui primitives into command buffer
-        if (imgui_data != nullptr) {
-            ImGui_ImplVulkan_RenderDrawData(imgui_data, commandBuffer);
-        }
+		if (imgui_data != nullptr) {
+			ImGui_ImplVulkan_RenderDrawData(imgui_data, commandBuffer);
+		}
 
 		vkCmdEndRenderPass(commandBuffer);
+
 		vk_check_result(vkEndCommandBuffer(commandBuffer));
 	}
 
@@ -1515,6 +1683,7 @@ namespace GZ {
 		create_descriptor_set_layout();
 		create_graphics_pipeline();
 		create_command_pool();
+		create_color_resources();
 		create_depth_resources();
 		create_framebuffers();
 		create_texture_image();
@@ -1575,28 +1744,6 @@ namespace GZ {
 		vkDestroyInstance(instance, nullptr);
 
 		return true;
-	}
-
-	void Renderer::init_imgui_vulkan(ImGui_ImplVulkan_InitInfo* init_info_ptr)
-	{		
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-		auto &init_info = *init_info_ptr;
-		init_info.ApiVersion = VK_API_VERSION_1_4;              // Pass in your value of VkApplicationInfo::apiVersion, otherwise will default to header version.
-		init_info.Instance = instance;
-		init_info.PhysicalDevice = physicalDevice;
-		init_info.Device = device;
-		init_info.QueueFamily = indices.graphicsFamily.value();
-		init_info.Queue = graphicsQueue;
-		//init_info.PipelineCache = pipelineCache;
-		//init_info.DescriptorPool = descriptorPool
-		init_info.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE + 1;
-		init_info.RenderPass = renderPass;
-		init_info.Subpass = 0;
-		init_info.MinImageCount = static_cast<u32>(swapChainImages.size());
-		init_info.ImageCount = static_cast<u32>(swapChainImages.size());
-		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-		init_info.Allocator = nullptr;
-		init_info.CheckVkResultFn = check_vk_result_imgui_callback;
 	}
 
 	void Renderer::begin_frame(const f32& deltaTime)
@@ -1669,6 +1816,34 @@ namespace GZ {
 	void Renderer::end_frame()
 	{
 		// currently nothing happens
+	}
+
+	void Renderer::init_imgui_vulkan(ImGui_ImplVulkan_InitInfo* init_info_ptr)
+	{
+		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+		auto& init_info = *init_info_ptr;
+		init_info.ApiVersion = VK_API_VERSION_1_4;              // Pass in your value of VkApplicationInfo::apiVersion, otherwise will default to header version.
+		init_info.Instance = instance;
+		init_info.PhysicalDevice = physicalDevice;
+		init_info.Device = device;
+		init_info.QueueFamily = indices.graphicsFamily.value();
+		init_info.Queue = graphicsQueue;
+		//init_info.PipelineCache = pipelineCache;
+		//init_info.DescriptorPool = descriptorPool;
+		init_info.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE + 1;
+		init_info.RenderPass = renderPass;
+		init_info.Subpass = 0;
+		init_info.MinImageCount = static_cast<u32>(swapChainImages.size());
+		init_info.ImageCount = static_cast<u32>(swapChainImages.size());
+		init_info.MSAASamples = msaaSamples;
+		init_info.Allocator = nullptr;
+		init_info.CheckVkResultFn = check_vk_result_imgui_callback;
+	}
+
+	void* Renderer::get_main_color_texture_imgui_id()
+	{
+		const auto textureID = ImGui_ImplVulkan_AddTexture(textureSampler, textureImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		return (void *)textureID;
 	}
 
 	void Renderer::set_imgui_draw_data(ImDrawData* imgui_data)

@@ -33,9 +33,12 @@ namespace GZ {
 		// Renderer
 		Renderer *vk_renderer = nullptr;
 		// TODO(Qiming): temp var in editor app
-		bool show_demo_window = true;
-		bool show_another_window = true;
-		bool show_node_editor = true;
+		b8 show_demo_window = true;
+		b8 show_another_window = true;
+		b8 show_node_editor = true;
+		b8 show_main_scene = true; 
+		ImTextureID main_tex_id;
+
 		ImVec4 clear_color = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
 		SDL_GLContext gl_context;
 

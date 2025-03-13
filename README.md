@@ -32,7 +32,7 @@ build.bat
 
 ### linux
 
-not supported yet
+not tested yet
 
 
 generated projects, files, etc will live in build folder

@@ -67,6 +67,7 @@ namespace GZ {
 		b8 init(void *window_handle);
 		b8 deinit();
 		void init_imgui_vulkan(ImGui_ImplVulkan_InitInfo *init_info);
+		void* get_main_color_texture_imgui_id();
 
 		// Generic draw function right now
 		void begin_frame(const f32 &deltaTime);
@@ -88,6 +89,7 @@ namespace GZ {
 		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 		std::vector<VkImage> swapChainImages;
 		std::vector<VkImageView> swapChainImageViews;
+
 		VkFormat swapChainImageFormat;
 		VkExtent2D swapChainExtent;
 
@@ -125,10 +127,20 @@ namespace GZ {
 		VkImageView depthImageView;
 
 		// Image textures
+		u32 mipLevels;
 		VkImage textureImage;
 		VkDeviceMemory textureImageMemory;
 		VkImageView textureImageView;
 		VkSampler textureSampler;
+
+		// final Color attachment
+		VkImage colorImage;
+		VkDeviceMemory colorImageMemory;
+		VkImageView colorImageView;
+
+		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+		VkDescriptorPool imguiDescriptorPool;
 
 		u32 current_frame_index = 0;
 		static const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -159,9 +171,10 @@ namespace GZ {
 		void create_render_pass();
 		void create_descriptor_set_layout();
 		void create_graphics_pipeline();
-		void create_depth_resources();
 		void create_framebuffers();
 		void create_command_pool();
+		void create_color_resources();
+		void create_depth_resources();
 		void create_texture_image();
 		void create_texture_image_view();
 		void create_texture_sampler();
@@ -197,7 +210,7 @@ namespace GZ {
 		VkFormat find_depth_format();
 
 		// Transition image layout
-		void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+		void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, u32 mipLevels);
 
 		void copy_buffer_to_image(VkBuffer buffer, VkImage image, u32 width, u32 height);
 
@@ -205,14 +218,16 @@ namespace GZ {
 		VkCommandBuffer begin_single_time_commands();
 		void end_single_time_commands(VkCommandBuffer commandBuffer);
 
-		void create_image(u32 width, u32 height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+		void create_image(u32 width, u32 height, u32 mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
-		VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+		VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels);
 
 		// buffer related
 		void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 		void copy_buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+		void generate_mipmaps(VkImage image, VkFormat imageFormat, i32 texWidth, i32 texHeight, u32 mipLevels);
 
+		VkSampleCountFlagBits get_max_usable_sample_count();
 	private: // helper member var
 		QueueFamilyIndices queue_family_indices;
 
