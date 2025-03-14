@@ -273,6 +273,7 @@ namespace GZ {
 			u64 curTime = SDL_GetTicksNS();
 			f32 deltaTime = (curTime - prevTime) / (f32) SDL_NS_PER_SECOND;
 			prevTime = curTime;
+			
 			while (SDL_PollEvent(&e)) {
 
 				switch (e.type) {
@@ -288,7 +289,10 @@ namespace GZ {
 					break;
                 case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
                     gz_info("Window pixel size has changed, need to signal renderer to recreate swapchain...");
-                    vk_renderer->handle_window_resized();
+					SDL_GetWindowSizeInPixels(window, (int *) & window_w, (int *) & window_h);
+					vk_renderer->handle_window_resized();
+					ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)main_tex_id);
+					main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
                     break;
 				}
 
@@ -411,9 +415,15 @@ namespace GZ {
 				ImGui::Begin("Main Scene", &show_main_scene, window_flags);
 				
 				// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-				ImVec2 window_size = ImGui::GetContentRegionAvail();
+				ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
+				if (main_view_w != static_cast<u32>(main_scene_cur_window_size.x) || main_view_h != static_cast<u32>(main_scene_cur_window_size.y)) {
+					main_view_w = static_cast<u32>(main_scene_cur_window_size.x);
+					main_view_h = static_cast<u32>(main_scene_cur_window_size.y);
+					vk_renderer->set_viewport_size(main_view_w, main_view_h);
+				}
+				
 				ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);
-				ImGui::Image((ImTextureID)main_tex_id, window_size, {0, 0}, {1, 1});
+				ImGui::Image((ImTextureID)main_tex_id, main_scene_cur_window_size, {0, 0}, {1, 1});
 				ImGui::PopStyleVar();
 				
 				ImGui::End();

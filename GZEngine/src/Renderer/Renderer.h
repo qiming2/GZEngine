@@ -76,6 +76,8 @@ namespace GZ {
 		void set_imgui_draw_data(ImDrawData *imgui_data);
 		void will_deinit();
         void handle_window_resized();
+		void set_viewport_size(u32 w, u32 h);
+		void set_clear_value();
 	private:
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
@@ -133,14 +135,25 @@ namespace GZ {
 		VkImageView textureImageView;
 		VkSampler textureSampler;
 
-		// final Color attachment
+		// msaa color attachment
 		VkImage colorImage;
 		VkDeviceMemory colorImageMemory;
 		VkImageView colorImageView;
 
+		// final blit output image for sampling
+		VkImage outColorImage;
+		VkDeviceMemory outColorImageMemory;
+		VkImageView outColorImageView;
+
+		VkPipeline offScreenPipeline;
+		VkRenderPass offScreenRenderPass;
+
+		VkFramebuffer offScreenFrameBuffer;
+
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-		VkDescriptorPool imguiDescriptorPool;
+		// viewport w, h
+		u32 viewport_w = 0, viewport_h = 0;
 
 		u32 current_frame_index = 0;
 		static const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -169,11 +182,15 @@ namespace GZ {
 		void create_swapchain();
 		void create_swapchain_image_views();
 		void create_render_pass();
+		void create_offscreen_render_pass();
 		void create_descriptor_set_layout();
 		void create_graphics_pipeline();
-		void create_framebuffers();
+		void create_offscreen_graphics_pipeline();
+		void create_final_framebuffers();
+		void create_offscreen_framebuffer();
 		void create_command_pool();
 		void create_color_resources();
+		void create_out_color_resources();
 		void create_depth_resources();
 		void create_texture_image();
 		void create_texture_image_view();

@@ -50,6 +50,9 @@ namespace GZ {
 		// window
 		SDL_Window* window = nullptr;
 		bool is_running = true;
+
+		u32 main_view_w = 0, main_view_h = 0;
+		u32 window_w = 1960, window_h = 1080;
 	};
 	
 	
