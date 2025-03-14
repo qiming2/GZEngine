@@ -323,6 +323,26 @@ namespace GZ {
 			// Need to understand viewport and dockspace more!
 			ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
+			if (ImGui::BeginMainMenuBar())
+			{
+				if (ImGui::BeginMenu("File"))
+				{
+					ImGui::EndMenu();
+					if (ImGui::MenuItem("Open", "CTRL+Z")) {}
+				}
+				if (ImGui::BeginMenu("Edit"))
+				{
+					if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+					if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {} // Disabled item
+					ImGui::Separator();
+					if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+					if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+					if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
+			}
+
 
 			if (show_node_editor) {
 				ImGui::Begin("New editor window");
@@ -379,17 +399,25 @@ namespace GZ {
 				ImGui::Text("Hello from another window!");
 				if (ImGui::Button("Close Me"))
 					show_another_window = false;
+				
 				ImGui::End();
 			}
 
 			// 4. Show main shaing
 			if (show_main_scene) {
-				ImGui::Begin("Main Scene", &show_main_scene);
-				ImVec2 window_size = ImGui::GetWindowSize();
-				// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+
+				ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
+				ImGui::Begin("Main Scene", &show_main_scene, window_flags);
 				
+				// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+				ImVec2 window_size = ImGui::GetContentRegionAvail();
+				ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);
 				ImGui::Image((ImTextureID)main_tex_id, window_size, {0, 0}, {1, 1});
+				ImGui::PopStyleVar();
+				
 				ImGui::End();
+				ImGui::PopStyleVar();
 			}
 
 			// Rendering

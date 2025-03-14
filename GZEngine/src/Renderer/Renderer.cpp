@@ -429,7 +429,6 @@ namespace GZ {
 	VkSampleCountFlagBits Renderer::get_max_usable_sample_count() {
 		VkPhysicalDeviceProperties physicalDeviceProperties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-		return VK_SAMPLE_COUNT_1_BIT;
 
 		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
 		if (counts & VK_SAMPLE_COUNT_64_BIT) { 
@@ -437,6 +436,7 @@ namespace GZ {
 		}
 
 		// TODO(Qiming): only use msaa 4
+		gz_core_info("We only use 4 samples if possible, no more than that!");
 		if (counts & VK_SAMPLE_COUNT_32_BIT) {
 			gz_core_info("MSAA sampled count: 32");
 			return VK_SAMPLE_COUNT_4_BIT; 
