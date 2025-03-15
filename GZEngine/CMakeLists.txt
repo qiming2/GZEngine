@@ -53,8 +53,10 @@ list(APPEND INCLUDE_MAPS
 set(LIBDIR_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/lib/"
 )
-if (MSV)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+if (MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:>DLL")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Dist>:>DLL")
 endif()
 
 file(GLOB vendorSources

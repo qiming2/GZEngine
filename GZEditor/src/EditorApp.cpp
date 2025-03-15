@@ -30,6 +30,7 @@ namespace GZ {
         // actually not much to do here
         
         // just tick system to run or stop the scene
+        
     }
     
     void EditorApp::on_imgui_render() {
