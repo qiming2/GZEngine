@@ -1,33 +1,42 @@
 #include <GZ_Include.h>
 #include <defines.h>
 
+#include "EditorApp.h"
+
 namespace ed = ax::NodeEditor;
 
 
 namespace GZ {
 
-	struct EditorApp : public App {
-	public:
-		explicit EditorApp(const AppSpec &spec):
-			App(spec)
-		{
-			// App init is done
-			// Editor setup
 
-			// push any layer
+    EditorApp::EditorApp(const AppSpec &spec):
+        App(spec)
+    {
+        // App init is done
+        // Editor setup
+        
+    }
 
-			// layer should do system and other init			
-		}
+    EditorApp::~EditorApp() {
+        gz_info("Tearing down Editor App");
+    }
+    
+    void EditorApp::on_init() {
+        gz_info("Init Editor App");
+        // Should register any system
+    }
+    
+    void EditorApp::on_update() {
+        // actually not much to do here
+        
+        // just tick system to run or stop the scene
+    }
+    
+    void EditorApp::on_imgui_render() {
+        // render editor stuff
+    }
 
-		virtual ~EditorApp() override {
-			
-		}
 
-	private:
-		// Most of these setup should be handled by engine
-		
-		
-	};
 }
 
 GZ::App *GZ::create_application() {

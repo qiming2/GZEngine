@@ -9,6 +9,8 @@
 #include <string>
 
 #include "Renderer.h"
+#include "Log.h"
+
 namespace GZ {
 	struct AppSpec {
 		b8 headless = false;
@@ -28,10 +30,14 @@ namespace GZ {
 	public:
 		explicit App(const AppSpec &spec);
 		virtual ~App();
-
+        virtual inline void on_init() { gz_error("App should implement this!");}
+        virtual inline void on_update() { gz_error("App should implement this!");}
+        virtual inline void on_imgui_render() { gz_error("App should implement this!");}
+        
+    public: // non virtual function
 		void run();
 		
-		void onMainThreadBlock();
+		void on_main_thread_block();
 		
 	protected:
 		

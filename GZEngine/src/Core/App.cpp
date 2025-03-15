@@ -272,6 +272,7 @@ namespace GZ {
 	void App::run() {
 		SDL_Event e;
 		u64 prevTime = SDL_GetTicksNS();
+        on_init();
 #if USE_IMGUI
         ImGuiIO& io = ImGui::GetIO();
 #endif
@@ -279,7 +280,7 @@ namespace GZ {
 			App* app = (App*)usr_data;
 
 			if (event->type == SDL_EVENT_WINDOW_EXPOSED) {
-				app->onMainThreadBlock();
+				app->on_main_thread_block();
 			}
 			return true;
 		};
@@ -327,12 +328,14 @@ namespace GZ {
 			}
 
 			if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)
-			{
-				SDL_Delay(10);
-				continue;
-			}
-
+            {
+                SDL_Delay(10);
+            }
+				
+            
+            on_update();
 			render_editor();
+                
 		}
 
 	}
@@ -351,7 +354,7 @@ namespace GZ {
 		}
 	}
 
-	void App::onMainThreadBlock()
+	void App::on_main_thread_block()
 	{
 		resize();
 		pre_render();
@@ -388,8 +391,10 @@ namespace GZ {
 		{
 			if (ImGui::BeginMenu("File"))
 			{
+                if (ImGui::MenuItem("Open", "CTRL+Z")) {}
+                if (ImGui::MenuItem("Hello", "CTRL+Z")) {}
 				ImGui::EndMenu();
-				if (ImGui::MenuItem("Open", "CTRL+Z")) {}
+				
 			}
 			if (ImGui::BeginMenu("Edit"))
 			{
@@ -469,10 +474,13 @@ namespace GZ {
 
 		// 4. Show main shaing
 		if (show_main_scene) {
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+            
+            // rethink ui design later
+//			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
-			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
-			ImGui::Begin("Main Scene", &show_main_scene, window_flags);
+//			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
+            ImGui::Begin("Main Scene", &show_main_scene, 0);
+            ImGui::SetWindowSize({200.0f, 200.0f});
 
 			// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
 			ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
@@ -487,11 +495,11 @@ namespace GZ {
 			ImGui::PopStyleVar();
 
 			ImGui::End();
-			ImGui::PopStyleVar();
+//			ImGui::PopStyleVar();
 		}
 
 		// Rendering
-		ImGui::Render();
+        ImGui::Render();
 		ImDrawData* main_draw_data = ImGui::GetDrawData();
 		// Render here
 		vk_renderer->set_imgui_draw_data(main_draw_data);
