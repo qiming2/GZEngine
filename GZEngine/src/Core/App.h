@@ -12,9 +12,15 @@
 namespace GZ {
 	struct AppSpec {
 		b8 headless = false;
-		u32 window_height = 1960;
-		u32 window_width = 1080;
+		u32 window_height = 1080;
+		u32 window_width = 1960;
+		b8 is_fullscreen = false;
 		std::string name = "New App";
+	};
+
+	struct FrameData {
+		f32 deltaTime;
+		u64 prevTime; // in ns
 	};
 
 	namespace ed = ax::NodeEditor;
@@ -24,8 +30,17 @@ namespace GZ {
 		virtual ~App();
 
 		void run();
+		
+		void onMainThreadBlock();
+		
 	protected:
+		
+
 		b8 is_initialized = false;
+		b8 is_fullscreen = false;
+		SDL_EventFilter expose_event_watch;
+
+		FrameData frame_data;
 
 		// flecs ecs
 		flecs::world world;
@@ -39,7 +54,7 @@ namespace GZ {
 		b8 show_main_scene = true; 
 		ImTextureID main_tex_id;
 
-		ImVec4 clear_color = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+		vec4 clear_color = vec4(0.18f, 0.18f, 0.18f, 1.00f);
 		SDL_GLContext gl_context;
 
 		ed::EditorContext* node_Context = nullptr;
@@ -53,7 +68,12 @@ namespace GZ {
 
 		u32 main_view_w = 0, main_view_h = 0;
 		u32 window_w = 1960, window_h = 1080;
+	private:
+		void resize();
+		void pre_render();
+		void post_render();
+		void render_editor();
 	};
-	
+
 	
 }

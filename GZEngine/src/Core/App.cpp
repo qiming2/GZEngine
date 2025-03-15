@@ -23,6 +23,7 @@
 #define USE_IMGUI 1
 
 namespace GZ {
+
 	// Add another style maybe
 	static void SetupImGuiStyle()
 	{
@@ -193,21 +194,23 @@ namespace GZ {
 		working_dir = wkd;
 		SDL_free((void*)wkd);
 
-		SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
-		window = SDL_CreateWindow("GZ Editor", 1960, 1080, window_flags);
+		this->is_fullscreen = spec.is_fullscreen;
+
+		SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN | (SDL_WINDOW_FULLSCREEN * (is_fullscreen ? 1 : 0));
+		window = SDL_CreateWindow("GZ Editor", spec.window_width, spec.window_height, window_flags);
 		if (window == nullptr) {
 			gz_error("SDL Create window Failed!: {}", SDL_GetError());
 			exit(1);
 		}
-
+		
 		// TODO(Qiming)(VULKAN)
 		vk_renderer = new Renderer();
 		vk_renderer->init((void *)window);
 
 		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-		
-		SDL_ShowWindow(window);
 
+		SDL_ShowWindow(window);
+		
 #if USE_IMGUI
 		// Imgui setup
 		// Setup Dear ImGui context
@@ -244,11 +247,15 @@ namespace GZ {
 		ed::Config config;
 		config.SettingsFile = "Simple.json";
 		node_Context = ed::CreateEditor(&config);
+
+		frame_data.prevTime = SDL_GetTicksNS();
+		frame_data.deltaTime = 0.0f;
 #endif
 	}
 
 	App::~App()
 	{
+		SDL_RemoveEventWatch(expose_event_watch, this);
 		vk_renderer->will_deinit();
 		// Cleanup
 #if USE_IMGUI
@@ -268,14 +275,19 @@ namespace GZ {
 #if USE_IMGUI
         ImGuiIO& io = ImGui::GetIO();
 #endif
-		while (is_running) {
-			
-			u64 curTime = SDL_GetTicksNS();
-			f32 deltaTime = (curTime - prevTime) / (f32) SDL_NS_PER_SECOND;
-			prevTime = curTime;
-			
-			while (SDL_PollEvent(&e)) {
+		SDL_EventFilter expose_event_watch = [](void *usr_data, SDL_Event *event) -> b8 {
+			App* app = (App*)usr_data;
 
+			if (event->type == SDL_EVENT_WINDOW_EXPOSED) {
+				app->onMainThreadBlock();
+			}
+			return true;
+		};
+		SDL_AddEventWatch(expose_event_watch, this);
+		while (is_running) {
+			pre_render();
+
+			while (SDL_PollEvent(&e)) {
 				switch (e.type) {
 
 				case SDL_EVENT_QUIT:
@@ -283,19 +295,21 @@ namespace GZ {
 					is_running = false;
 					break;
 				case SDL_EVENT_KEY_DOWN:
-                    if (e.key.key == SDLK_ESCAPE) {
+					switch (e.key.key) {
+					case SDLK_ESCAPE:
 						is_running = false;
-					}
+						break;
+					case SDLK_F:
+						is_fullscreen = !is_fullscreen;
+						SDL_SetWindowFullscreen(window, is_fullscreen);
+						resize();
+						break;
+					} 
 					break;
                 case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-                    gz_info("Window pixel size has changed, need to signal renderer to recreate swapchain...");
-					SDL_GetWindowSizeInPixels(window, (int *) & window_w, (int *) & window_h);
-					vk_renderer->handle_window_resized();
-					ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)main_tex_id);
-					main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
+                    resize();
                     break;
 				}
-
 #if USE_IMGUI
                 
 				ImGui_ImplSDL3_ProcessEvent(&e);
@@ -317,131 +331,175 @@ namespace GZ {
 				SDL_Delay(10);
 				continue;
 			}
-#if USE_IMGUI
-			// Start the Dear ImGui frame
-			ImGui_ImplVulkan_NewFrame();
-			ImGui_ImplSDL3_NewFrame();
-			ImGui::NewFrame();
 
-			// TODO(Qiming): Dockspace will block viewport clear color? Yeah
-			// Need to understand viewport and dockspace more!
-			ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-
-			if (ImGui::BeginMainMenuBar())
-			{
-				if (ImGui::BeginMenu("File"))
-				{
-					ImGui::EndMenu();
-					if (ImGui::MenuItem("Open", "CTRL+Z")) {}
-				}
-				if (ImGui::BeginMenu("Edit"))
-				{
-					if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
-					if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {} // Disabled item
-					ImGui::Separator();
-					if (ImGui::MenuItem("Cut", "CTRL+X")) {}
-					if (ImGui::MenuItem("Copy", "CTRL+C")) {}
-					if (ImGui::MenuItem("Paste", "CTRL+V")) {}
-					ImGui::EndMenu();
-				}
-				ImGui::EndMainMenuBar();
-			}
-
-
-			if (show_node_editor) {
-				ImGui::Begin("New editor window");
-				ed::SetCurrentEditor(node_Context);
-				ed::Begin("My Editor", ImVec2(0.0, 0.0f));
-				int uniqueId = 1;
-				// Start drawing nodes.
-				ed::BeginNode(uniqueId++);
-				ImGui::Text("Node A");
-				ed::BeginPin(uniqueId++, ed::PinKind::Input);
-				ImGui::Text("-> In");
-				ed::EndPin();
-				ImGui::SameLine();
-				ed::BeginPin(uniqueId++, ed::PinKind::Output);
-				ImGui::Text("Out ->");
-				ed::EndPin();
-				ed::EndNode();
-				ed::End();
-				ed::SetCurrentEditor(nullptr);
-				ImGui::End();
-			}
-
-
-			if (show_demo_window)
-				ImGui::ShowDemoWindow(&show_demo_window);
-
-			{
-				static float f = 0.0f;
-				static int counter = 0;
-
-				ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-				ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-				ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-				ImGui::Checkbox("Another Window", &show_another_window);
-				ImGui::Checkbox("Node editor", &show_node_editor);
-
-				ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-				ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-				if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-					counter++;
-				ImGui::SameLine();
-				ImGui::Text("counter = %d", counter);
-
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-				ImGui::End();
-			}
-
-			// 3. Show another simple window.
-			if (show_another_window)
-			{
-				ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-				ImGui::Text("Hello from another window!");
-				if (ImGui::Button("Close Me"))
-					show_another_window = false;
-				
-				ImGui::End();
-			}
-
-			// 4. Show main shaing
-			if (show_main_scene) {
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-
-				ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
-				ImGui::Begin("Main Scene", &show_main_scene, window_flags);
-				
-				// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-				ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
-				if (main_view_w != static_cast<u32>(main_scene_cur_window_size.x) || main_view_h != static_cast<u32>(main_scene_cur_window_size.y)) {
-					main_view_w = static_cast<u32>(main_scene_cur_window_size.x);
-					main_view_h = static_cast<u32>(main_scene_cur_window_size.y);
-					vk_renderer->set_viewport_size(main_view_w, main_view_h);
-				}
-				
-				ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);
-				ImGui::Image((ImTextureID)main_tex_id, main_scene_cur_window_size, {0, 0}, {1, 1});
-				ImGui::PopStyleVar();
-				
-				ImGui::End();
-				ImGui::PopStyleVar();
-			}
-
-			// Rendering
-			ImGui::Render();
-			ImDrawData* main_draw_data = ImGui::GetDrawData();
-			// Render here
-			vk_renderer->set_imgui_draw_data(main_draw_data);
-#endif
-			//gz_info("Delta time: {}, fps: {}", deltaTime, 1.0f / deltaTime);
-			vk_renderer->begin_frame(deltaTime);
-			vk_renderer->render_frame();
-			vk_renderer->end_frame();
+			render_editor();
 		}
 
+	}
+
+	void App::resize()
+	{
+		/*gz_info("Window pixel size has changed, need to signal renderer to recreate swapchain...");*/
+		int t_w = 0, t_h = 0;
+		SDL_GetWindowSizeInPixels(window, (int*)&t_w, (int*)&t_h);
+		if (t_w != window_w || t_h != window_h) {
+			window_h = t_h;
+			window_w = t_w;
+			vk_renderer->handle_window_resized();
+			ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)main_tex_id);
+			main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
+		}
+	}
+
+	void App::onMainThreadBlock()
+	{
+		resize();
+		pre_render();
+		render_editor();
+		post_render();
+	}
+
+	void App::pre_render()
+	{
+		u64 curTime = SDL_GetTicksNS();
+		frame_data.deltaTime = (curTime - frame_data.prevTime) / (f32)SDL_NS_PER_SECOND;
+		frame_data.prevTime = curTime;
+	}
+
+	void App::post_render()
+	{
+
+	}
+
+	void App::render_editor()
+	{
+#if USE_IMGUI
+		ImGuiIO& io = ImGui::GetIO();
+		// Start the Dear ImGui frame
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplSDL3_NewFrame();
+		ImGui::NewFrame();
+
+		// TODO(Qiming): Dockspace will block viewport clear color? Yeah
+		// Need to understand viewport and dockspace more!
+		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				ImGui::EndMenu();
+				if (ImGui::MenuItem("Open", "CTRL+Z")) {}
+			}
+			if (ImGui::BeginMenu("Edit"))
+			{
+				if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+				if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {} // Disabled item
+				ImGui::Separator();
+				if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+				if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+				if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+
+
+		if (show_node_editor) {
+			ImGui::Begin("New editor window");
+			ed::SetCurrentEditor(node_Context);
+			ed::Begin("My Editor", ImVec2(0.0, 0.0f));
+			int uniqueId = 1;
+			// Start drawing nodes.
+			ed::BeginNode(uniqueId++);
+			ImGui::Text("Node A");
+			ed::BeginPin(uniqueId++, ed::PinKind::Input);
+			ImGui::Text("-> In");
+			ed::EndPin();
+			ImGui::SameLine();
+			ed::BeginPin(uniqueId++, ed::PinKind::Output);
+			ImGui::Text("Out ->");
+			ed::EndPin();
+			ed::EndNode();
+			ed::End();
+			ed::SetCurrentEditor(nullptr);
+			ImGui::End();
+		}
+
+
+		if (show_demo_window)
+			ImGui::ShowDemoWindow(&show_demo_window);
+
+		{
+			static float f = 0.0f;
+			static int counter = 0;
+
+			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+			ImGui::Checkbox("Another Window", &show_another_window);
+			ImGui::Checkbox("Node editor", &show_node_editor);
+
+			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+			if (ImGui::ColorEdit3("clear color", (float*)&clear_color)) {
+				vk_renderer->set_clear_value(clear_color);
+			} // Edit 3 floats representing a color
+
+
+			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+				counter++;
+			ImGui::SameLine();
+			ImGui::Text("counter = %d", counter);
+
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+			ImGui::End();
+		}
+
+		// 3. Show another simple window.
+		if (show_another_window)
+		{
+			ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+			ImGui::Text("Hello from another window!");
+			if (ImGui::Button("Close Me"))
+				show_another_window = false;
+
+			ImGui::End();
+		}
+
+		// 4. Show main shaing
+		if (show_main_scene) {
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
+			ImGui::Begin("Main Scene", &show_main_scene, window_flags);
+
+			// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+			ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
+			if (main_view_w != static_cast<u32>(main_scene_cur_window_size.x) || main_view_h != static_cast<u32>(main_scene_cur_window_size.y)) {
+				main_view_w = static_cast<u32>(main_scene_cur_window_size.x);
+				main_view_h = static_cast<u32>(main_scene_cur_window_size.y);
+				vk_renderer->set_viewport_size(main_view_w, main_view_h);
+			}
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);
+			ImGui::Image((ImTextureID)main_tex_id, main_scene_cur_window_size, { 0, 0 }, { 1, 1 });
+			ImGui::PopStyleVar();
+
+			ImGui::End();
+			ImGui::PopStyleVar();
+		}
+
+		// Rendering
+		ImGui::Render();
+		ImDrawData* main_draw_data = ImGui::GetDrawData();
+		// Render here
+		vk_renderer->set_imgui_draw_data(main_draw_data);
+#endif
+		//gz_info("Delta time: {}, fps: {}", deltaTime, 1.0f / deltaTime);
+		vk_renderer->begin_frame(frame_data.deltaTime);
+		vk_renderer->render_frame();
+		vk_renderer->end_frame();
 	}
 
 }

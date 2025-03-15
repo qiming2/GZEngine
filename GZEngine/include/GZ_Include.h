@@ -3,7 +3,7 @@
 
 // ----------------------------- GZApp --------------------------
 
-#include "src/App.h"
+#include "src/Core/App.h"
 #include "src/Core/Log.h"
 
 // ------------------------------ Entry Point ------------------

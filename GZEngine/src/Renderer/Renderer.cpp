@@ -495,6 +495,11 @@ namespace GZ {
 		viewport_h = h;
 	}
 
+	void Renderer::set_clear_value(vec4 clear_color /*= vec4(0.18, 0.18, 0.18, 1.0)*/)
+	{
+		this->clear_color = clear_color;
+	}
+
 	void Renderer::create_swapchain()
 	{
 		SwapChainSupportDetails swapChainSupport = query_swapchain_support(physicalDevice);
@@ -1878,7 +1883,7 @@ namespace GZ {
 		offScreenRenderPassInfo.renderArea.extent = swapChainExtent;
 
 		std::array<VkClearValue, 2> clearValues;
-		clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+		clearValues[0].color = {{clear_color.r, clear_color.g, clear_color.b, clear_color.a}};
 		clearValues[1].depthStencil = {1.0f, 0};
 		offScreenRenderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
 		offScreenRenderPassInfo.pClearValues = clearValues.data();

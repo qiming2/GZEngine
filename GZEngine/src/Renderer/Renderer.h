@@ -77,7 +77,7 @@ namespace GZ {
 		void will_deinit();
         void handle_window_resized();
 		void set_viewport_size(u32 w, u32 h);
-		void set_clear_value();
+		void set_clear_value(vec4 clear_color = vec4(0.18, 0.18, 0.18, 1.0));
 	private:
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
@@ -152,8 +152,11 @@ namespace GZ {
 
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
+	private: // Configurable value
 		// viewport w, h
 		u32 viewport_w = 0, viewport_h = 0;
+
+		vec4 clear_color = vec4(0.18, 0.18, 0.18, 1.0);
 
 		u32 current_frame_index = 0;
 		static const int MAX_FRAMES_IN_FLIGHT = 2;

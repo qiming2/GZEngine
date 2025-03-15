@@ -33,8 +33,8 @@ namespace GZ {
 GZ::App *GZ::create_application() {
 	AppSpec spec;
 	spec.headless = false;
-	spec.window_height = 1960;
-	spec.window_width = 1080;
+	spec.window_height = 1080;
+	spec.window_width = 1960;
 	spec.name = "New App";
 	return new EditorApp(spec);
 }
