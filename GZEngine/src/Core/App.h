@@ -33,16 +33,12 @@ namespace GZ {
         virtual inline void on_init() { gz_error("App should implement this!");}
         virtual inline void on_update() { gz_error("App should implement this!");}
         virtual inline void on_imgui_render() { gz_error("App should implement this!");}
-        
-    public: // non virtual function
-		void run();
-		
-		void on_main_thread_block();
-		
+    
+    public: // Non virtual public
+        void run();
+        void loop();
 	protected:
-		
 
-		b8 is_initialized = false;
 		b8 is_fullscreen = false;
 		SDL_EventFilter expose_event_watch;
 
@@ -75,10 +71,12 @@ namespace GZ {
 		u32 main_view_w = 0, main_view_h = 0;
 		u32 window_w = 1960, window_h = 1080;
 	private:
-		void resize();
-		void pre_render();
-		void post_render();
-		void render_editor();
+        b8 is_app_initialized = false;
+        void private_render();
+		void private_resize();
+		void private_pre_render();
+		void private_post_render();
+		void private_render_editor();
 	};
 
 	

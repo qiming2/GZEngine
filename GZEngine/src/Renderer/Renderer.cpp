@@ -2150,6 +2150,7 @@ namespace GZ {
 	void Renderer::end_frame()
 	{
 		// currently nothing happens
+        render_frame();
 	}
 
 	void Renderer::init_imgui_vulkan(ImGui_ImplVulkan_InitInfo* init_info_ptr)

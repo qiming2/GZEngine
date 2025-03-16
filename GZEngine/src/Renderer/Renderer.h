@@ -71,7 +71,7 @@ namespace GZ {
 
 		// Generic draw function right now
 		void begin_frame(const f32 &deltaTime);
-		void render_frame();
+		
 		void end_frame();
 		void set_imgui_draw_data(ImDrawData *imgui_data);
 		void will_deinit();
@@ -213,6 +213,7 @@ namespace GZ {
         void recreate_swapchain();
         void cleanup_swapchain();
 		void update_uniform_buffer(u32 current_frame_index);
+        void render_frame();
 	private: // helper util
 		SwapChainSupportDetails query_swapchain_support(VkPhysicalDevice device);
 		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
