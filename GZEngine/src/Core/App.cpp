@@ -196,7 +196,12 @@ namespace GZ {
 
 		this->is_fullscreen = spec.is_fullscreen;
 
-		SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
+		SDL_WindowFlags sdl_resizable_flag = 0;
+#ifndef GZ_DIST
+		sdl_resizable_flag = SDL_WINDOW_RESIZABLE;
+#endif
+
+		SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN | sdl_resizable_flag;
 		window = SDL_CreateWindow("GZ Editor", spec.window_width, spec.window_height, window_flags);
 		if (window == nullptr) {
 			gz_error("SDL Create window Failed!: {}", SDL_GetError());
@@ -253,10 +258,6 @@ namespace GZ {
 		// Load texture
 		main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
 
-		// Node editor
-		ed::Config config;
-		config.SettingsFile = "Simple.json";
-		node_Context = ed::CreateEditor(&config);
 
 		frame_data.prevTime = SDL_GetTicksNS();
 		frame_data.deltaTime = 0.0f;
@@ -286,7 +287,6 @@ namespace GZ {
             on_init();
             is_app_initialized = true;
         }
-        
 
         ImGuiIO& io = ImGui::GetIO();
 
@@ -344,7 +344,10 @@ namespace GZ {
             // No need for checking for resize as it is handled
             private_pre_render();
             on_imgui_render();
-            on_update();
+			// User defined module tick here
+            on_update(frame_data);
+			// System, module, etc tick once after user update.
+			world.progress(frame_data.deltaTime);
             private_render();
             private_post_render();
 		}
@@ -377,7 +380,7 @@ namespace GZ {
         // no events
 		private_resize();
         private_pre_render();
-        on_update();
+        on_update(frame_data);
         on_imgui_render();
         private_render();
         private_post_render();

@@ -24,17 +24,25 @@ set(CMAKE_EXE_LINKER_FLAGS_DIST "${CMAKE_EXE_LINKER_FLAGS_DIST}")
 set(CMAKE_CXX_FLAGS_SHARED_DIST "${CMAKE_CXX_FLAGS_SHARED_DIST} -DGZ_SHARED_DIST")
 set(CMAKE_SHARED_LINKER_FLAGS_DIST "${CMAKE_SHARED_LINKER_FLAGS_DIST}")
 
+
 if (MSVC)
     add_link_options($<$<CONFIG:Debug>:/INCREMENTAL>)
-    add_compile_options($<$<CONFIG:Debug>:/ZI>)
+    
 
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:>DLL")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Dist>:>DLL")
+    set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF)
+    # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:>DLL")
+    # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Dist>:>DLL")
+    add_link_options("$<$<CONFIG:Debug>:/MDd>")
+    add_link_options("$<$<CONFIG:Release>:/MD>")
+    add_link_options("$<$<CONFIG:Dist>:/MD>")
 
+    add_compile_options("$<$<CONFIG:Debug>:/ZI>")
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 endif()
+
+
 # Have to come after configuration settings!
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine")
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor")

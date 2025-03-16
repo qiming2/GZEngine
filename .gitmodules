@@ -16,3 +16,6 @@
 [submodule "GZEngine/vendor/VulkanMemoryAllocator"]
 	path = GZEngine/vendor/VulkanMemoryAllocator
 	url = git@github.com:qiming2/VulkanMemoryAllocator.git
+[submodule "GZEngine/vendor/JoltPhysics"]
+	path = GZEngine/vendor/JoltPhysics
+	url = git@github.com:qiming2/JoltPhysics.git

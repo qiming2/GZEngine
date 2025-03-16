@@ -5,6 +5,8 @@
 #include <tiny_obj_loader.h>
 #include <imgui_impl_vulkan.h>
 
+#include <stb_image.h>
+
 #include "Renderer.h"
 #include "Log.h"
 

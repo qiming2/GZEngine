@@ -2,14 +2,35 @@ cmake_minimum_required(VERSION 3.16)
 project(GZEngine)
 
 message("Building engine!")
+
+message("Flecs...!")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs")
+message("Vma...!")
+
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/VulkanMemoryAllocator")
+message("glm...!")
 
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm")
 target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=ON)
 target_compile_definitions(glm INTERFACE GLM_FORCE_RADIANS=ON)
 target_compile_definitions(glm INTERFACE GLM_ENABLE_CXX_17=ON)
 target_compile_definitions(glm INTERFACE GLM_FORCE_SWIZZLE=ON)
+
+message("Jolt...!")
+set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_EXE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/JoltPhysics/Build")
+target_compile_definitions(Jolt PUBLIC DOUBLE_PRECISION=OFF)
+# target_compile_definitions(Jolt PUBLIC GENERATE_DEBUG_SYMBOLS=ON)
+# target_compile_definitions(Jolt PUBLIC OVERRIDE_CXX_FLAGS=ON)
+# target_compile_definitions(Jolt PUBLIC CROSS_PLATFORM_DETERMINISTIC=OFF)
+# target_compile_definitions(Jolt PUBLIC INTERPROCEDURAL_OPTIMIZATION=ON)
+# target_compile_definitions(Jolt PUBLIC FLOATING_POINT_EXCEPTIONS_ENABLED=OFF)
+# target_compile_definitions(Jolt PUBLIC CPP_EXCEPTIONS_ENABLED=OFF)
+# target_compile_definitions(Jolt PUBLIC CPP_RTTI_ENABLED=OFF)
+# target_compile_definitions(Jolt PUBLIC OBJECT_LAYER_BITS=16)
+
 
 set(Vulkan_FOUND OFF)
 find_package(Vulkan REQUIRED)
@@ -33,7 +54,6 @@ if (MSVC)
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/bigobj>")
 endif()
 
-
 # Include directories
 list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog/include"
@@ -47,17 +67,13 @@ list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tiny_obj/include"
     "${Vulkan_INCLUDE_DIRS}"
+    "${JoltPhysics_SOURCE_DIR}/.."
 )
 
 # Library directories
 set(LIBDIR_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/lib/"
 )
-if (MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:>DLL")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Dist>:>DLL")
-endif()
 
 file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/Include/vulkan/*.h"
@@ -93,7 +109,6 @@ if(WIN32)
     set(SDL3_LIBRARY "${LIBDIR_MAPS}/windows/SDL3.lib")
 elseif(APPLE)
     set(SDL3_LIBRARY "${LIBDIR_MAPS}/mac/libSDL3.dylib")
-    
 endif()
 
 message("SDL3 lib: ${SDL3_LIBRARY}")
@@ -122,4 +137,5 @@ target_link_libraries(GZEngine PUBLIC
     ${Vulkan_LIBRARIES}
     glm::glm
     GPUOpen::VulkanMemoryAllocator
+    Jolt
 )

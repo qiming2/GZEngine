@@ -28,12 +28,10 @@
 
 #include <defines.h>
 
+////////////////////////////////////// Vendor ///////////////////////////////////////
 // All glm defines are predefined in cmake
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-// stb
-#include <stb_image.h>
 
 // glm alias
 namespace GZ {
@@ -56,5 +54,6 @@ namespace GZ {
 	using quatf = glm::quat;
 }
 
+#include <Jolt/Jolt.h>
 
 #endif

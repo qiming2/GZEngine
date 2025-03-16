@@ -7,6 +7,6 @@
 #include "src/Core/Log.h"
 
 // ------------------------------ Entry Point ------------------
-#include "src/Entry_Point.h"
+#include "src/EntryPoint.h"
 
 #endif
