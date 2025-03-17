@@ -113,7 +113,7 @@ namespace GZ {
 
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
             if (ImGui::ColorEdit3("clear color", (float*)&m_clear_color)) {
-                vk_renderer->set_clear_value(m_clear_color);
+                gz_renderer->set_clear_value(m_clear_color);
             } // Edit 3 floats representing a color
 
 
@@ -152,7 +152,7 @@ namespace GZ {
             if (m_main_view_w != static_cast<u32>(main_scene_cur_window_size.x) || m_main_view_h != static_cast<u32>(main_scene_cur_window_size.y)) {
                 m_main_view_w = static_cast<u32>(main_scene_cur_window_size.x);
                 m_main_view_h = static_cast<u32>(main_scene_cur_window_size.y);
-                vk_renderer->set_viewport_size(m_main_view_w, m_main_view_h);
+                gz_renderer->set_viewport_size(m_main_view_w, m_main_view_h);
             }
 
             ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);

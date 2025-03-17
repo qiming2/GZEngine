@@ -177,21 +177,21 @@ namespace GZ {
     #ifdef JPH_ENABLE_ASSERTS
     static b8 jolt_assert_failed_impl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine) {
         gz_error("PHYSICS ASSERT FAILED: in {}, error: {}, File_Line: {}:{}", inExpression, inMessage, inFile, inLine);
+        return false;
     }
     #endif
     // Basic setup following official jolt helloworld, with slight change
 	b8 PhysicsModule::init() {
         gz_info("Init Physics...");
-        // Register allocation hook. In this example we'll just let Jolt use malloc / free but you can override these if you want (see Memory.h).
-        // This needs to be done before any other Jolt function is called.
+        
+        // Can have custom allocator
         RegisterDefaultAllocator();
         
         // Install trace and assert callbacks
         Trace = jolt_trace_impl;
         JPH_IF_ENABLE_ASSERTS(AssertFailed = jolt_assert_failed_impl;)
         
-        // Create a factory, this class is responsible for creating instances of classes based on their name or hash and is mainly used for deserialization of saved data.
-        // It is not directly used in this example but still required.
+        // For jolt creation of its classes, required
         Factory::sInstance = new Factory();
 
         // Register all physics types with the factory and install their collision handlers with the CollisionDispatch class.
@@ -265,8 +265,8 @@ namespace GZ {
         
         // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
         // variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
-        // We don't need locking
-        m_body_interface = &(m_physics_system.GetBodyInterfaceNoLock());
+		// We don't need locking
+		m_body_interface = &(m_physics_system.GetBodyInterfaceNoLock());
         
         // No we can start creating some physics body
         m_is_initialized = true;
@@ -304,7 +304,7 @@ namespace GZ {
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
         m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, -5.0f, 0.0f));
-
+        m_body_interface->SetRestitution(m_sphere_id, 1.0f);
         
     }
     
@@ -315,7 +315,7 @@ namespace GZ {
     void PhysicsModule::simulate(f32 delta_time) {
         m_accumulated += delta_time;
         
-        gz_info("Entered simulate");
+        //gz_info("Entered simulate");
         while (m_accumulated > m_simulation_step_time) {
 
             // Step the world
@@ -325,7 +325,8 @@ namespace GZ {
             vec3 velocity = to_glm(m_body_interface->GetLinearVelocity(m_sphere_id));
             
             // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
-            gz_info("Sphere: pos: {}, vel: {}", position, velocity);
+            //gz_info("Sphere: pos: {}, vel: {}", position, velocity);
+            
         }
     }
 
@@ -352,5 +353,10 @@ namespace GZ {
         delete Factory::sInstance;
         Factory::sInstance = nullptr;
     }
+
+    //////////////////////////////// Hacking Stuff /////////////////////////////////////
+	vec3 PhysicsModule::get_sphere_position() {
+		return to_glm(m_body_interface->GetCenterOfMassPosition(m_sphere_id));
+	}
     
 }

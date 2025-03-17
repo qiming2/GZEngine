@@ -210,8 +210,8 @@ namespace GZ {
 		}
 		
 		// TODO(Qiming)(VULKAN)
-		vk_renderer = new Renderer();
-		vk_renderer->init((void *)window);
+		gz_renderer = new Renderer();
+		gz_renderer->init((void *)window);
         
 		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
@@ -253,11 +253,11 @@ namespace GZ {
 		// Setup Platform/Renderer backends
 		ImGui_ImplSDL3_InitForVulkan(window);
 		ImGui_ImplVulkan_InitInfo init_info = {};
-		vk_renderer->init_imgui_vulkan(&init_info);
+		gz_renderer->init_imgui_vulkan(&init_info);
 		ImGui_ImplVulkan_Init(&init_info);
 
 		// Load Main texture
-		main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
+		main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
 
         // Setup physics engine
         physics_module.init();
@@ -265,6 +265,9 @@ namespace GZ {
 
         m_frame_data.prevTime = SDL_GetTicksNS();
         m_frame_data.deltaTime = 0.0f;
+
+		// Temp add sphere
+		gz_renderer->submit_mesh(Mesh::get_icosphere_mesh(0.5f));
 	}
 
 	App::~App()
@@ -272,15 +275,15 @@ namespace GZ {
         physics_module.deinit();
         
 		SDL_RemoveEventWatch(expose_event_watch, this);
-		vk_renderer->will_deinit();
+		gz_renderer->will_deinit();
 		// Cleanup
 
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplSDL3_Shutdown();
 		ImGui::DestroyContext();
 
-		vk_renderer->deinit();
-		delete vk_renderer;
+		gz_renderer->deinit();
+		delete gz_renderer;
 		SDL_DestroyWindow(window);
 		SDL_Quit();
 	}
@@ -357,6 +360,8 @@ namespace GZ {
 			world.progress(m_frame_data.deltaTime);
             
             physics_module.simulate(m_frame_data.deltaTime);
+			vec3 sphere_pos = physics_module.get_sphere_position();
+			gz_renderer->set_model_matrix(glm::translate(mat4(1.0f), sphere_pos));
             
             private_render();
             private_post_render();
@@ -373,9 +378,9 @@ namespace GZ {
 		if (t_w != window_w || t_h != window_h) {
 			window_h = t_h;
 			window_w = t_w;
-			vk_renderer->handle_window_resized();
+			gz_renderer->handle_window_resized();
 			ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)main_tex_id);
-			main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
+			main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
 		}
 	}
 
@@ -402,7 +407,7 @@ namespace GZ {
         m_frame_data.deltaTime = (curTime - m_frame_data.prevTime) / (f32)SDL_NS_PER_SECOND;
         m_frame_data.prevTime = curTime;
         
-        vk_renderer->begin_frame(m_frame_data.deltaTime);
+        gz_renderer->begin_frame(m_frame_data.deltaTime);
         // Start the Dear ImGui frame
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -419,13 +424,12 @@ namespace GZ {
 	{
 
 		// Rendering
-        
         ImGui::Render();
 		ImDrawData* main_draw_data = ImGui::GetDrawData();
 		// Render here
-		vk_renderer->set_imgui_draw_data(main_draw_data);
+		gz_renderer->set_imgui_draw_data(main_draw_data);
 
-		vk_renderer->end_frame();
+		gz_renderer->end_frame();
         ImGui::EndFrame();
 	}
 

@@ -10,7 +10,6 @@
 #include "Renderer.h"
 #include "Log.h"
 
-
 #define STR_VALUE(arg)      #arg
 #define function_name(name) STR_VALUE(name)
 
@@ -422,16 +421,16 @@ namespace GZ {
 	void Renderer::update_uniform_buffer(u32 current_frame_index)
 	{
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), accumulatedTime * glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		//ubo.model = glm::mat4(1.0f);
-
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 0.5f, 1.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		/*ubo.model = glm::rotate(glm::mat4(1.0f), accumulatedTime * glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.model = glm::translate(ubo.model, {0.0f, 0.5f, 0.0f});*/
+		ubo.model = m_model;
+		
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		
 		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f);
 		if (viewport_w != 0) {
 			ubo.proj = glm::perspective(glm::radians(45.0f), viewport_w / (float) viewport_h, 0.1f, 100.0f);
 		}
-		
 		
 		// This is necessary for vulkan, since vulkan'y is fliped
 		//ubo.proj[1][1] *= -1.0f;
@@ -500,6 +499,63 @@ namespace GZ {
 	void Renderer::set_clear_value(vec4 clear_color /*= vec4(0.18, 0.18, 0.18, 1.0)*/)
 	{
 		this->clear_color = clear_color;
+	}
+
+	void Renderer::submit_mesh(std::shared_ptr<Mesh> mesh)
+	{
+		// maybe no need to do this since we would upload to gpu immediately
+		i32 mesh_index = m_meshes.size();
+		m_meshes.push_back(mesh);
+		
+		// First vertex buffer
+		{
+			m_mesh_vertex_buffers.push_back(VkBuffer());
+			m_mesh_vertex_buffer_memories.push_back(VkDeviceMemory());
+			
+			const std::vector<Vertex> &vertices = mesh->get_vertex_buffer();
+
+			VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+			VkBuffer stagingBuffer;
+			VkDeviceMemory stagingBufferMemory;
+			create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+			void* data;
+			vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+			memcpy(data, vertices.data(), (size_t)bufferSize);
+			vkUnmapMemory(device, stagingBufferMemory);
+
+			create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_mesh_vertex_buffers[mesh_index], m_mesh_vertex_buffer_memories[mesh_index]);
+
+			copy_buffer(stagingBuffer, m_mesh_vertex_buffers[mesh_index], bufferSize);
+
+			vkFreeMemory(device, stagingBufferMemory, nullptr);
+			vkDestroyBuffer(device, stagingBuffer, nullptr);
+		}
+		
+		// Index buffer
+		{
+			m_mesh_index_buffers.push_back(VkBuffer());
+			m_mesh_index_buffer_memories.push_back(VkDeviceMemory());
+			const std::vector<u32> &indices = mesh->get_index_buffer();
+			VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+			VkBuffer stagingBuffer;
+			VkDeviceMemory stagingBufferMemory;
+			create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+			void* data;
+			vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+			memcpy(data, indices.data(), (size_t)bufferSize);
+			vkUnmapMemory(device, stagingBufferMemory);
+
+			create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_mesh_index_buffers[mesh_index], m_mesh_index_buffer_memories[mesh_index]);
+
+			copy_buffer(stagingBuffer, m_mesh_index_buffers[mesh_index], bufferSize);
+			
+			vkDestroyBuffer(device, stagingBuffer, nullptr);
+			vkFreeMemory(device, stagingBufferMemory, nullptr);
+		}
 	}
 
 	void Renderer::create_swapchain()
@@ -1651,17 +1707,19 @@ namespace GZ {
         const std::string viking_obj_path = "asset/model/viking_room.obj";
         
         const std::string meng_yuan_obj_path = "asset/model/meng_yuan.obj";
+		const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj"
     #else
         const std::string viking_obj_path = "asset\\model\\viking_room.obj";
         const std::string meng_yuan_obj_path = "asset\\model\\meng_yuan.obj";
+		const std::string anime_char_obj_path = "asset\\model\\SD_Anime_Character_Char.obj";
     #endif
     void Renderer::load_model() {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
-
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, meng_yuan_obj_path.c_str())) {
+		std::string load_path = anime_char_obj_path;
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, load_path.c_str())) {
             gz_core_error("Load model failed!");
         }
         
@@ -1685,13 +1743,13 @@ namespace GZ {
                     1.0f, 1.0f, 1.0f
                 };
                 
-                vertices.emplace_back(vert);
+                m_vertices.emplace_back(vert);
 //                if (cur_index == 0)
 //                    indices.emplace_back(indices.size() + 1);
 //                else if (cur_index == 1)
 //                    indices.emplace_back(indices.size() - 1);
 //                else
-                indices.emplace_back((u32)indices.size());
+                m_indices.emplace_back((u32)m_indices.size());
                 cur_index = (cur_index + 1) % 3;
             }
         }
@@ -1714,7 +1772,7 @@ namespace GZ {
 //	};
 	void Renderer::create_vertex_buffer()
 	{
-		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+		VkDeviceSize bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1722,12 +1780,12 @@ namespace GZ {
 
 		void* data;
 		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), (size_t)bufferSize);
+		memcpy(data, m_vertices.data(), (size_t)bufferSize);
 		vkUnmapMemory(device, stagingBufferMemory);
 
-		create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+		create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
 
-		copy_buffer(stagingBuffer, vertexBuffer, bufferSize);
+		copy_buffer(stagingBuffer, m_vertexBuffer, bufferSize);
 
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
@@ -1735,7 +1793,7 @@ namespace GZ {
 
 	void Renderer::create_index_buffer()
 	{
-		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+		VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1743,12 +1801,12 @@ namespace GZ {
 
 		void* data;
 		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, indices.data(), (size_t)bufferSize);
+		memcpy(data, m_indices.data(), (size_t)bufferSize);
 		vkUnmapMemory(device, stagingBufferMemory);
 
-		create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+		create_buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
 
-		copy_buffer(stagingBuffer, indexBuffer, bufferSize);
+		copy_buffer(stagingBuffer, m_indexBuffer, bufferSize);
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -1906,14 +1964,29 @@ namespace GZ {
 		scissor.extent = swapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		VkBuffer vertexBuffers[] = { vertexBuffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+		{
+			VkBuffer vertexBuffers[] = { m_vertexBuffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(indices.size()), 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
+			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(m_indices.size()), 1, 0, 0, 0);
+		}
+		// Draw meshes
+		{
+			for (i32 i = 0; i < m_meshes.size(); ++i) {
+				VkBuffer vertexBuffers[] = { m_mesh_vertex_buffers[i]};
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				
+				vkCmdBindIndexBuffer(commandBuffer, m_mesh_index_buffers[i], 0, VK_INDEX_TYPE_UINT32);
+
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
+				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(m_meshes[i]->get_index_buffer().size()), 1, 0, 0, 0);
+			}
+		}
 
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -1999,7 +2072,12 @@ namespace GZ {
 
 	}
 	
-	b8 Renderer::init(void *window_handle) {
+	void Renderer::set_model_matrix(const mat4& model)
+	{
+		m_model	= model;
+	}
+
+	b8 Renderer::init(void* window_handle) {
 		this->window_handle = window_handle;
 		create_instance();
 		setup_debug_messenger();
@@ -2039,6 +2117,15 @@ namespace GZ {
 		// Before delete, needs to call wait device idle
         cleanup_swapchain();
 
+		// clean up mesh buffer memory
+		for (i32 i = 0; i < m_meshes.size(); ++i) {
+			vkDestroyBuffer(device, m_mesh_vertex_buffers[i], nullptr);
+			vkFreeMemory(device, m_mesh_vertex_buffer_memories[i], nullptr);
+
+			vkDestroyBuffer(device, m_mesh_index_buffers[i], nullptr);
+			vkFreeMemory(device, m_mesh_index_buffer_memories[i], nullptr);
+		}
+
 		vkDestroySampler(device, textureSampler, nullptr);
 		vkDestroyImageView(device, textureImageView, nullptr);
 		vkDestroyImage(device, textureImage, nullptr);
@@ -2062,12 +2149,12 @@ namespace GZ {
             vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
             vkDestroyFence(device, inFlightFences[i], nullptr);
         }
+		
+		vkDestroyBuffer(device, m_indexBuffer, nullptr);
+		vkFreeMemory(device, m_indexBufferMemory, nullptr);
 
-		vkDestroyBuffer(device, indexBuffer, nullptr);
-		vkFreeMemory(device, indexBufferMemory, nullptr);
-
-        vkFreeMemory(device, vertexBufferMemory, nullptr);
-		vkDestroyBuffer(device, vertexBuffer, nullptr);
+        vkFreeMemory(device, m_vertexBufferMemory, nullptr);
+		vkDestroyBuffer(device, m_vertexBuffer, nullptr);
 
 		vkDestroyCommandPool(device, commandPool, nullptr);
         vkDestroyDevice(device, nullptr);

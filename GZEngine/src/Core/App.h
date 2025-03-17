@@ -40,7 +40,7 @@ namespace GZ {
         void loop();
 	protected:
 		// Temp Renderer Stuff
-		Renderer* vk_renderer = nullptr;
+		Renderer* gz_renderer = nullptr;
 		ImTextureID main_tex_id;
 
 		// flecs ecs temporary prototyping

@@ -104,6 +104,8 @@ file(GLOB_RECURSE sources
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Mesh/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Mesh/*.cpp"
 )
 
 
@@ -131,6 +133,7 @@ target_include_directories(GZEngine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Mesh"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     ${INCLUDE_MAPS}
 )

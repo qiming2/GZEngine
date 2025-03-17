@@ -4,6 +4,8 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_beta.h>
 
+#include "Mesh.h"
+
 namespace GZ {
 
 	// uniform object
@@ -11,41 +13,6 @@ namespace GZ {
 		glm::mat4 model; // this should be push constants
 		glm::mat4 view;
 		glm::mat4 proj;
-	};
-
-	// Mesh Related
-	struct Vertex {
-		glm::vec3 pos;
-		glm::vec3 color;
-		glm::vec2 uv;
-
-		static VkVertexInputBindingDescription getBindingDescription() {
-			VkVertexInputBindingDescription bindingDescription{};
-			bindingDescription.binding = 0;
-			bindingDescription.stride = sizeof(Vertex);
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-			
-			return bindingDescription;
-		}
-
-		static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-			std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-			attributeDescriptions[0].binding = 0;
-			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-			attributeDescriptions[1].binding = 0;
-			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-			attributeDescriptions[2].binding = 0;
-			attributeDescriptions[2].location = 2;
-			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[2].offset = offsetof(Vertex, uv);
-			return attributeDescriptions;
-		}
 	};
 	
 	struct QueueFamilyIndices {
@@ -63,6 +30,10 @@ namespace GZ {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 	struct Renderer {
+	public: // Hack things together
+		void set_model_matrix(const mat4& model);
+	private:
+		mat4 m_model = mat4(1.0f);
 	public:
 		b8 init(void *window_handle);
 		b8 deinit();
@@ -78,7 +49,17 @@ namespace GZ {
         void handle_window_resized();
 		void set_viewport_size(u32 w, u32 h);
 		void set_clear_value(vec4 clear_color = vec4(0.18, 0.18, 0.18, 1.0));
+	public: // Geometry related
+		void submit_mesh(std::shared_ptr<Mesh> mesh);
 	private:
+		// temp mesh for drawing
+		std::vector<std::shared_ptr<Mesh>> m_meshes;
+		std::vector<VkBuffer> m_mesh_vertex_buffers;
+		std::vector<VkDeviceMemory> m_mesh_vertex_buffer_memories;
+		std::vector<VkBuffer> m_mesh_index_buffers;
+		std::vector<VkDeviceMemory> m_mesh_index_buffer_memories;
+		
+	private: // Vk context
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -115,10 +96,10 @@ namespace GZ {
 
 		void *window_handle; // Platform specific
 		
-		VkBuffer vertexBuffer;
-		VkDeviceMemory vertexBufferMemory;
-		VkBuffer indexBuffer;
-		VkDeviceMemory indexBufferMemory;
+		VkBuffer m_vertexBuffer;
+		VkDeviceMemory m_vertexBufferMemory;
+		VkBuffer m_indexBuffer;
+		VkDeviceMemory m_indexBufferMemory;
 		
 		std::vector<VkBuffer> uniformBuffers;
 		std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -165,8 +146,8 @@ namespace GZ {
         const uint32_t viking_texture_width = 800;
         const uint32_t viking_texture_height = 600;
 
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
+        std::vector<Vertex> m_vertices;
+        std::vector<uint32_t> m_indices;
 
 	private: // Provided by application
 		// Imgui draw list

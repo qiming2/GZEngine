@@ -16,7 +16,8 @@ public:
     void simulate(f32 delta_time);
     
     void deinit();
-    
+public: // Test and hack things together
+    vec3 get_sphere_position();
 private: // temp testing objects
     // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
     void destroy_default_objects();
