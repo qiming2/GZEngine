@@ -95,12 +95,15 @@ file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tiny_obj/include/*.h"
 )
 
-file(GLOB_RECURSE generatedSources 
+file(GLOB_RECURSE sources 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics/*.h"
 )
 
 
@@ -114,7 +117,7 @@ endif()
 message("SDL3 lib: ${SDL3_LIBRARY}")
 
 add_library(GZEngine STATIC
-    ${generatedSources}
+    ${sources}
     ${vendorSources}
 )
 
@@ -127,6 +130,7 @@ target_include_directories(GZEngine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Core"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     ${INCLUDE_MAPS}
 )

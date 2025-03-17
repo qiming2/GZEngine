@@ -10,6 +10,7 @@
 
 #include "Renderer.h"
 #include "Log.h"
+#include "PhysicsModule.h"
 
 namespace GZ {
 	struct AppSpec {
@@ -44,12 +45,15 @@ namespace GZ {
 
 		// flecs ecs temporary prototyping
 		flecs::world world;
+        
+        // expose physics for prototyping
+        PhysicsModule physics_module;
 	private:
 
 		b8 is_fullscreen = false;
 		SDL_EventFilter expose_event_watch;
 
-		FrameData frame_data;
+		FrameData m_frame_data;
 
 		// Asset
 		std::string working_dir;

@@ -54,6 +54,19 @@ namespace GZ {
 	using quatf = glm::quat;
 }
 
+#if defined(__clang__)
+#define GZ_FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]] extern inline
+
+#elif defined(__GNUC__)
+#define GZ_FORCE_INLINE [[gnu::always_inline]] inline
+
+#elif defined(_MSC_VER)
+#pragma warning(error: 4714)
+#define GZ_FORCE_INLINE __forceinline
+#else
+#error Unsupported compiler
+#endif
+
 #include <Jolt/Jolt.h>
 
 #endif

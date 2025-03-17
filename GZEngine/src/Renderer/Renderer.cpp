@@ -752,8 +752,7 @@ namespace GZ {
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
         gz_core_info("Read file: {}", filename);
 		if (!file.is_open()) {
-            perror("open failure");
-			throw std::runtime_error("failed to open file!");
+            gz_error("Open file failed");
 		}
 
 		size_t fileSize = (size_t)file.tellg();

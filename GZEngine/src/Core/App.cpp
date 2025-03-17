@@ -19,6 +19,7 @@
 
 #include "Log.h"
 #include "Renderer/Renderer.h"
+#include "Physics/PhysicsModule.h"
 
 #define USE_IMGUI 1
 
@@ -190,7 +191,7 @@ namespace GZ {
 
 		char* wkd = SDL_GetCurrentDirectory();
 
-		// on windows //, other platform 
+		// on windows //, other platform
 		working_dir = wkd;
 		SDL_free((void*)wkd);
 
@@ -255,16 +256,21 @@ namespace GZ {
 		vk_renderer->init_imgui_vulkan(&init_info);
 		ImGui_ImplVulkan_Init(&init_info);
 
-		// Load texture
+		// Load Main texture
 		main_tex_id = (ImTextureID)vk_renderer->get_main_color_texture_imgui_id();
 
+        // Setup physics engine
+        physics_module.init();
+        physics_module.create_default_objects();
 
-		frame_data.prevTime = SDL_GetTicksNS();
-		frame_data.deltaTime = 0.0f;
+        m_frame_data.prevTime = SDL_GetTicksNS();
+        m_frame_data.deltaTime = 0.0f;
 	}
 
 	App::~App()
 	{
+        physics_module.deinit();
+        
 		SDL_RemoveEventWatch(expose_event_watch, this);
 		vk_renderer->will_deinit();
 		// Cleanup
@@ -345,9 +351,13 @@ namespace GZ {
             private_pre_render();
             on_imgui_render();
 			// User defined module tick here
-            on_update(frame_data);
+            on_update(m_frame_data);
 			// System, module, etc tick once after user update.
-			world.progress(frame_data.deltaTime);
+            // Module update: Animation, physics, ai, custom system, etc...
+			world.progress(m_frame_data.deltaTime);
+            
+            physics_module.simulate(m_frame_data.deltaTime);
+            
             private_render();
             private_post_render();
 		}
@@ -380,7 +390,7 @@ namespace GZ {
         // no events
 		private_resize();
         private_pre_render();
-        on_update(frame_data);
+        on_update(m_frame_data);
         on_imgui_render();
         private_render();
         private_post_render();
@@ -389,10 +399,10 @@ namespace GZ {
 	void App::private_pre_render()
 	{
 		u64 curTime = SDL_GetTicksNS();
-		frame_data.deltaTime = (curTime - frame_data.prevTime) / (f32)SDL_NS_PER_SECOND;
-		frame_data.prevTime = curTime;
+        m_frame_data.deltaTime = (curTime - m_frame_data.prevTime) / (f32)SDL_NS_PER_SECOND;
+        m_frame_data.prevTime = curTime;
         
-        vk_renderer->begin_frame(frame_data.deltaTime);
+        vk_renderer->begin_frame(m_frame_data.deltaTime);
         // Start the Dear ImGui frame
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplSDL3_NewFrame();
