@@ -7,6 +7,12 @@ namespace GZ {
 
 	}
 
+	Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<u32>& indices)
+	{
+		m_vertex_buffer.insert(m_vertex_buffer.end(), vertices.begin(), vertices.end());
+		m_index_buffer.insert(m_index_buffer.end(), indices.begin(), indices.end());
+	}
+
 	Mesh::~Mesh() {
 
 	}
@@ -14,8 +20,11 @@ namespace GZ {
 	
 	std::shared_ptr<Mesh> Mesh::get_icosphere_mesh(f32 radius /*= 0.5f*/, i32 recursion_level)
 	{
+		static std::shared_ptr<Mesh> s_sphere_inst = nullptr;
+		if (s_sphere_inst != nullptr) return s_sphere_inst;
+
 		std::shared_ptr<Mesh> sphere_mesh = std::make_shared<Mesh>();
-		sphere_mesh->vertex_buffer = {};
+		sphere_mesh->m_vertex_buffer = {};
 		std::unordered_map<i64, i32> midpoint_index_cache;
 		i32 index = 0;
 
@@ -23,7 +32,7 @@ namespace GZ {
 			f32 mag = glm::length(p);
 			Vertex vert;
 			vert.pos = p / mag * radius * 2.0f;
-			sphere_mesh->vertex_buffer.push_back(vert);
+			sphere_mesh->m_vertex_buffer.push_back(vert);
 			return index++;
 		};
 
@@ -40,8 +49,8 @@ namespace GZ {
 				return ret;
 			}
 
-			vec3 p1 = sphere_mesh->vertex_buffer[p1_index].pos;
-			vec3 p2 = sphere_mesh->vertex_buffer[p2_index].pos;
+			vec3 p1 = sphere_mesh->m_vertex_buffer[p1_index].pos;
+			vec3 p2 = sphere_mesh->m_vertex_buffer[p2_index].pos;
 			i32 p_mid_index = add_vertex((p1 + p2) / 2.0f);
 
 			// store it, return index
@@ -129,34 +138,38 @@ namespace GZ {
 		}
 
 		// done, now add triangles to mesh
-		sphere_mesh->index_buffer = {};
-		sphere_mesh->index_buffer.reserve(faces.size() * 3);
+		sphere_mesh->m_index_buffer = {};
+		sphere_mesh->m_index_buffer.reserve(faces.size() * 3);
 		for(auto &tri: faces)
 		{
-			sphere_mesh->index_buffer.push_back(tri.v1);
-			sphere_mesh->index_buffer.push_back(tri.v2);
-			sphere_mesh->index_buffer.push_back(tri.v3);
+			sphere_mesh->m_index_buffer.push_back(tri.v1);
+			sphere_mesh->m_index_buffer.push_back(tri.v2);
+			sphere_mesh->m_index_buffer.push_back(tri.v3);
 		}
 
 		// uvs
-		for (int i = 0; i < sphere_mesh->vertex_buffer.size(); i++)
+		for (int i = 0; i < sphere_mesh->m_vertex_buffer.size(); i++)
 		{
-			Vertex &vert = sphere_mesh->vertex_buffer[i];
+			Vertex &vert = sphere_mesh->m_vertex_buffer[i];
 			vec3 pos = vert.pos;
 
-			vert.uv.x = (float)(0.5 - glm::atan(pos.x, pos.z) * (1.0f/glm::pi<f32>() * 2.0f));
-			vert.uv.y = (float)(0.5 - glm::asin(pos.y) * (1.0f/glm::pi<f32>() * 2.0f));
+			vert.uv.x = (f32)(1.0f - (0.5 - glm::atan(pos.x, pos.z) * (1.0f/glm::pi<f32>() * 2.0f)));
+			vert.uv.y = (f32)(1.0f - (0.5 - glm::asin(pos.y) * (1.0f/glm::pi<f32>() * 2.0f)));
 		}
 
+		s_sphere_inst = sphere_mesh;
 		return sphere_mesh;
 	}
 	
 	std::shared_ptr<Mesh> Mesh::get_box_mesh(vec3 extent /*= {0.5f, 0.5f, 0.5f}*/)
 	{
+		static std::shared_ptr<Mesh> s_box_inst = nullptr;
+
+		if (s_box_inst != nullptr) return s_box_inst;
         std::shared_ptr<Mesh> box_mesh = std::make_shared<Mesh>();
-        std::vector<Vertex> &vertex_buffer = box_mesh->vertex_buffer;
+        std::vector<Vertex> &vertex_buffer = box_mesh->m_vertex_buffer;
         
-        box_mesh->vertex_buffer.reserve(8);
+        box_mesh->m_vertex_buffer.reserve(8);
         
         // All 8 vertices
         vertex_buffer.push_back(Vertex{vec3(-extent.x,  extent.y, extent.z), vec3(0.0f, 1.0f, 0.0f), vec2(0.0, 0.0)});  // Front top left
@@ -170,7 +183,7 @@ namespace GZ {
         vertex_buffer.push_back(Vertex{vec3( extent.x, -extent.y, -extent.z), vec3(1.0f, 0.0f, 0.0f), vec2(1.0,1.0)}); // Back bottom right
         
         // Front
-        std::vector<u32> &index_buffer = box_mesh->index_buffer;
+        std::vector<u32> &index_buffer = box_mesh->m_index_buffer;
         index_buffer = {
             // Front
             0, 2, 1,
@@ -196,7 +209,7 @@ namespace GZ {
             2, 6, 3,
             3, 6, 7,
         };
-        
+        s_box_inst = box_mesh;
         return box_mesh;
 	}
 	

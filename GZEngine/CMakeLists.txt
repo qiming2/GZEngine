@@ -93,6 +93,7 @@ file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tiny_obj/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tiny_obj/include/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/VulkanMemoryAllocator/include/*.h"
 )
 
 file(GLOB_RECURSE sources 

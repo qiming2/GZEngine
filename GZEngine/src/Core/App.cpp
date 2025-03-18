@@ -268,7 +268,7 @@ namespace GZ {
 
 		// Temp add sphere
 		gz_renderer->submit_mesh(Mesh::get_icosphere_mesh(0.5f));
-//        gz_renderer->submit_mesh(Mesh::get_box_mesh());
+        gz_renderer->submit_mesh(Mesh::get_box_mesh());
 	}
 
 	App::~App()
@@ -362,11 +362,12 @@ namespace GZ {
 			world.progress(m_frame_data.deltaTime);
 //            
             physics_module.simulate(m_frame_data.deltaTime);
-            vec3 pos(1.0f);
-            pos = physics_module.get_sphere_position();
-//            pos = physics_module.get_box_position();
-//            gz_info("Sphere pos: {}", sphere_pos);
-			gz_renderer->set_model_matrix(glm::translate(mat4(1.0f), pos));
+
+            vec3 sphere_pos = physics_module.get_sphere_position();
+            vec3 box_pos = physics_module.get_box_position();			
+			
+			gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
+			gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
 
             private_render();
             private_post_render();

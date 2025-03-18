@@ -298,22 +298,23 @@ namespace GZ {
 
         // Now create a dynamic body to bounce on the floor
         // Note that this uses the shorthand version of creating and adding a body to the world
-        BodyCreationSettings sphere_settings(new SphereShape(0.5f), RVec3(0.0f, 1.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
-        sphere_settings.mGravityFactor = 0.0f; // We do our own gravity
+        BodyCreationSettings sphere_settings(new SphereShape(0.5f), RVec3(-1.0f, 1.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
+        sphere_settings.mGravityFactor = 1.0f; // We do our own gravity
         sphere_settings.mOverrideMassProperties = EOverrideMassProperties::CalculateMassAndInertia;
 //        sphere_settings.mMassPropertiesOverride.mMass = EOverrideMassProperties::cal;
         sphere_settings.mAngularDamping = 0.5f;
         
         m_sphere_id = m_body_interface->CreateAndAddBody(sphere_settings, EActivation::Activate);
-        m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, 0.0f, 0.0f));
-        m_body_interface->AddForce(m_sphere_id, {0.0f, 1000.0f, 0.0f});
+        //m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, 0.0f, -5.0f));
+        m_body_interface->AddImpulse(m_sphere_id, {0.0f, 1000.0f, 0.0f});
         m_body_interface->SetRestitution(m_sphere_id, 0.5f);
         
 
-        BodyCreationSettings box_settings(new BoxShape({0.5f, 0.5f, 0.5f}), RVec3(0.0f, 4.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
-//        m_box_id = m_body_interface->CreateAndAddBody(box_settings, EActivation::Activate);
-        m_body_interface->SetLinearVelocity(m_box_id, {0.0f, 5.0f, 0.0f});
-        m_body_interface->SetRestitution(m_box_id, 0.5f);
+        BodyCreationSettings box_settings(new BoxShape({0.5f, 0.5f, 0.5f}), RVec3(3.0f, 2.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
+        m_box_id = m_body_interface->CreateAndAddBody(box_settings, EActivation::Activate);
+        m_body_interface->SetLinearVelocity(m_box_id, {-1.0f, 1.0f, -1.0f});
+        m_body_interface->SetRestitution(m_box_id,0.7f);
+        m_body_interface->SetFriction(m_box_id, 0.0f);
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
         

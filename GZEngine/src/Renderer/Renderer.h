@@ -8,12 +8,7 @@
 
 namespace GZ {
 
-	// uniform object
-	struct UniformBufferObject {
-		glm::mat4 model; // this should be push constants
-		glm::mat4 view;
-		glm::mat4 proj;
-	};
+	
 	
 	struct QueueFamilyIndices {
 		std::optional<u32> graphicsFamily;
@@ -30,10 +25,6 @@ namespace GZ {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 	struct Renderer {
-	public: // Hack things together
-		void set_model_matrix(const mat4& model);
-	private:
-		mat4 m_model = mat4(1.0f);
 	public:
 		b8 init(void *window_handle);
 		b8 deinit();
@@ -52,6 +43,7 @@ namespace GZ {
 		void set_clear_value(vec4 clear_color = vec4(0.18, 0.18, 0.18, 1.0));
 	public: // Geometry related
 		void submit_mesh(std::shared_ptr<Mesh> mesh);
+		void set_model_matrix(const u32 &index, const mat4 &model);
 	private:
 		// temp mesh for drawing
 		std::vector<std::shared_ptr<Mesh>> m_meshes;
@@ -59,7 +51,7 @@ namespace GZ {
 		std::vector<VkDeviceMemory> m_mesh_vertex_buffer_memories;
 		std::vector<VkBuffer> m_mesh_index_buffers;
 		std::vector<VkDeviceMemory> m_mesh_index_buffer_memories;
-		
+		std::vector<PerObjectPushConstant> m_push_constants;
 	private: // Vk context
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
@@ -96,11 +88,6 @@ namespace GZ {
 		std::vector<VkFence> inFlightFences;
 
 		void *window_handle; // Platform specific
-		
-		VkBuffer m_vertexBuffer;
-		VkDeviceMemory m_vertexBufferMemory;
-		VkBuffer m_indexBuffer;
-		VkDeviceMemory m_indexBufferMemory;
 		
 		std::vector<VkBuffer> uniformBuffers;
 		std::vector<VkDeviceMemory> uniformBuffersMemory;
@@ -147,9 +134,6 @@ namespace GZ {
         const uint32_t viking_texture_width = 800;
         const uint32_t viking_texture_height = 600;
 
-        std::vector<Vertex> m_vertices;
-        std::vector<uint32_t> m_indices;
-
 	private: // Provided by application
 		// Imgui draw list
 		ImDrawData *imgui_data = nullptr;
@@ -181,8 +165,6 @@ namespace GZ {
 		void create_texture_image_view();
 		void create_texture_sampler();
         void load_model();
-		void create_vertex_buffer();
-		void create_index_buffer();
 		void create_uniform_buffer();
 		void create_descriptor_pool();
 		void create_descriptor_sets();

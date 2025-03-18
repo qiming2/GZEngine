@@ -6,11 +6,20 @@
 namespace GZ {
 	
 	// Mesh Related
+	// Push Constant has 128 bytes alignment
+	struct PerObjectPushConstant {
+		mat4 model;
+	};
+	// uniform object
+	struct UniformBufferObject {
+		mat4 view;
+		mat4 proj;
+	};
 
 	struct Vertex {
-		glm::vec3 pos;
-		glm::vec3 color;
-		glm::vec2 uv;
+		vec3 pos;
+		vec3 color;
+		vec2 uv;
 
 		static VkVertexInputBindingDescription getBindingDescription() {
 			VkVertexInputBindingDescription bindingDescription{};
@@ -45,21 +54,22 @@ namespace GZ {
 	struct Mesh {
     public:
 		Mesh();
+		Mesh(std::vector<Vertex> &vertices, std::vector<u32> &indices);
 		~Mesh();
 		
 		GZ_FORCE_INLINE const std::vector<Vertex>& get_vertex_buffer() const {
-			return vertex_buffer;
+			return m_vertex_buffer;
 		}
 
 		GZ_FORCE_INLINE const std::vector<u32>& get_index_buffer() const {
-			return index_buffer;
+			return m_index_buffer;
 		}
 
 		static std::shared_ptr<Mesh> get_icosphere_mesh(f32 radius = 0.5f, i32 recursion_level = 5);
 		static std::shared_ptr<Mesh> get_box_mesh(vec3 extent = {0.5f, 0.5f, 0.5f});
 	private:
-		std::vector<Vertex> vertex_buffer;
-		std::vector<u32> index_buffer;
+		std::vector<Vertex> m_vertex_buffer;
+		std::vector<u32> m_index_buffer;
 	};
 
 }
