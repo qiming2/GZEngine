@@ -288,7 +288,7 @@ namespace GZ {
         ShapeRefC floor_shape = floor_shape_result.Get(); // We don't expect an error here, but you can check floor_shape_result for HasError() / GetError()
 
         // Create the settings for the body itself. Note that here you can also set other properties like the restitution / friction.
-        BodyCreationSettings floor_settings(floor_shape, RVec3(0.0f, -1.0f, 0.0f), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+        BodyCreationSettings floor_settings(floor_shape, RVec3(0.0f, -2.0f, 0.0f), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
 
         // Create the actual rigid body
         Body *floor = m_body_interface->CreateBody(floor_settings); // Note that if we run out of bodies this can return nullptr
@@ -298,13 +298,25 @@ namespace GZ {
 
         // Now create a dynamic body to bounce on the floor
         // Note that this uses the shorthand version of creating and adding a body to the world
-        BodyCreationSettings sphere_settings(new SphereShape(0.5f), RVec3(0.0f, 2.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
+        BodyCreationSettings sphere_settings(new SphereShape(0.5f), RVec3(0.0f, 1.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
+        sphere_settings.mGravityFactor = 0.0f; // We do our own gravity
+        sphere_settings.mOverrideMassProperties = EOverrideMassProperties::CalculateMassAndInertia;
+//        sphere_settings.mMassPropertiesOverride.mMass = EOverrideMassProperties::cal;
+        sphere_settings.mAngularDamping = 0.5f;
+        
         m_sphere_id = m_body_interface->CreateAndAddBody(sphere_settings, EActivation::Activate);
+        m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, 0.0f, 0.0f));
+        m_body_interface->AddForce(m_sphere_id, {0.0f, 1000.0f, 0.0f});
+        m_body_interface->SetRestitution(m_sphere_id, 0.5f);
+        
 
+        BodyCreationSettings box_settings(new BoxShape({0.5f, 0.5f, 0.5f}), RVec3(0.0f, 4.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
+//        m_box_id = m_body_interface->CreateAndAddBody(box_settings, EActivation::Activate);
+        m_body_interface->SetLinearVelocity(m_box_id, {0.0f, 5.0f, 0.0f});
+        m_body_interface->SetRestitution(m_box_id, 0.5f);
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
-        m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, -5.0f, 0.0f));
-        m_body_interface->SetRestitution(m_sphere_id, 1.0f);
+        
         
     }
     
@@ -319,9 +331,10 @@ namespace GZ {
         while (m_accumulated > m_simulation_step_time) {
 
             // Step the world
+            m_body_interface->AddForce(m_box_id, {0.0, 10.0, 0.0});
             m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
             m_accumulated -= m_simulation_step_time;
-            vec3 position = to_glm(m_body_interface->GetCenterOfMassPosition(m_sphere_id));
+            vec3 position = to_glm(m_body_interface->GetPosition(m_box_id));
             vec3 velocity = to_glm(m_body_interface->GetLinearVelocity(m_sphere_id));
             
             // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
@@ -356,7 +369,11 @@ namespace GZ {
 
     //////////////////////////////// Hacking Stuff /////////////////////////////////////
 	vec3 PhysicsModule::get_sphere_position() {
-		return to_glm(m_body_interface->GetCenterOfMassPosition(m_sphere_id));
+        return to_glm(m_body_interface->GetPosition(m_sphere_id));
 	}
+
+    vec3 PhysicsModule::get_box_position() {
+        return to_glm(m_body_interface->GetPosition(m_box_id));
+    }
     
 }

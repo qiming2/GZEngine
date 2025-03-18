@@ -55,7 +55,7 @@ namespace GZ {
 }
 
 #if defined(__clang__)
-#define GZ_FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]] extern inline
+#define GZ_FORCE_INLINE [[clang::always_inline]] inline
 
 #elif defined(__GNUC__)
 #define GZ_FORCE_INLINE [[gnu::always_inline]] inline

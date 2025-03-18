@@ -31,10 +31,10 @@ namespace GZ {
 			b8 first_is_smaller = p1_index < p2_index;
 			i64 smaller_index = first_is_smaller ? p1_index : p2_index;
 			i64 greater_index = first_is_smaller ? p2_index : p1_index;
-			i64 key = smaller_index << 32 + greater_index;
+			i64 key = (smaller_index << 32) | greater_index;
 
 			i32 ret;
-			auto &it = midpoint_index_cache.find(key);
+			const auto &it = midpoint_index_cache.find(key);
 			if (it != midpoint_index_cache.end()) {
 				ret = it->second;
 				return ret;
@@ -151,9 +151,53 @@ namespace GZ {
 		return sphere_mesh;
 	}
 	
-	std::shared_ptr<Mesh> Mesh::get_box_mesh(vec2 extent /*= {0.5f, 0.5f}*/)
+	std::shared_ptr<Mesh> Mesh::get_box_mesh(vec3 extent /*= {0.5f, 0.5f, 0.5f}*/)
 	{
-		return nullptr;
+        std::shared_ptr<Mesh> box_mesh = std::make_shared<Mesh>();
+        std::vector<Vertex> &vertex_buffer = box_mesh->vertex_buffer;
+        
+        box_mesh->vertex_buffer.reserve(8);
+        
+        // All 8 vertices
+        vertex_buffer.push_back(Vertex{vec3(-extent.x,  extent.y, extent.z), vec3(0.0f, 1.0f, 0.0f), vec2(0.0, 0.0)});  // Front top left
+        vertex_buffer.push_back(Vertex{vec3( extent.x,  extent.y, extent.z), vec3(0.0f, 1.0f, 0.0f), vec2(0.0, 1.0)});  // Front top right
+        vertex_buffer.push_back(Vertex{vec3(-extent.x, -extent.y, extent.z), vec3(0.0f, 1.0f, 0.0f), vec2(1.0f/3.0f, 0.0)}); // Front bottom left
+        vertex_buffer.push_back(Vertex{vec3( extent.x, -extent.y, extent.z), vec3(0.0f, 1.0f, 0.0f), vec2(1.0f/3.0f, 1.0)}); // Front bottom right
+        
+        vertex_buffer.push_back(Vertex{vec3(-extent.x,  extent.y, -extent.z), vec3(1.0f, 0.0f, 0.0f), vec2(2.0f/3.0f,0.0)});  // Back top left
+        vertex_buffer.push_back(Vertex{vec3( extent.x,  extent.y, -extent.z), vec3(1.0f, 0.0f, 0.0f), vec2(2.0f/3.0f,1.0)});  // Back top right
+        vertex_buffer.push_back(Vertex{vec3(-extent.x, -extent.y, -extent.z), vec3(1.0f, 0.0f, 0.0f), vec2(1.0,0.0)}); // Back bottom left
+        vertex_buffer.push_back(Vertex{vec3( extent.x, -extent.y, -extent.z), vec3(1.0f, 0.0f, 0.0f), vec2(1.0,1.0)}); // Back bottom right
+        
+        // Front
+        std::vector<u32> &index_buffer = box_mesh->index_buffer;
+        index_buffer = {
+            // Front
+            0, 2, 1,
+            1, 2, 3,
+            
+            // Back
+            4, 5, 6,
+            5, 7, 6,
+            
+            // Right
+            1, 3, 5,
+            5, 3, 7,
+            
+            // Left
+            4, 6, 0,
+            0, 6, 2,
+            
+            // Top
+            4, 0, 5,
+            5, 0, 1,
+            
+            // Bottom
+            2, 6, 3,
+            3, 6, 7,
+        };
+        
+        return box_mesh;
 	}
 	
 

@@ -39,6 +39,7 @@ namespace GZ {
 		b8 deinit();
 		void init_imgui_vulkan(ImGui_ImplVulkan_InitInfo *init_info);
 		void* get_main_color_texture_imgui_id();
+        u32 get_min_image_count();
 
 		// Generic draw function right now
 		void begin_frame(const f32 &deltaTime);

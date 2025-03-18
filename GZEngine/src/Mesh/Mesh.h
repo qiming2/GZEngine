@@ -41,9 +41,9 @@ namespace GZ {
 		}
 	};
 
-	// Always generate CCW indices buffer
+	// Always generate CCW indices buffer, and always tessalated
 	struct Mesh {
-
+    public:
 		Mesh();
 		~Mesh();
 		
@@ -56,7 +56,7 @@ namespace GZ {
 		}
 
 		static std::shared_ptr<Mesh> get_icosphere_mesh(f32 radius = 0.5f, i32 recursion_level = 5);
-		static std::shared_ptr<Mesh> get_box_mesh(vec2 extent = {0.5f, 0.5f});
+		static std::shared_ptr<Mesh> get_box_mesh(vec3 extent = {0.5f, 0.5f, 0.5f});
 	private:
 		std::vector<Vertex> vertex_buffer;
 		std::vector<u32> index_buffer;

@@ -268,6 +268,7 @@ namespace GZ {
 
 		// Temp add sphere
 		gz_renderer->submit_mesh(Mesh::get_icosphere_mesh(0.5f));
+//        gz_renderer->submit_mesh(Mesh::get_box_mesh());
 	}
 
 	App::~App()
@@ -306,7 +307,7 @@ namespace GZ {
             // Input first, we might want imgui to capture events
             // so we call pre_render to get start new frames for imgui
             // and renderer
-
+            
 			while (SDL_PollEvent(&e)) {
 				switch (e.type) {
 
@@ -350,19 +351,23 @@ namespace GZ {
                 SDL_Delay(10);
                 continue;
             }
+
             // No need for checking for resize as it is handled
             private_pre_render();
             on_imgui_render();
-			// User defined module tick here
+//			// User defined module tick here
             on_update(m_frame_data);
-			// System, module, etc tick once after user update.
-            // Module update: Animation, physics, ai, custom system, etc...
+//			// System, module, etc tick once after user update.
+//            // Module update: Animation, physics, ai, custom system, etc...
 			world.progress(m_frame_data.deltaTime);
-            
+//            
             physics_module.simulate(m_frame_data.deltaTime);
-			vec3 sphere_pos = physics_module.get_sphere_position();
-			gz_renderer->set_model_matrix(glm::translate(mat4(1.0f), sphere_pos));
-            
+            vec3 pos(1.0f);
+            pos = physics_module.get_sphere_position();
+//            pos = physics_module.get_box_position();
+//            gz_info("Sphere pos: {}", sphere_pos);
+			gz_renderer->set_model_matrix(glm::translate(mat4(1.0f), pos));
+
             private_render();
             private_post_render();
 		}
@@ -379,6 +384,7 @@ namespace GZ {
 			window_h = t_h;
 			window_w = t_w;
 			gz_renderer->handle_window_resized();
+            ImGui_ImplVulkan_SetMinImageCount(gz_renderer->get_min_image_count());
 			ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)main_tex_id);
 			main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
 		}
@@ -404,7 +410,7 @@ namespace GZ {
 	void App::private_pre_render()
 	{
 		u64 curTime = SDL_GetTicksNS();
-        m_frame_data.deltaTime = (curTime - m_frame_data.prevTime) / (f32)SDL_NS_PER_SECOND;
+        m_frame_data.deltaTime = static_cast<f32>((f64)(curTime - m_frame_data.prevTime) / (f64)SDL_NS_PER_SECOND);
         m_frame_data.prevTime = curTime;
         
         gz_renderer->begin_frame(m_frame_data.deltaTime);
@@ -424,13 +430,16 @@ namespace GZ {
 	{
 
 		// Rendering
-        ImGui::Render();
-		ImDrawData* main_draw_data = ImGui::GetDrawData();
-		// Render here
-		gz_renderer->set_imgui_draw_data(main_draw_data);
-
-		gz_renderer->end_frame();
+        ImGuiIO &io = ImGui::GetIO();
         ImGui::EndFrame();
+
+        ImGui::Render();
+        
+		ImDrawData* main_draw_data = ImGui::GetDrawData();
+
+		gz_renderer->set_imgui_draw_data(main_draw_data);
+		gz_renderer->end_frame();
+        
 	}
 
 }

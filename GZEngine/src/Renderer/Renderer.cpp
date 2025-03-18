@@ -425,7 +425,7 @@ namespace GZ {
 		ubo.model = glm::translate(ubo.model, {0.0f, 0.5f, 0.0f});*/
 		ubo.model = m_model;
 		
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		ubo.view = glm::lookAt(glm::vec3(0.0f, 2.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		
 		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f);
 		if (viewport_w != 0) {
@@ -487,6 +487,7 @@ namespace GZ {
     }
 
     void Renderer::handle_window_resized() {
+        current_frame_index = 0;
         recreate_swapchain();
     }
 
@@ -504,7 +505,7 @@ namespace GZ {
 	void Renderer::submit_mesh(std::shared_ptr<Mesh> mesh)
 	{
 		// maybe no need to do this since we would upload to gpu immediately
-		i32 mesh_index = m_meshes.size();
+		i32 mesh_index = static_cast<i32>(m_meshes.size());
 		m_meshes.push_back(mesh);
 		
 		// First vertex buffer
@@ -838,7 +839,6 @@ namespace GZ {
 	{
 		// Working directory is in Editor
 		// asserts are also in editor
-        gz_core_info("Cur wkd: {}", SDL_GetCurrentDirectory());
 #ifdef GZ_PLATFORM_WINDOWS
 		auto vertShaderCode = readFile("asset\\shader\\basic_vert.spv");
 		auto fragShaderCode = readFile("asset\\shader\\basic_frag.spv");
@@ -1010,7 +1010,6 @@ namespace GZ {
 	{
 		// Working directory is in Editor
 		// asserts are also in editor
-		gz_core_info("Cur wkd: {}", SDL_GetCurrentDirectory());
 #ifdef GZ_PLATFORM_WINDOWS
 		auto vertShaderCode = readFile("asset\\shader\\basic_vert.spv");
 		auto fragShaderCode = readFile("asset\\shader\\basic_frag.spv");
@@ -1707,7 +1706,7 @@ namespace GZ {
         const std::string viking_obj_path = "asset/model/viking_room.obj";
         
         const std::string meng_yuan_obj_path = "asset/model/meng_yuan.obj";
-		const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj"
+const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj";
     #else
         const std::string viking_obj_path = "asset\\model\\viking_room.obj";
         const std::string meng_yuan_obj_path = "asset\\model\\meng_yuan.obj";
@@ -1898,7 +1897,7 @@ namespace GZ {
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.commandPool = commandPool;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandBufferCount = 2;
+		allocInfo.commandBufferCount = Renderer::MAX_FRAMES_IN_FLIGHT;
 
 		vk_check_result(vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()));
 	}
@@ -2032,7 +2031,7 @@ namespace GZ {
 		appInfo.pEngineName = "GZ Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		// Use version for now
-		appInfo.apiVersion = VK_API_VERSION_1_3;
+		appInfo.apiVersion = VK_API_VERSION_1_4;
 
 		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -2245,7 +2244,7 @@ namespace GZ {
 	{
 		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 		auto& init_info = *init_info_ptr;
-		init_info.ApiVersion = VK_API_VERSION_1_3;              // Pass in your value of VkApplicationInfo::apiVersion, otherwise will default to header version.
+		init_info.ApiVersion = VK_API_VERSION_1_4;              // Pass in your value of VkApplicationInfo::apiVersion, otherwise will default to header version.
 		init_info.Instance = instance;
 		init_info.PhysicalDevice = physicalDevice;
 		init_info.Device = device;
@@ -2262,6 +2261,10 @@ namespace GZ {
 		init_info.Allocator = nullptr;
 		init_info.CheckVkResultFn = check_vk_result_imgui_callback;
 	}
+
+    u32 Renderer::get_min_image_count() {
+        return static_cast<u32>(swapChainImages.size());
+    }
 
 	void* Renderer::get_main_color_texture_imgui_id()
 	{
