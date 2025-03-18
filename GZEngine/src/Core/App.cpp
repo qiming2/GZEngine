@@ -324,6 +324,7 @@ namespace GZ {
 						is_fullscreen = !is_fullscreen;
 						SDL_SetWindowFullscreen(window, is_fullscreen);
 						private_resize();
+						continue;
 						break;
 					} 
 					break;
