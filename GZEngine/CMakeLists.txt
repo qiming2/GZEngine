@@ -33,13 +33,14 @@ target_compile_definitions(Jolt PUBLIC DOUBLE_PRECISION=OFF)
 
 
 set(Vulkan_FOUND OFF)
-find_package(Vulkan REQUIRED)
+find_package(Vulkan)
 # Instead of adding vulkan which is huge, find the package
 # In order to use vulkan validation lib, needs to let the installer set the path
 # For debug version, need to have installer
 set(GZ_VULKAN_VERSION, "1.4.304.1")
+   
 if (NOT Vulkan_FOUND)
-    message("You don't have VulkanSDK please download version or above: ${GZ_VULKAN_VERSION} at
+    message(FATAL_ERROR "You don't have VulkanSDK please download version or above: 1.4.304.1 at
         https://vulkan.lunarg.com/")
 endif()
 

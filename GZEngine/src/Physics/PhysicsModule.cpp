@@ -103,12 +103,12 @@ namespace GZ {
     public:
         virtual void OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) override
         {
-            gz_info("Body: [{}] activated", inBodyID.GetIndexAndSequenceNumber());
+            //gz_info("Body: [{}] activated", inBodyID.GetIndexAndSequenceNumber());
         }
 
         virtual void OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) override
         {
-            gz_info("Body: [{}] deactivated", inBodyID.GetIndexAndSequenceNumber());
+            //gz_info("Body: [{}] deactivated", inBodyID.GetIndexAndSequenceNumber());
         }
     };
 
@@ -138,7 +138,7 @@ namespace GZ {
         // See: ContactListener
         virtual ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override
         {
-            gz_info("Contact validate callback");
+            //gz_info("Contact validate callback");
 
             // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
             return ValidateResult::AcceptAllContactsForThisBodyPair;
@@ -151,7 +151,7 @@ namespace GZ {
 
         virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
         {
-            gz_info("Body {} has contacts persisted with Body {}", inBody1.GetID().GetIndexAndSequenceNumber(), inBody2.GetID().GetIndexAndSequenceNumber());
+            //gz_info("Body {} has contacts persisted with Body {}", inBody1.GetID().GetIndexAndSequenceNumber(), inBody2.GetID().GetIndexAndSequenceNumber());
         }
 
         virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override

@@ -422,7 +422,7 @@ namespace GZ {
 	{
 		UniformBufferObject ubo{};
 		static f32 angle = 0.0f;
-		angle += 0.25f * f32(3.14159265358979323846) * deltaTime;
+		angle += 0.25f * glm::pi<f32>() * deltaTime;
 		mat4 t_model = glm::scale(mat4(1.0f), vec3{2.0f ,2.0f, 2.0f});
 		t_model = glm::rotate(t_model, angle, vec3(0.0f, 1.0f, 0.0f));
 		set_model_matrix(0, t_model);
