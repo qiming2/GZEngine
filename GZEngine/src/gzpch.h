@@ -28,13 +28,27 @@
 
 #include <defines.h>
 
+#if defined(__clang__)
+#define GZ_FORCE_INLINE [[clang::always_inline]] inline
+
+#elif defined(__GNUC__)
+#define GZ_FORCE_INLINE [[gnu::always_inline]] inline
+
+#elif defined(_MSC_VER)
+#pragma warning(error: 4714)
+#define GZ_FORCE_INLINE __forceinline
+#else
+#error Unsupported compiler
+#endif
 ////////////////////////////////////// Vendor ///////////////////////////////////////
 // All glm defines are predefined in cmake
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
+#include <flecs.h>
 // glm alias
 namespace GZ {
+
+	// Some convenience using
 	using vec4 = glm::vec4;
 	using vec3 = glm::vec3;
 	using vec2 = glm::vec2;
@@ -52,21 +66,17 @@ namespace GZ {
 	using mat2 = glm::mat2;
 
 	using quatf = glm::quat;
+
+	using World = flecs::world;
+	using Entity = flecs::entity;
 }
 
-#if defined(__clang__)
-#define GZ_FORCE_INLINE [[clang::always_inline]] inline
-
-#elif defined(__GNUC__)
-#define GZ_FORCE_INLINE [[gnu::always_inline]] inline
-
-#elif defined(_MSC_VER)
-#pragma warning(error: 4714)
-#define GZ_FORCE_INLINE __forceinline
-#else
-#error Unsupported compiler
-#endif
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui.h>
+#include <imgui_node_editor.h>
 
 #include <Jolt/Jolt.h>
+
+// Don't put engine header!!!!! Circular dependency
 
 #endif

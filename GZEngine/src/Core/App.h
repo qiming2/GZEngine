@@ -44,7 +44,7 @@ namespace GZ {
 		ImTextureID main_tex_id;
 
 		// flecs ecs temporary prototyping
-		flecs::world world;
+		World world;
         
         // expose physics for prototyping
         PhysicsModule physics_module;
@@ -69,6 +69,7 @@ namespace GZ {
 		void private_resize();
 		void private_pre_render();
 		void private_post_render();
+		void private_install_builtin_modules();
 	};
 
 	

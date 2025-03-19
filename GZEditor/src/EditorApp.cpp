@@ -2,7 +2,7 @@
 #include <defines.h>
 
 #include "EditorApp.h"
-#include "ECSCommonComponent.h"
+#include "CommonModule.h"
 
 namespace ed = ax::NodeEditor;
 
@@ -29,10 +29,11 @@ namespace GZ {
 		m_node_Context = ed::CreateEditor(&config);
 
         gz_info("Init flecs entity", "");
-        auto ent = world.entity().set<Transform>({vec3(1.0), vec3(1.0), vec3(1.0)});
         
-        const Transform *ent_transform = (ent.get<Transform>());
-        const Transform t{vec3(1.0f), vec3(2.0f), vec3(1.0f)};
+        auto ent = world.entity().set<TransformComponent>({vec3(1.0), vec3(1.0), vec3(1.0)});
+        
+        const TransformComponent *ent_transform = (ent.get<TransformComponent>());
+        const TransformComponent t{vec3(1.0f), vec3(2.0f), vec3(1.0f)};
         gz_info("Entity id: {}", ent.id());
         gz_info("Entity transform: {}",  (* ent_transform));
         
@@ -116,6 +117,9 @@ namespace GZ {
                 gz_renderer->set_clear_value(m_clear_color);
             } // Edit 3 floats representing a color
 
+			static TransformComponent comp;
+			// Test component draw ui
+			draw_component_imgui_ui_transform(&comp);
 
             if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;

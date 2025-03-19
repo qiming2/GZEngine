@@ -25,18 +25,3 @@ target_link_libraries(GZEditor PUBLIC GZEngine)
 set_target_properties(GZEditor PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
-
-if (WIN32)
-# Post-build commands (e.g., copy SDL3 DLL for Windows)
-add_custom_command(TARGET GZEditor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/SDL3/lib/windows/SDL3.dll"
-    "$<TARGET_FILE_DIR:GZEditor>"
-)
-
-add_custom_command(TARGET GZEditor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/SDL3/lib/windows/SDL3.pdb"
-    "$<TARGET_FILE_DIR:GZEditor>"
-)
-endif()

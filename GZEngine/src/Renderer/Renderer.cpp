@@ -20,114 +20,114 @@ do { \
         gz_core_error("{} failed in: {} at {}", function_name(f), __FILE__, __LINE__); \
     } \
 } while(0)
+namespace GZ {
 
-#ifdef GZ_DEBUG
-static const bool enableValidationLayers = true;
-#else
-static const bool enableValidationLayers = false;
-#endif
+	#ifdef GZ_DEBUG
+	static const bool enableValidationLayers = true;
+	#else
+	static const bool enableValidationLayers = false;
+	#endif
 
-static void check_vk_result_imgui_callback(VkResult err)
-{
-	if (err == VK_SUCCESS)
-		return;
-	fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-	if (err < 0)
-		abort();
-}
+	static void check_vk_result_imgui_callback(VkResult err)
+	{
+		if (err == VK_SUCCESS)
+			return;
+		fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+		if (err < 0)
+			abort();
+	}
 
-static const std::vector<const char*> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"
-};
+	static const std::vector<const char*> validationLayers = {
+		"VK_LAYER_KHRONOS_validation"
+	};
 
-static bool checkValidationLayerSupport() {
-	u32 layerCount;
-	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+	static bool checkValidationLayerSupport() {
+		u32 layerCount;
+		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
-	std::vector<VkLayerProperties> availableLayers(layerCount);
-	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+		std::vector<VkLayerProperties> availableLayers(layerCount);
+		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-	for (const char* layerName : validationLayers) {
-		bool layerFound = false;
+		for (const char* layerName : validationLayers) {
+			bool layerFound = false;
 
-		for (const auto& layerProperties : availableLayers) {
-			gz_core_info("Available Layerproperties {}", layerProperties.layerName);
-			if (strcmp(layerName, layerProperties.layerName) == 0) {
-				layerFound = true;
-				break;
+			for (const auto& layerProperties : availableLayers) {
+				gz_core_info("Available Layerproperties {}", layerProperties.layerName);
+				if (strcmp(layerName, layerProperties.layerName) == 0) {
+					layerFound = true;
+					break;
+				}
+			}
+
+			if (!layerFound) {
+				return false;
 			}
 		}
 
-		if (!layerFound) {
-			return false;
+		return true;
+	}
+
+
+	static std::vector<const char*> getRequiredExtensions() {
+		u32 sdl_extension_count = 0;
+		const char* const* sdl_extensions;
+
+		sdl_extensions = SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count);
+
+		std::vector<const char*> extensions;
+
+		// Maybe need one more for macOS
+		extensions.reserve(sdl_extension_count + 2);
+
+		gz_core_info("SDL Required extensions:");
+		for (u32 i = 0; i < sdl_extension_count; ++i) {
+			gz_core_info("\t{}", sdl_extensions[i]);
+			extensions.emplace_back(sdl_extensions[i]);
+		}
+		if (enableValidationLayers) {
+			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		}
+
+		return extensions;
+	}
+
+	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData) {
+
+		gz_core_warn("validation layer: {}", pCallbackData->pMessage);
+
+		return VK_FALSE;
+	}
+
+	static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* createInfoPtr) {
+		auto& createInfo = *createInfoPtr;
+		createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		createInfo.pfnUserCallback = debugCallback;
+		createInfo.pUserData = nullptr; // Optional
+	}
+
+	static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+		if (func != nullptr) {
+			return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+		}
+		else {
+			return VK_ERROR_EXTENSION_NOT_PRESENT;
 		}
 	}
 
-	return true;
-}
-
-
-static std::vector<const char*> getRequiredExtensions() {
-	u32 sdl_extension_count = 0;
-	const char* const* sdl_extensions;
-
-	sdl_extensions = SDL_Vulkan_GetInstanceExtensions(&sdl_extension_count);
-
-	std::vector<const char*> extensions;
-
-	// Maybe need one more for macOS
-	extensions.reserve(sdl_extension_count + 2);
-
-	gz_core_info("SDL Required extensions:");
-	for (u32 i = 0; i < sdl_extension_count; ++i) {
-		gz_core_info("\t{}", sdl_extensions[i]);
-		extensions.emplace_back(sdl_extensions[i]);
+	static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+		if (func != nullptr) {
+			func(instance, debugMessenger, pAllocator);
+		}
 	}
-	if (enableValidationLayers) {
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	}
-
-	return extensions;
-}
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT messageType,
-	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData) {
-
-	gz_core_warn("validation layer: {}", pCallbackData->pMessage);
-
-	return VK_FALSE;
-}
-
-static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* createInfoPtr) {
-	auto& createInfo = *createInfoPtr;
-	createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debugCallback;
-	createInfo.pUserData = nullptr; // Optional
-}
-
-static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	if (func != nullptr) {
-		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-	}
-	else {
-		return VK_ERROR_EXTENSION_NOT_PRESENT;
-	}
-}
-
-static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-	if (func != nullptr) {
-		func(instance, debugMessenger, pAllocator);
-	}
-}
-namespace GZ {
 
 	void Renderer::setup_debug_messenger() {
 		if (!enableValidationLayers) return;

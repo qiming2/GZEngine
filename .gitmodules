@@ -19,3 +19,6 @@
 [submodule "GZEngine/vendor/JoltPhysics"]
 	path = GZEngine/vendor/JoltPhysics
 	url = git@github.com:qiming2/JoltPhysics.git
+[submodule "GZEngine/vendor/SDL"]
+	path = GZEngine/vendor/SDL
+	url = git@github.com:libsdl-org/SDL.git

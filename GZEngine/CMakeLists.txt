@@ -27,15 +27,21 @@ target_compile_definitions(Jolt PUBLIC DOUBLE_PRECISION=OFF)
 # target_compile_definitions(Jolt PUBLIC CROSS_PLATFORM_DETERMINISTIC=OFF)
 # target_compile_definitions(Jolt PUBLIC INTERPROCEDURAL_OPTIMIZATION=ON)
 # target_compile_definitions(Jolt PUBLIC FLOATING_POINT_EXCEPTIONS_ENABLED=OFF)
-# target_compile_definitions(Jolt PUBLIC CPP_EXCEPTIONS_ENABLED=OFF)
-# target_compile_definitions(Jolt PUBLIC CPP_RTTI_ENABLED=OFF)
-# target_compile_definitions(Jolt PUBLIC OBJECT_LAYER_BITS=16)
+target_compile_definitions(Jolt PUBLIC CPP_EXCEPTIONS_ENABLED=OFF)
+target_compile_definitions(Jolt PUBLIC CPP_RTTI_ENABLED=OFF)
+target_compile_definitions(Jolt PUBLIC OBJECT_LAYER_BITS=32)
+
+message("SDL...!")
+set(SDL_SHARED ON)
+set(SDL_STATIC ON)
+set(SDL_TEST_LIBRARY OFF)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL")
 
 
 set(Vulkan_FOUND OFF)
 find_package(Vulkan)
 # Instead of adding vulkan which is huge, find the package
-# In order to use vulkan validation lib, needs to let the installer set the path
+# In order to use vulkan validation lib, needs to let the install er set the path
 # For debug version, need to have installer
 set(GZ_VULKAN_VERSION, "1.4.304.1")
    
@@ -58,7 +64,7 @@ endif()
 # Include directories
 list(APPEND INCLUDE_MAPS
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends"
     "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -71,14 +77,9 @@ list(APPEND INCLUDE_MAPS
     "${JoltPhysics_SOURCE_DIR}/.."
 )
 
-# Library directories
-set(LIBDIR_MAPS
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/lib/"
-)
-
 file(GLOB vendorSources
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/vulkan/Include/vulkan/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include/SDL3/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL/include/SDL3/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/misc/cpp/imgui_stdlib/*.cpp"
@@ -108,17 +109,9 @@ file(GLOB_RECURSE sources
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Mesh/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Mesh/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/*.h"
 )
-
-
-# Define platform-specific settings
-if(WIN32)
-    set(SDL3_LIBRARY "${LIBDIR_MAPS}/windows/SDL3.lib")
-elseif(APPLE)
-    set(SDL3_LIBRARY "${LIBDIR_MAPS}/mac/libSDL3.dylib")
-endif()
-
-message("SDL3 lib: ${SDL3_LIBRARY}")
 
 add_library(GZEngine STATIC
     ${sources}
@@ -136,12 +129,13 @@ target_include_directories(GZEngine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Physics"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Mesh"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Common"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     ${INCLUDE_MAPS}
 )
 
 target_link_libraries(GZEngine PUBLIC
-    ${SDL3_LIBRARY}
+    SDL3::SDL3-static #default to shared sdl3
     flecs::flecs_static
     ${Vulkan_LIBRARIES}
     glm::glm

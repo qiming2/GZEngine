@@ -20,6 +20,7 @@
 #include "Log.h"
 #include "Renderer/Renderer.h"
 #include "Physics/PhysicsModule.h"
+#include "Common/CommonModule.h"
 
 #define USE_IMGUI 1
 
@@ -290,16 +291,19 @@ namespace GZ {
 	}
 	
 	void App::run() {
-		SDL_Event e;
-		u64 prevTime = SDL_GetTicksNS();
-        
+		// Before runnning, we install builtin ecs modules
+        private_install_builtin_modules();
+
+		// Then do app init, app can install its custom module
         if (!is_app_initialized) {
             on_init();
             is_app_initialized = true;
         }
 
-        ImGuiIO& io = ImGui::GetIO();
-
+        
+		SDL_Event e;
+		u64 prevTime = SDL_GetTicksNS();
+		ImGuiIO& io = ImGui::GetIO();
 		while (is_running) {
             
             // Setup new frames
@@ -307,7 +311,7 @@ namespace GZ {
             // Input first, we might want imgui to capture events
             // so we call pre_render to get start new frames for imgui
             // and renderer
-            
+
 			while (SDL_PollEvent(&e)) {
 				switch (e.type) {
 
@@ -353,8 +357,8 @@ namespace GZ {
                 continue;
             }
 
-            // No need for checking for resize as it is handled
-            private_pre_render();
+			// No need for checking for resize as it is handled
+			private_pre_render();
             on_imgui_render();
 //			// User defined module tick here
             on_update(m_frame_data);
@@ -426,6 +430,12 @@ namespace GZ {
 	void App::private_post_render()
 	{
 
+	}
+
+	void App::private_install_builtin_modules()
+	{
+		CommonModule common_module;
+		common_module.install_into(world);
 	}
 
 	void App::private_render()
