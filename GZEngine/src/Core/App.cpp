@@ -273,11 +273,15 @@ namespace GZ {
 		private_install_builtin_modules();
 
 		// plugin system
-
-		static const char *plugin = "E:\\GZEngine\\build\\bin\\Debug\\GZHotReloader.dll";
+#ifdef GZ_PLATFORM_APPLE
+        const char *plugin_path = "/Users/qimingguan/qiming/GZEngine/build/GZEditor/HotReloadTest/Debug/libGZHotReloader.dylib";
+#else
+        const char *plugin_path = "E:\\GZEngine\\build\\bin\\Debug\\GZHotReloader.dll";
+#endif
+		
 		plugin_data.imgui_ctx = ImGui::GetCurrentContext();
 		ctx.userdata = &plugin_data;
-		cr_plugin_open(ctx, plugin);
+		cr_plugin_open(ctx, plugin_path);
 
 		SDL_EventFilter expose_event_watch = [](void* usr_data, SDL_Event* event) -> b8 {
 			App* app = (App*)usr_data;

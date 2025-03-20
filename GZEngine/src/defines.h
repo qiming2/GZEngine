@@ -1,9 +1,18 @@
 #include <cstdint>
 
+
 #if GZ_MAKE_DLL
-#  define GZ_API __declspec(dllexport)
+#   ifdef _MSC_VER
+#       define GZ_API __declspec(dllexport)
+#   else
+#       define GZ_API __attribute__((visibility("default")))
+#   endif
 #else
-#  define GZ_API __declspec(dllimport)
+#   ifdef _MSC_VER
+#       define GZ_API __declspec(dllimport)
+#   else
+#       define GZ_API
+#   endif
 #endif
 namespace GZ {
 	// unsigned int
