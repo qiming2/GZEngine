@@ -6,15 +6,17 @@ namespace GZ {
     extern App *create_application();
 }
 
-// This gets 
+// Try hot reloading
+
+
 int main(int argc, char **argv) {
     
-    // Init core stuff
-    GZ::Log::init();
-
     
     GZ::App *newApp = GZ::create_application();
-    newApp->run();
+    // Init core stuff
+    
+    newApp->run();    
+    
     delete newApp;
     return 0;
 }

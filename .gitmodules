@@ -22,3 +22,6 @@
 [submodule "GZEngine/vendor/SDL"]
 	path = GZEngine/vendor/SDL
 	url = git@github.com:libsdl-org/SDL.git
+[submodule "GZEngine/vendor/cr"]
+	path = GZEngine/vendor/cr
+	url = git@github.com:fungos/cr.git

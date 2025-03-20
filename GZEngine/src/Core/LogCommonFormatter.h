@@ -1,5 +1,4 @@
 #include <gzpch.h>
-
 #include "spdlog/spdlog.h"
 
 template<>

@@ -1,5 +1,10 @@
 #include <cstdint>
 
+#if GZ_MAKE_DLL
+#  define GZ_API __declspec(dllexport)
+#else
+#  define GZ_API __declspec(dllimport)
+#endif
 namespace GZ {
 	// unsigned int
 	using u64 = std::uint64_t;

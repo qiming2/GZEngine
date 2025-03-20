@@ -20,8 +20,10 @@ elseif (APPLE)
 endif()
 
 # Link GZEngine to GZEditor
-target_link_libraries(GZEditor PUBLIC GZEngine)
+target_link_libraries(GZEditor PRIVATE GZEngine)
+target_compile_definitions(GZEditor PRIVATE GZ_MAKE_DLL=0)
 
-set_target_properties(GZEditor PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
+# This is defined in main CMake
+# set_target_properties(GZEditor PROPERTIES
+#     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+# )

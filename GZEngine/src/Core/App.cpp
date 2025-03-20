@@ -1,4 +1,6 @@
 #include <gzpch.h>
+#define CR_HOST CR_UNSAFE
+#include <cr.h>
 #include <App.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
@@ -185,6 +187,7 @@ namespace GZ {
 	namespace ed = ax::NodeEditor;
 	App::App(const AppSpec& spec)
 	{
+		GZ::Log::init();
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS)) {
 			gz_error("SDL init failed: {}", SDL_GetError());
 			exit(1);
@@ -218,16 +221,6 @@ namespace GZ {
 
 		SDL_ShowWindow(window);
         SDL_SetWindowFullscreen(window, is_fullscreen);
-		
-        SDL_EventFilter expose_event_watch = [](void *usr_data, SDL_Event *event) -> b8 {
-            App* app = (App*)usr_data;
-
-            if (event->type == SDL_EVENT_WINDOW_EXPOSED) {
-                app->loop();
-            }
-            return true;
-        };
-        SDL_AddEventWatch(expose_event_watch, this);
 
 		// Imgui setup
 		// Setup Dear ImGui context
@@ -260,6 +253,11 @@ namespace GZ {
 		// Load Main texture
 		main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
 
+		// Node editor
+		ed::Config config;
+		config.SettingsFile = "Simple.json";
+		m_node_Context = ed::CreateEditor(&config);
+
         // Setup physics engine
         physics_module.init();
         physics_module.create_default_objects();
@@ -270,10 +268,31 @@ namespace GZ {
 		// Temp add sphere
 		gz_renderer->submit_mesh(Mesh::get_icosphere_mesh(0.5f));
         gz_renderer->submit_mesh(Mesh::get_box_mesh());
+
+		// Before runnning, we install builtin ecs modules
+		private_install_builtin_modules();
+
+		// plugin system
+
+		static const char *plugin = "E:\\GZEngine\\build\\bin\\Debug\\GZHotReloader.dll";
+		plugin_data.imgui_ctx = ImGui::GetCurrentContext();
+		ctx.userdata = &plugin_data;
+		cr_plugin_open(ctx, plugin);
+
+		SDL_EventFilter expose_event_watch = [](void* usr_data, SDL_Event* event) -> b8 {
+			App* app = (App*)usr_data;
+
+			if (event->type == SDL_EVENT_WINDOW_EXPOSED) {
+				app->loop();
+			}
+			return true;
+		};
+		SDL_AddEventWatch(expose_event_watch, this);
 	}
 
 	App::~App()
 	{
+		cr_plugin_close(ctx);
         physics_module.deinit();
         
 		SDL_RemoveEventWatch(expose_event_watch, this);
@@ -289,11 +308,130 @@ namespace GZ {
 		SDL_DestroyWindow(window);
 		SDL_Quit();
 	}
-	
-	void App::run() {
-		// Before runnning, we install builtin ecs modules
-        private_install_builtin_modules();
 
+	void App::on_imgui_render()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("Open", "CTRL+Z")) {}
+				if (ImGui::MenuItem("Hello", "CTRL+Z")) {}
+				ImGui::EndMenu();
+
+			}
+			if (ImGui::BeginMenu("Edit"))
+			{
+				if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+				if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {} // Disabled item
+				ImGui::Separator();
+				if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+				if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+				if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+
+
+		if (m_show_node_editor) {
+			ImGui::Begin("New editor window");
+			ed::SetCurrentEditor(m_node_Context);
+			ed::Begin("My Editor", ImVec2(0.0, 0.0f));
+			int uniqueId = 1;
+			// Start drawing nodes.
+			ed::BeginNode(uniqueId++);
+			ImGui::Text("Node A");
+			ed::BeginPin(uniqueId++, ed::PinKind::Input);
+			ImGui::Text("-> In");
+			ed::EndPin();
+			ImGui::SameLine();
+			ed::BeginPin(uniqueId++, ed::PinKind::Output);
+			ImGui::Text("Out ->");
+			ed::EndPin();
+			ed::EndNode();
+			ed::End();
+			ed::SetCurrentEditor(nullptr);
+			ImGui::End();
+		}
+
+
+		if (m_show_demo_window)
+			ImGui::ShowDemoWindow(&m_show_demo_window);
+
+		{
+			static float f = 0.0f;
+			static int counter = 0;
+
+			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+			ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
+			ImGui::Checkbox("Another Window", &m_show_another_window);
+			ImGui::Checkbox("Node editor", &m_show_node_editor);
+
+			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+			if (ImGui::ColorEdit3("clear color", (float*)&m_clear_color)) {
+				gz_renderer->set_clear_value(m_clear_color);
+			} // Edit 3 floats representing a color
+
+			static TransformComponent comp;
+			// Test component draw ui
+			draw_component_imgui_ui_transform(&comp);
+
+			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+				counter++;
+			ImGui::SameLine();
+			ImGui::Text("counter = %d", counter);
+
+			ImGui::Text("Application average %.5f ms/frame (%.2f FPS)", m_frame_data.deltaTime, 1.0f / m_frame_data.deltaTime);
+			ImGui::End();
+		}
+
+		// 3. Show another simple window.
+		if (m_show_another_window)
+		{
+			ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+			ImGui::Text("Hello from another window!");
+			if (ImGui::Button("Close Me"))
+				m_show_another_window = false;
+
+			ImGui::End();
+		}
+
+		// 4. Show main shaing
+		if (m_show_main_scene) {
+
+			// rethink ui design later
+//            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+
+//            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
+			ImGui::Begin("Main Scene", &m_show_main_scene, 0);
+			ImGui::SetWindowSize({ 200.0f, 200.0f });
+
+			// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+			ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
+			if (m_main_view_w != static_cast<u32>(main_scene_cur_window_size.x) || m_main_view_h != static_cast<u32>(main_scene_cur_window_size.y)) {
+				m_main_view_w = static_cast<u32>(main_scene_cur_window_size.x);
+				m_main_view_h = static_cast<u32>(main_scene_cur_window_size.y);
+				gz_renderer->set_viewport_size(m_main_view_w, m_main_view_h);
+			}
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);
+			ImGui::Image((ImTextureID)main_tex_id, main_scene_cur_window_size, { 0, 0 }, { 1, 1 });
+			ImGui::PopStyleVar();
+
+			ImGui::End();
+			//            ImGui::PopStyleVar();
+		}
+	}
+
+	void App::run() {
+		
 		// Then do app init, app can install its custom module
         if (!is_app_initialized) {
             on_init();
@@ -305,7 +443,6 @@ namespace GZ {
 		u64 prevTime = SDL_GetTicksNS();
 		ImGuiIO& io = ImGui::GetIO();
 		while (is_running) {
-            
             // Setup new frames
             
             // Input first, we might want imgui to capture events
@@ -361,6 +498,7 @@ namespace GZ {
 			private_pre_render();
             on_imgui_render();
 //			// User defined module tick here
+			cr_plugin_update(ctx);
             on_update(m_frame_data);
 //			// System, module, etc tick once after user update.
 //            // Module update: Animation, physics, ai, custom system, etc...
@@ -402,13 +540,24 @@ namespace GZ {
             on_init();
             is_app_initialized = true;
         }
-            
+        
         // Even main_thread_blocked, we still want to run update and render
         // no events
 		private_resize();
         private_pre_render();
         on_update(m_frame_data);
+		world.progress(m_frame_data.deltaTime);
+		//            
+		physics_module.simulate(m_frame_data.deltaTime);
+
+		vec3 sphere_pos = physics_module.get_sphere_position();
+		vec3 box_pos = physics_module.get_box_position();
+
+		gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
+		gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
+
         on_imgui_render();
+		cr_plugin_update(ctx);
         private_render();
         private_post_render();
 	}

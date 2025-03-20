@@ -33,7 +33,7 @@ if (MSVC)
     # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
     # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:>DLL")
     # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Dist>:>DLL")
-    add_link_options($<$<CONFIG:Debug>:/MDd>)
+    add_link_options($<$<CONFIG:Debug>:/MD>)
     add_link_options($<$<CONFIG:Release>:/MD>)
     add_link_options($<$<CONFIG:Dist>:/MD>)
 
@@ -45,7 +45,11 @@ endif()
 
 # Have to come after configuration settings!
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine")
+target_compile_definitions(GZEngine PRIVATE GZ_MAKE_DLL)
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor")
+# Add hot reloading test
+add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor/HotReloadTest")
+
 
 message("Global configs...")
 # Define platform-specific settings
@@ -69,6 +73,7 @@ set_target_properties(GZEngine GZEditor PROPERTIES
     DEBUG_POSTFIX "_d"
     RELEASE_POSTFIX "_r"
     DIST_POSTFIX ""
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
 

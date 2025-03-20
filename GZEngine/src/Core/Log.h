@@ -5,7 +5,8 @@
 
 namespace GZ {
 
-	class Log {
+    //extern std::shared_ptr<spdlog::logger> g_logger;
+	struct GZ_API Log {
 	public:
 		static void init();
 		static std::shared_ptr<spdlog::logger> s_core_logger;

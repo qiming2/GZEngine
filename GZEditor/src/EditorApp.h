@@ -17,7 +17,7 @@ namespace GZ {
         
         virtual void on_update(const FrameData &frame_data) override;
         
-        virtual void on_imgui_render() override;
+        void on_imgui_render();
 	private:
 		void private_set_frame_data(const FrameData &frame_data);
 
