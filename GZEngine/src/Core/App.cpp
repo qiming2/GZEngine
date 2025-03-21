@@ -20,6 +20,7 @@
 #include <defines.h>
 
 #include "Log.h"
+#include "FileUtil.h"
 #include "Renderer/Renderer.h"
 #include "Physics/PhysicsModule.h"
 #include "Common/CommonModule.h"
@@ -278,7 +279,6 @@ namespace GZ {
 #else
         const char *plugin_path = "E:\\GZEngine\\build\\bin\\Debug\\GZEditorHotReload.dll";
 #endif
-		
 		// init some plugin data so plugin data
 		plugin_data.world = &world;
 		plugin_data.reg = &reg;

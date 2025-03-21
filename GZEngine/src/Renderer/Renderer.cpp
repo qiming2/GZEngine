@@ -9,6 +9,7 @@
 
 #include "Renderer.h"
 #include "Log.h"
+#include "FileUtil.h"
 
 #define vk_check_result(f) \
 do { \
@@ -842,9 +843,13 @@ namespace GZ {
 	{
 		// Working directory is in Editor
 		// asserts are also in editor
+		std::string vertShaderPath;
+		FileUtil::get_valid_host_system_path("asset/shader/basic_vert.spv", vertShaderPath);
+		std::string fragShaderPath;
+		FileUtil::get_valid_host_system_path("asset/shader/basic_frag.spv", fragShaderPath);
 #ifdef GZ_PLATFORM_WINDOWS
-		auto vertShaderCode = readFile("asset\\shader\\basic_vert.spv");
-		auto fragShaderCode = readFile("asset\\shader\\basic_frag.spv");
+		auto vertShaderCode = readFile(vertShaderPath.c_str());
+		auto fragShaderCode = readFile(fragShaderPath.c_str());
 #else
 		auto vertShaderCode = readFile("asset/shader/basic_vert.spv");
 		auto fragShaderCode = readFile("asset/shader/basic_frag.spv");
