@@ -15,11 +15,14 @@
 #   endif
 #endif
 
+#define GZ_STR_VALUE(val)      #val
+#define GZ_STR(str) GZ_STR_VALUE(str)
+#define LOCATION __FILE__ " : " GZ_STR(__LINE__)
+
 #define GZ_CAT(x, y) GZ_CAT_(x, y)
 #define GZ_CAT_(x, y) x ## y
 
-#define GZ_STR_VALUE(arg)      #arg
-#define GZ_STR(name) GZ_STR_VALUE(name)
+
 namespace GZ {
 	// unsigned int
 	using u64 = std::uint64_t;

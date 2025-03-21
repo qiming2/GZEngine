@@ -84,7 +84,7 @@ namespace GZ {
 				if (GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface) != nullptr) {\
 					const char* temp = draw_ctx->name.data(); \
 					draw_ctx->name = #GZ_COMPONENT_MEMBER_NAME; \
-					GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface)->draw_imgui(&GZ_CAT(actual_comp->, GZ_COMPONENT_MEMBER_NAME), reg, world, draw_ctx); \
+                    GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface)->draw_imgui(&actual_comp->GZ_COMPONENT_MEMBER_NAME, reg, world, draw_ctx); \
 					draw_ctx->name = temp; \
 				} else { \
 					gz_warn("{} does not implement {} interface", #GZ_COMPONENT_MEMBER_TYPE, GZ_STR(IDrawComponentInterfaceName)); \

@@ -34,7 +34,7 @@ namespace GZ {
 	{ 
 		void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) override {
 			vec4 *vec_comp = static_cast<vec4 *>(comp);
-			const char * label = draw_ctx ? draw_ctx->name.data() : GZ_CAT(__FILE__, GZ_STR(__LINE__));
+			const char * label = draw_ctx ? draw_ctx->name.data() : LOCATION;
 			ImGui::DragFloat4(label, &vec_comp->x);
 		}
 	};
@@ -43,7 +43,7 @@ namespace GZ {
 	{
 		void draw_imgui(void* comp, const ComponentRegistry * registry, World * world, DrawComponentContext * draw_ctx) override {
 			vec3* vec_comp = static_cast<vec3*>(comp);
-			const char* label = draw_ctx && draw_ctx->name.data() ? draw_ctx->name.data() : GZ_CAT(__FILE__, GZ_STR(__LINE__));
+			const char* label = draw_ctx && draw_ctx->name.data() ? draw_ctx->name.data() : LOCATION;
 			ImGui::DragFloat3(label, &vec_comp->x);
 		}
 	};
@@ -52,7 +52,7 @@ namespace GZ {
 	{
 		void draw_imgui(void* comp, const ComponentRegistry * registry, World * world, DrawComponentContext * draw_ctx) override {
 			vec2* vec_comp = static_cast<vec2*>(comp);
-			const char* label = draw_ctx ? draw_ctx->name.data() : GZ_CAT(__FILE__, GZ_STR(__LINE__));
+			const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
 			ImGui::DragFloat2(label, &vec_comp->x);
 		}
 	};
@@ -61,7 +61,7 @@ namespace GZ {
 	{
 		void draw_imgui(void* comp, const ComponentRegistry* registry, World* world, DrawComponentContext* draw_ctx) override {
 			b8* b8_comp = static_cast<b8*>(comp);
-			const char* label = draw_ctx ? draw_ctx->name.data() : GZ_CAT(__FILE__, GZ_STR(__LINE__));
+			const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
 			ImGui::Checkbox("label", b8_comp);
 		}
 	};

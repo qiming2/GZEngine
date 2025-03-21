@@ -20,6 +20,7 @@ namespace GZ {
         ImGui::Begin("Another Window1");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         ImGui::Text("Hello from another window!");
         ImGui::Text("Hello from another window second edition!");
+        ImGui::Text("Testtest!");
         if (ImGui::Button("Tick Me"))
             gz_info("Oh yeah asd sa!");
 
