@@ -11,8 +11,10 @@
 #include "Renderer.h"
 #include "Log.h"
 #include "PhysicsModule.h"
+#include "ComponentInterface.h"
+
 namespace GZ {
-	struct GZ_API AppSpec {
+	struct AppSpec {
 		b8 headless = false;
 		u32 window_height = 1080;
 		u32 window_width = 1960;
@@ -21,28 +23,28 @@ namespace GZ {
 		std::string name = "New App";
 	};
 
-	struct GZ_API FrameData {
+	struct FrameData {
 		f32 deltaTime;
 		u64 prevTime; // in ns
 	};
 
 	struct PluginData {
+		World *world;
+		ComponentRegistry *reg;
 		ImGuiContext* imgui_ctx;
 		FrameData frame_data;
 	};
 
 	namespace ed = ax::NodeEditor;
-	struct GZ_API App {
+	struct App {
 	public:
-		explicit App(const AppSpec &spec);
-		virtual ~App();
-        virtual inline void on_init() { gz_core_warn("App should implement this!");}
-        virtual inline void on_update(const FrameData &frame_data) { gz_core_warn("App should implement this!");}
-        void on_imgui_render();
+		GZ_API explicit App(const AppSpec &spec);
+		GZ_API virtual ~App();
     
     public: // Non virtual public
-        void run();
-        void loop();
+		
+        GZ_API void run();
+        GZ_API void loop();
 	protected:
 		// Temp Renderer Stuff
 		Renderer* gz_renderer = nullptr;
@@ -50,12 +52,13 @@ namespace GZ {
 
 		// flecs ecs temporary prototyping
 		World world;
+		ComponentRegistry reg;
         
         // expose physics for prototyping
         PhysicsModule physics_module;
 
 	private: // editor stuff
-		
+		void private_on_imgui_render();
 		
 		PluginData plugin_data;
 

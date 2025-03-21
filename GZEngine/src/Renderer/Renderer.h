@@ -7,8 +7,6 @@
 #include "Mesh.h"
 
 namespace GZ {
-
-	
 	
 	struct QueueFamilyIndices {
 		std::optional<u32> graphicsFamily;

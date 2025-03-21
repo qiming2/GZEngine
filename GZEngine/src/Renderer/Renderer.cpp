@@ -10,14 +10,11 @@
 #include "Renderer.h"
 #include "Log.h"
 
-#define STR_VALUE(arg)      #arg
-#define function_name(name) STR_VALUE(name)
-
 #define vk_check_result(f) \
 do { \
     VkResult res = (f); \
     if (res != VK_SUCCESS) { \
-        gz_core_error("{} failed in: {} at {}", function_name(f), __FILE__, __LINE__); \
+        gz_core_error("{} failed in: {} at {}", GZ_STR(f), __FILE__, __LINE__); \
     } \
 } while(0)
 namespace GZ {

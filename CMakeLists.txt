@@ -48,7 +48,7 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine")
 target_compile_definitions(GZEngine PRIVATE GZ_MAKE_DLL)
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor")
 # Add hot reloading test
-add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor/HotReloadTest")
+add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor/EditorHotReload")
 
 
 message("Global configs...")

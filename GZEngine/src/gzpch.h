@@ -69,6 +69,8 @@ namespace GZ {
 
 	using World = flecs::world;
 	using Entity = flecs::entity;
+	using EntityID = flecs::entity_t;
+	using ComponentID = flecs::entity_t;
 }
 
 #define IMGUI_DEFINE_MATH_OPERATORS

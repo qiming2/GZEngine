@@ -274,13 +274,17 @@ namespace GZ {
 
 		// plugin system
 #ifdef GZ_PLATFORM_APPLE
-        const char *plugin_path = "/Users/qimingguan/qiming/GZEngine/build/GZEditor/HotReloadTest/Debug/libGZHotReloader.dylib";
+        const char *plugin_path = "/Users/qimingguan/qiming/GZEngine/build/GZEditor/EditorHotReload/Debug/libGZEditorHotReload.dylib";
 #else
-        const char *plugin_path = "E:\\GZEngine\\build\\bin\\Debug\\GZHotReloader.dll";
+        const char *plugin_path = "E:\\GZEngine\\build\\bin\\Debug\\GZEditorHotReload.dll";
 #endif
 		
+		// init some plugin data so plugin data
+		plugin_data.world = &world;
+		plugin_data.reg = &reg;
 		plugin_data.imgui_ctx = ImGui::GetCurrentContext();
 		ctx.userdata = &plugin_data;
+		
 		cr_plugin_open(ctx, plugin_path);
 
 		SDL_EventFilter expose_event_watch = [](void* usr_data, SDL_Event* event) -> b8 {
@@ -292,6 +296,14 @@ namespace GZ {
 			return true;
 		};
 		SDL_AddEventWatch(expose_event_watch, this);
+
+		// Create some ents to test plugin ecs module
+		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, vec4{2.0, 2.0, 2.0, 1.0}, vec3{3.0, 3.0, 3.0}});
+		
+		auto elook = world.lookup("Hello");
+		
+		auto e = world.entity("Hello1");
+		
 	}
 
 	App::~App()
@@ -313,11 +325,9 @@ namespace GZ {
 		SDL_Quit();
 	}
 
-	void App::on_imgui_render()
+	void App::private_on_imgui_render()
 	{
 		ImGuiIO& io = ImGui::GetIO();
-
-		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -385,7 +395,7 @@ namespace GZ {
 
 			static TransformComponent comp;
 			// Test component draw ui
-			draw_component_imgui_ui_transform(&comp);
+			/*draw_component_imgui_ui_transform(&comp);*/
 
 			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
 				counter++;
@@ -438,7 +448,7 @@ namespace GZ {
 		
 		// Then do app init, app can install its custom module
         if (!is_app_initialized) {
-            on_init();
+
             is_app_initialized = true;
         }
 
@@ -500,10 +510,9 @@ namespace GZ {
 
 			// No need for checking for resize as it is handled
 			private_pre_render();
-            on_imgui_render();
+            private_on_imgui_render();
 //			// User defined module tick here
 			cr_plugin_update(ctx);
-            on_update(m_frame_data);
 //			// System, module, etc tick once after user update.
 //            // Module update: Animation, physics, ai, custom system, etc...
 			world.progress(m_frame_data.deltaTime);
@@ -541,7 +550,6 @@ namespace GZ {
 	void App::loop()
 	{
         if (!is_app_initialized) {
-            on_init();
             is_app_initialized = true;
         }
         
@@ -549,7 +557,6 @@ namespace GZ {
         // no events
 		private_resize();
         private_pre_render();
-        on_update(m_frame_data);
 		world.progress(m_frame_data.deltaTime);
 		//            
 		physics_module.simulate(m_frame_data.deltaTime);
@@ -560,7 +567,7 @@ namespace GZ {
 		gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
 		gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
 
-        on_imgui_render();
+        private_on_imgui_render();
 		cr_plugin_update(ctx);
         private_render();
         private_post_render();
@@ -577,7 +584,9 @@ namespace GZ {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
-        
+
+		// put dockspace here so everything is docked
+		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 	}
 
 	void App::private_post_render()
@@ -588,7 +597,7 @@ namespace GZ {
 	void App::private_install_builtin_modules()
 	{
 		CommonModule common_module;
-		common_module.install_into(world);
+		common_module.install_into(world, reg);
 	}
 
 	void App::private_render()
