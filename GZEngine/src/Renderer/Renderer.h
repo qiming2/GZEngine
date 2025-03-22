@@ -22,7 +22,7 @@ namespace GZ {
 		std::vector<VkSurfaceFormatKHR> formats;
 		std::vector<VkPresentModeKHR> presentModes;
 	};
-	struct Renderer {
+	struct GZ_API Renderer {
 	public:
 		b8 init(void *window_handle);
 		b8 deinit();
@@ -37,6 +37,8 @@ namespace GZ {
 		void set_imgui_draw_data(ImDrawData *imgui_data);
 		void will_deinit();
         void handle_window_resized();
+
+		// Used by editor
 		void set_viewport_size(u32 w, u32 h);
 		void set_clear_value(vec4 clear_color = vec4(0.18, 0.18, 0.18, 1.0));
 	public: // Geometry related

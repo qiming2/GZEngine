@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <thread>
 #include <optional>
+#include <span>
 
 #include <defines.h>
 
@@ -69,6 +70,7 @@ namespace GZ {
 
 	using World = flecs::world;
 	using Entity = flecs::entity;
+	using ECSID_t = flecs::id;
 	using EntityID = flecs::entity_t;
 	using ComponentID = flecs::entity_t;
 }

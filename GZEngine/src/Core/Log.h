@@ -5,7 +5,6 @@
 
 namespace GZ {
 
-    //extern std::shared_ptr<spdlog::logger> g_logger;
 	struct GZ_API Log {
 	public:
 		static void init();
@@ -28,6 +27,12 @@ namespace GZ {
                                     gz_debugbreak; \
                                 }\
                              } while(0)
+#define gz_verify(expr, ret_expr, ...) do { \
+                                if (!(expr)) { \
+                                    GZ::Log::s_app_logger->error(__VA_ARGS__);  \
+                                    return ret_expr; \
+                                }\
+                             } while(0)
 #define gz_trace(...) GZ::Log::s_app_logger->trace(__VA_ARGS__)
 #define gz_info(...) GZ::Log::s_app_logger->info(__VA_ARGS__)
 #define gz_warn(...) GZ::Log::s_app_logger->warn(__VA_ARGS__)
@@ -41,6 +46,12 @@ namespace GZ {
                                 if (!(expr)) { \
                                     GZ::Log::s_core_logger->error(__VA_ARGS__);  \
                                     gz_debugbreak; \
+                                }\
+                             } while(0)
+#define gz_core_verify(expr, ret_expr, ...) do { \
+                                if (!(expr)) { \
+                                    GZ::Log::s_core_logger->error(__VA_ARGS__);  \
+                                    return ret_expr; \
                                 }\
                              } while(0)
 #define gz_core_trace(...) GZ::Log::s_core_logger->trace(__VA_ARGS__)
@@ -57,10 +68,12 @@ namespace GZ {
 #define gz_warn(...)
 #define gz_error(...)
 #define gz_critical(...)
+#define gz_verify(...)
 
 #define gz_core_trace(...)
 #define gz_core_info(...)
 #define gz_core_warn(...)
 #define gz_core_error(...)
 #define gz_core_critical(...)
+#define gz_core_verify(...)
 #endif

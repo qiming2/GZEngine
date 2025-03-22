@@ -8,6 +8,8 @@ file(GLOB loader_src
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui/*.h"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui/*.cpp"
+    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui-node-editor/*.cpp"
+    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui-node-editor/*.h"
 )
 
 list(APPEND VENDOR_INCLUDE_LISTS

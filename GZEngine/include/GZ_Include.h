@@ -1,5 +1,4 @@
-#ifndef GZ_GZ_INCLUDE_H
-#define GZ_GZ_INCLUDE_H
+#pragma once
 
 // ----------------------------- GZApp --------------------------
 
@@ -8,5 +7,3 @@
 
 // ------------------------------ Entry Point ------------------
 #include "src/EntryPoint.h"
-
-#endif

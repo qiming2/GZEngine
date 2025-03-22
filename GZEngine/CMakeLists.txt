@@ -88,9 +88,6 @@ file(GLOB vendorSources
     # Imgui backend vulkan + sdl3
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui/backends/imgui_impl_sdl3.cpp"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui/backends/imgui_impl_vulkan.cpp"
-    # -- opengl to start, will delete later
-    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui/backends/imgui_impl_opengl3.cpp"
-
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui-node-editor/*.cpp"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/imgui-node-editor/*.h"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/stb/include/*.h"

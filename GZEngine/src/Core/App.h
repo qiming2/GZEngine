@@ -12,6 +12,7 @@
 #include "Log.h"
 #include "PhysicsModule.h"
 #include "ComponentInterface.h"
+#include "Profiler.h"
 
 namespace GZ {
 	struct AppSpec {
@@ -28,14 +29,27 @@ namespace GZ {
 		u64 prevTime; // in ns
 	};
 
-	struct PluginData {
+	namespace ed = ax::NodeEditor;
+	struct EditorContext {
 		World *world;
 		ComponentRegistry *reg;
 		ImGuiContext* imgui_ctx;
+		Renderer* gz_renderer;
 		FrameData frame_data;
+
+		b8 m_show_demo_window = true;
+		b8 m_show_another_window = true;
+		b8 m_show_node_editor = true;
+		b8 m_show_main_scene = true;
+
+		u32 m_main_view_w = 0, m_main_view_h = 0;
+		ImTextureID main_tex_id;
+		vec4 m_clear_color = vec4(0.18f, 0.18f, 0.18f, 1.00f);
+
+		ed::EditorContext* m_node_Context = nullptr;
 	};
 
-	namespace ed = ax::NodeEditor;
+
 	struct App {
 	public:
 		GZ_API explicit App(const AppSpec &spec);
@@ -48,7 +62,6 @@ namespace GZ {
 	protected:
 		// Temp Renderer Stuff
 		Renderer* gz_renderer = nullptr;
-		ImTextureID main_tex_id;
 
 		// flecs ecs temporary prototyping
 		World world;
@@ -60,21 +73,15 @@ namespace GZ {
 	private: // editor stuff
 		void private_on_imgui_render();
 		
-		PluginData plugin_data;
+		EditorContext plugin_data;
 
-		b8 m_show_demo_window = true;
-		b8 m_show_another_window = true;
-		b8 m_show_node_editor = true;
-		b8 m_show_main_scene = true;
-
-		u32 m_main_view_w = 0, m_main_view_h = 0;
-
-		vec4 m_clear_color = vec4(0.18f, 0.18f, 0.18f, 1.00f);
-
-		ed::EditorContext* m_node_Context = nullptr;
+		
 	private:
 		// plugin
 		cr_plugin ctx;
+
+		// Profiler
+		std::shared_ptr<Profiler> m_profiler_instance_ref;
 
 		b8 is_fullscreen = false;
 		SDL_EventFilter expose_event_watch;

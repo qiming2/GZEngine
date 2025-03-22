@@ -21,9 +21,11 @@
 
 #include "Log.h"
 #include "FileUtil.h"
+#include "MathUtil.h"
 #include "Renderer/Renderer.h"
 #include "Physics/PhysicsModule.h"
 #include "Common/CommonModule.h"
+
 
 #define USE_IMGUI 1
 
@@ -189,10 +191,15 @@ namespace GZ {
 	App::App(const AppSpec& spec)
 	{
 		GZ::Log::init();
+
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS)) {
 			gz_error("SDL init failed: {}", SDL_GetError());
 			exit(1);
 		}
+
+		//Profiler
+		GZ::Profiler::init();
+		m_profiler_instance_ref = GZ::Profiler::g_profiler_instance;
 
 		char* wkd = SDL_GetCurrentDirectory();
 
@@ -252,12 +259,12 @@ namespace GZ {
 		ImGui_ImplVulkan_Init(&init_info);
 
 		// Load Main texture
-		main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
+		plugin_data.main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
 
 		// Node editor
 		ed::Config config;
 		config.SettingsFile = "Simple.json";
-		m_node_Context = ed::CreateEditor(&config);
+		plugin_data.m_node_Context = ed::CreateEditor(&config);
 
         // Setup physics engine
         physics_module.init();
@@ -283,6 +290,7 @@ namespace GZ {
 		plugin_data.world = &world;
 		plugin_data.reg = &reg;
 		plugin_data.imgui_ctx = ImGui::GetCurrentContext();
+		plugin_data.gz_renderer = gz_renderer;
 		ctx.userdata = &plugin_data;
 		
 		cr_plugin_open(ctx, plugin_path);
@@ -300,9 +308,8 @@ namespace GZ {
 		// Create some ents to test plugin ecs module
 		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, vec4{2.0, 2.0, 2.0, 1.0}, vec3{3.0, 3.0, 3.0}});
 		
-		auto elook = world.lookup("Hello");
+		auto elook = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, vec4{3.0, 3.0, 3.0, 2.0}, vec3{3.0, 3.0, 3.0}});
 		
-		auto e = world.entity("Hello1");
 		
 	}
 
@@ -323,125 +330,6 @@ namespace GZ {
 		delete gz_renderer;
 		SDL_DestroyWindow(window);
 		SDL_Quit();
-	}
-
-	void App::private_on_imgui_render()
-	{
-		ImGuiIO& io = ImGui::GetIO();
-
-		if (ImGui::BeginMainMenuBar())
-		{
-			if (ImGui::BeginMenu("File"))
-			{
-				if (ImGui::MenuItem("Open", "CTRL+Z")) {}
-				if (ImGui::MenuItem("Hello", "CTRL+Z")) {}
-				ImGui::EndMenu();
-
-			}
-			if (ImGui::BeginMenu("Edit"))
-			{
-				if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
-				if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {} // Disabled item
-				ImGui::Separator();
-				if (ImGui::MenuItem("Cut", "CTRL+X")) {}
-				if (ImGui::MenuItem("Copy", "CTRL+C")) {}
-				if (ImGui::MenuItem("Paste", "CTRL+V")) {}
-				ImGui::EndMenu();
-			}
-			ImGui::EndMainMenuBar();
-		}
-
-
-		if (m_show_node_editor) {
-			ImGui::Begin("New editor window");
-			ed::SetCurrentEditor(m_node_Context);
-			ed::Begin("My Editor", ImVec2(0.0, 0.0f));
-			int uniqueId = 1;
-			// Start drawing nodes.
-			ed::BeginNode(uniqueId++);
-			ImGui::Text("Node A");
-			ed::BeginPin(uniqueId++, ed::PinKind::Input);
-			ImGui::Text("-> In");
-			ed::EndPin();
-			ImGui::SameLine();
-			ed::BeginPin(uniqueId++, ed::PinKind::Output);
-			ImGui::Text("Out ->");
-			ed::EndPin();
-			ed::EndNode();
-			ed::End();
-			ed::SetCurrentEditor(nullptr);
-			ImGui::End();
-		}
-
-
-		if (m_show_demo_window)
-			ImGui::ShowDemoWindow(&m_show_demo_window);
-
-		{
-			static float f = 0.0f;
-			static int counter = 0;
-
-			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-			ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
-			ImGui::Checkbox("Another Window", &m_show_another_window);
-			ImGui::Checkbox("Node editor", &m_show_node_editor);
-
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			if (ImGui::ColorEdit3("clear color", (float*)&m_clear_color)) {
-				gz_renderer->set_clear_value(m_clear_color);
-			} // Edit 3 floats representing a color
-
-			static TransformComponent comp;
-			// Test component draw ui
-			/*draw_component_imgui_ui_transform(&comp);*/
-
-			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
-
-			ImGui::Text("Application average %.5f ms/frame (%.2f FPS)", m_frame_data.deltaTime, 1.0f / m_frame_data.deltaTime);
-			ImGui::End();
-		}
-
-		// 3. Show another simple window.
-		if (m_show_another_window)
-		{
-			ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImGui::Text("Hello from another window!");
-			if (ImGui::Button("Close Me"))
-				m_show_another_window = false;
-
-			ImGui::End();
-		}
-
-		// 4. Show main shaing
-		if (m_show_main_scene) {
-
-			// rethink ui design later
-//            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
-
-//            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
-			ImGui::Begin("Main Scene", &m_show_main_scene, 0);
-			ImGui::SetWindowSize({ 200.0f, 200.0f });
-
-			// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
-			if (m_main_view_w != static_cast<u32>(main_scene_cur_window_size.x) || m_main_view_h != static_cast<u32>(main_scene_cur_window_size.y)) {
-				m_main_view_w = static_cast<u32>(main_scene_cur_window_size.x);
-				m_main_view_h = static_cast<u32>(main_scene_cur_window_size.y);
-				gz_renderer->set_viewport_size(m_main_view_w, m_main_view_h);
-			}
-
-			ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);
-			ImGui::Image((ImTextureID)main_tex_id, main_scene_cur_window_size, { 0, 0 }, { 1, 1 });
-			ImGui::PopStyleVar();
-
-			ImGui::End();
-			//            ImGui::PopStyleVar();
-		}
 	}
 
 	void App::run() {
@@ -475,7 +363,7 @@ namespace GZ {
 					case SDLK_ESCAPE:
 						is_running = false;
 						break;
-					case SDLK_F:
+					case SDLK_F11:
 						is_fullscreen = !is_fullscreen;
 						SDL_SetWindowFullscreen(window, is_fullscreen);
 						private_resize();
@@ -508,25 +396,28 @@ namespace GZ {
                 continue;
             }
 
+			
 			// No need for checking for resize as it is handled
 			private_pre_render();
-            private_on_imgui_render();
 //			// User defined module tick here
-			cr_plugin_update(ctx);
-//			// System, module, etc tick once after user update.
-//            // Module update: Animation, physics, ai, custom system, etc...
-			world.progress(m_frame_data.deltaTime);
-//            
-            physics_module.simulate(m_frame_data.deltaTime);
-
-            vec3 sphere_pos = physics_module.get_sphere_position();
-            vec3 box_pos = physics_module.get_box_position();			
 			
+			cr_plugin_update(ctx);
+
+			// System, module, etc tick once after user update.
+            // Module update: Animation, physics, ai, custom system, etc...
+			world.progress(m_frame_data.deltaTime);
+////            
+            physics_module.simulate(m_frame_data.deltaTime);
+//
+			vec3 sphere_pos = physics_module.get_sphere_position();
+			vec3 box_pos = physics_module.get_box_position();
+
 			gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
 			gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
 
-            private_render();
-            private_post_render();
+			private_render();
+			private_post_render();
+			//gz_info("{}", 1.0 / m_frame_data.deltaTime);
 		}
         
 
@@ -542,8 +433,8 @@ namespace GZ {
 			window_w = t_w;
 			gz_renderer->handle_window_resized();
             ImGui_ImplVulkan_SetMinImageCount(gz_renderer->get_min_image_count());
-			ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)main_tex_id);
-			main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
+			ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)plugin_data.main_tex_id);
+			plugin_data.main_tex_id = (ImTextureID)gz_renderer->get_main_color_texture_imgui_id();
 		}
 	}
 
@@ -567,18 +458,23 @@ namespace GZ {
 		gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
 		gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
 
-        private_on_imgui_render();
+        
 		cr_plugin_update(ctx);
         private_render();
         private_post_render();
 	}
 
 	void App::private_pre_render()
-	{
+	{   
 		u64 curTime = SDL_GetTicksNS();
-        m_frame_data.deltaTime = static_cast<f32>((f64)(curTime - m_frame_data.prevTime) / (f64)SDL_NS_PER_SECOND);
-        m_frame_data.prevTime = curTime;
-        
+		m_frame_data.deltaTime = static_cast<f32>((f64)(curTime - m_frame_data.prevTime) / (f64)SDL_NS_PER_SECOND);
+		m_frame_data.prevTime = curTime;
+		
+		//patch EditorData
+		plugin_data.frame_data = m_frame_data;
+
+		m_profiler_instance_ref->clear();
+		m_profiler_instance_ref->start_frame();
         gz_renderer->begin_frame(m_frame_data.deltaTime);
         // Start the Dear ImGui frame
         ImGui_ImplVulkan_NewFrame();
@@ -591,7 +487,12 @@ namespace GZ {
 
 	void App::private_post_render()
 	{
+		m_profiler_instance_ref->end_frame();
 
+		f64 per_frame_ms = m_profiler_instance_ref->get_per_frame_data().measured_time / (f64)SDL_NS_PER_MS;
+		u64 fps = static_cast<u64>(floor(1.0 / per_frame_ms * 1000.0));
+		
+		gz_info("Profiler testing ms: {:.5f} fps: {}", per_frame_ms, fps);
 	}
 
 	void App::private_install_builtin_modules()
