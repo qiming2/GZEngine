@@ -11,6 +11,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 
+#include "CommonModule.h"
 #include "Log.h"
 namespace GZ {
     using namespace JPH;
@@ -180,7 +181,24 @@ namespace GZ {
         return false;
     }
     #endif
-    // Basic setup following official jolt helloworld, with slight change
+
+	void PhysicsModule::install_into(World& world, ComponentRegistry& reg)
+	{
+        if (!init())
+            gz_error("Something wrong!");
+
+
+        // System component initialization
+        q = world.query<TransformComponent, const RigidbodyComponent>();
+        q1 = world.query<const TransformComponent, const RigidbodyComponent>();
+	}
+
+	void PhysicsModule::uninstall_from(World& world, ComponentRegistry& reg)
+	{
+
+	}
+
+	// Basic setup following official jolt helloworld, with slight change
 	b8 PhysicsModule::init() {
         gz_info("Init Physics...");
         
@@ -267,7 +285,7 @@ namespace GZ {
         // variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
 		// We don't need locking
 		m_body_interface = &(m_physics_system.GetBodyInterfaceNoLock());
-        
+
         // No we can start creating some physics body
         m_is_initialized = true;
 		return true;
@@ -275,7 +293,6 @@ namespace GZ {
 
     void PhysicsModule::create_default_objects() {
         gz_core_assert(m_is_initialized, "Physics is not initialized!");
-        
 
         // Next we can create a rigid body to serve as the floor, we make a large box
         // Create the settings for the collision volume (the shape).
@@ -321,27 +338,40 @@ namespace GZ {
         
     }
     
-    GZ_FORCE_INLINE vec3 to_glm(const Vec3 &jolt_val) {
+    GZ_FORCE_INLINE vec3 to_glm(const RVec3 &jolt_val) {
         return vec3(jolt_val.GetX(), jolt_val.GetY(), jolt_val.GetZ());
     }
 
-    void PhysicsModule::simulate(f32 delta_time) {
+	GZ_FORCE_INLINE RVec3 to_jolt(const vec3& glm_val) {
+		return RVec3(glm_val.x, glm_val.y, glm_val.z);
+	}
+
+    /*vec3 position = to_glm(m_body_interface->GetPosition(m_box_id));
+            vec3 velocity = to_glm(m_body_interface->GetLinearVelocity(m_sphere_id));*/
+            
+    // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
+    //gz_info("Sphere: pos: {}, vel: {}", position, velocity);
+
+    void PhysicsModule::simulate(f32 delta_time, World &world) {
         m_accumulated += delta_time;
         
+        // DO ECS To Sim here but we don't have animation or anything that actually manipulate the transform
+        // maybe editor stuff?
         //gz_info("Entered simulate");
-        while (m_accumulated > m_simulation_step_time) {
+		q.each([&](TransformComponent& t, const RigidbodyComponent& v) {
+			m_body_interface->SetPosition(v.id, to_jolt(t.p), EActivation::Activate);
+		});
 
+        while (m_accumulated > m_simulation_step_time) {
             // Step the world
             m_body_interface->AddForce(m_box_id, {0.0, 10.0, 0.0});
             m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
             m_accumulated -= m_simulation_step_time;
-            vec3 position = to_glm(m_body_interface->GetPosition(m_box_id));
-            vec3 velocity = to_glm(m_body_interface->GetLinearVelocity(m_sphere_id));
-            
-            // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
-            //gz_info("Sphere: pos: {}, vel: {}", position, velocity);
-            
         }
+
+		q.each([&](TransformComponent& t, const RigidbodyComponent& v) {
+		    t.p = to_glm(m_body_interface->GetPosition(v.id));
+		});
     }
 
     void PhysicsModule::destroy_default_objects() {

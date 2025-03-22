@@ -266,9 +266,9 @@ namespace GZ {
 		config.SettingsFile = "Simple.json";
 		plugin_data.m_node_Context = ed::CreateEditor(&config);
 
-        // Setup physics engine
-        physics_module.init();
-        physics_module.create_default_objects();
+        //// Setup physics engine
+        //physics_module.init();
+        //physics_module.create_default_objects();
 
         m_frame_data.prevTime = SDL_GetTicksNS();
         m_frame_data.deltaTime = 0.0f;
@@ -307,9 +307,11 @@ namespace GZ {
 
 		// Create some ents to test plugin ecs module
 		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, vec4{2.0, 2.0, 2.0, 1.0}, vec3{3.0, 3.0, 3.0}});
+
+		e1.set<RigidbodyComponent>({physics_module.m_sphere_id});
 		
-		auto elook = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, vec4{3.0, 3.0, 3.0, 2.0}, vec3{3.0, 3.0, 3.0}});
-		
+		auto e2 = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, vec4{3.0, 3.0, 3.0, 2.0}, vec3{3.0, 3.0, 3.0}});
+		e2.set<RigidbodyComponent>({physics_module.m_box_id});
 		
 	}
 
@@ -405,12 +407,13 @@ namespace GZ {
 
 			// System, module, etc tick once after user update.
             // Module update: Animation, physics, ai, custom system, etc...
-			world.progress(m_frame_data.deltaTime);
+			//world.progress(m_frame_data.deltaTime);
 ////            
-            physics_module.simulate(m_frame_data.deltaTime);
+            physics_module.simulate(m_frame_data.deltaTime, world);
 //
 			vec3 sphere_pos = physics_module.get_sphere_position();
 			vec3 box_pos = physics_module.get_box_position();
+
 
 			gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
 			gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
@@ -450,7 +453,7 @@ namespace GZ {
         private_pre_render();
 		world.progress(m_frame_data.deltaTime);
 		//            
-		physics_module.simulate(m_frame_data.deltaTime);
+		physics_module.simulate(m_frame_data.deltaTime, world);
 
 		vec3 sphere_pos = physics_module.get_sphere_position();
 		vec3 box_pos = physics_module.get_box_position();
@@ -499,6 +502,8 @@ namespace GZ {
 	{
 		CommonModule common_module;
 		common_module.install_into(world, reg);
+		physics_module.install_into(world, reg);
+		physics_module.create_default_objects();
 	}
 
 	void App::private_render()

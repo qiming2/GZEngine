@@ -20,7 +20,7 @@ namespace GZ {
 	*/
 
 	std::shared_ptr<Profiler> Profiler::g_profiler_instance;
-
+	 
 	void Profiler::init()
 	{
 		Profiler::g_profiler_instance = std::make_shared<Profiler>();

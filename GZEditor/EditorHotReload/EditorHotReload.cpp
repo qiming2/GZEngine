@@ -150,9 +150,7 @@ namespace GZ {
 
         World *world = data->world;
         ComponentRegistry *reg = data->reg;
-        //ComponentID vec3_id = world->component<vec3>().id();
-        ///*IDrawComponentInterface *compInter = new DrawComponentImplTransformComponent();*/
-        //std::shared_ptr<IDrawComponentInterfaceName> compInter = reg->draw_component_interfaces[vec3_id];
+
         TransformComponent *transform = e1.get_mut<TransformComponent>();
         ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "Hello");
         ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "2123");
@@ -165,7 +163,7 @@ namespace GZ {
 		auto e = world->lookup("Hello");
 		std::shared_ptr<IDrawComponentInterfaceName> cur;
 		e.each([&](ECSID_t id) {
-			ImGui::PushID(i);
+			ImGui::PushID(i++);
 			void *comp = e.get_mut(id.raw_id());
 			cur = reg->get_draw_interface(id);
 			if (cur) {
@@ -174,10 +172,10 @@ namespace GZ {
 			else {
 				const char * name = id.type_id().name().c_str();
 				
-				/*if (world->lookup(id).name() == nullptr) {
-					gz_warn("Wut!");
+				if (name == nullptr) {
+					gz_warn("No name on this component!");
 					return;
-				}*/
+				}
 				ImGui::LabelText("", "%s Component is Not Drawable!", name);
 			}
 			ImGui::PopID();
