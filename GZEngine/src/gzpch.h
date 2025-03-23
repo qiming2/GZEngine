@@ -70,7 +70,8 @@ namespace GZ {
 
 	using World = flecs::world;
 	using Entity = flecs::entity;
-	using ECSID_t = flecs::id;
+	using Identifier = flecs::id;
+	using IdentifierID = flecs::id_t;
 	using EntityID = flecs::entity_t;
 	using ComponentID = flecs::entity_t;
 }

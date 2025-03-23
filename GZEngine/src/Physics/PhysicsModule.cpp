@@ -364,7 +364,7 @@ namespace GZ {
 
         while (m_accumulated > m_simulation_step_time) {
             // Step the world
-            m_body_interface->AddForce(m_box_id, {0.0, 10.0, 0.0});
+            m_body_interface->AddForce(m_box_id, {0.0, 100.0, 0.0});
             m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
             m_accumulated -= m_simulation_step_time;
         }

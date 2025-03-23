@@ -1,8 +1,6 @@
 #include <GZ_Include.h>
 #include <defines.h>
 
-#include "CommonModule.h"
-
 
 /////////////////////////////////// Entry point function //////////////////////////////////////////
 GZ::App *GZ::create_application() {

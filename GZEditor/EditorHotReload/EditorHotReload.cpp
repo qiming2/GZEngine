@@ -162,7 +162,7 @@ namespace GZ {
 		size_t i = 0;
 		auto e = world->lookup("Hello");
 		std::shared_ptr<IDrawComponentInterfaceName> cur;
-		e.each([&](ECSID_t id) {
+		e.each([&](Identifier id) {
 			ImGui::PushID(i++);
 			void *comp = e.get_mut(id.raw_id());
 			cur = reg->get_draw_interface(id);
