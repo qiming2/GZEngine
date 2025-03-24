@@ -5,19 +5,32 @@
 #include <Jolt/Physics/PhysicsSettings.h>
 
 #include "CommonModule.h"
+#include "ComponentInterface.h"
+
+#define GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
+    GZ_COMPONENT_TYPE_DO(RigidbodyComponent) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(JPH::BodyID, id) \
+    GZ_COMPONENT_TYPE_END(RigidbodyComponent) \
+
+#define GZ_PREV_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
+    GZ_COMPONENT_TYPE_DO(PrevTransformComponent) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(vec3, p) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(quat, r) \
+    GZ_COMPONENT_TYPE_END(PrevTransformComponent) \
 
 namespace GZ {
-	struct RigidbodyComponent {
-        JPH::BodyID id;
-	};
+
+    GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
+
+    GZ_PREV_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
 
     struct PhysicsModule : Module {
     public: // Module interface
         void install_into(World &world, ComponentRegistry &reg) override;
         void uninstall_from(World &world, ComponentRegistry &reg) override;
     private: // system queries
-		flecs::query<TransformComponent, const RigidbodyComponent> q;
-        flecs::query<const TransformComponent, const RigidbodyComponent> q1;
+        flecs::query<const TransformComponent, const RigidbodyComponent, const PrevTransformComponent> q;
+        flecs::query<TransformComponent, const RigidbodyComponent, PrevTransformComponent> q1;
     public:
         b8 init();
     

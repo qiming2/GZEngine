@@ -64,12 +64,26 @@ namespace GZ {
 		GZ_FORCE_INLINE const std::vector<u32>& get_index_buffer() const {
 			return m_index_buffer;
 		}
-
+        
+        GZ_FORCE_INLINE void set_vertex_buffer(VkBuffer vbuffer) {
+            this->vbuffer = vbuffer;
+        }
+        
+        GZ_FORCE_INLINE void set_index_buffer(VkBuffer ibuffer) {
+            this->ibuffer = ibuffer;
+        }
+        
 		static std::shared_ptr<Mesh> get_icosphere_mesh(f32 radius = 0.5f, i32 recursion_level = 5);
 		static std::shared_ptr<Mesh> get_box_mesh(vec3 extent = {0.5f, 0.5f, 0.5f});
+        
+        static std::shared_ptr<Mesh> load_mesh_from_obj(const std::string_view &path);
 	private:
 		std::vector<Vertex> m_vertex_buffer;
 		std::vector<u32> m_index_buffer;
+        
+    public: // Runtime only and cleaned up by the renderer for now
+        VkBuffer vbuffer;
+        VkBuffer ibuffer;
 	};
 
 }

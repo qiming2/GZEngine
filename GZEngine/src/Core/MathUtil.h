@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL3/SDL.h>
 
+#define EPSILON
 namespace GZ {
 
 	GZ_FORCE_INLINE f64 get_s_from_ns(u64 ns) {
@@ -15,4 +16,17 @@ namespace GZ {
 		return static_cast<f64>(ms) / SDL_MS_PER_SECOND;
 	}
 
+    constexpr f32 f_epsilon = std::numeric_limits<f32>::epsilon();
+    constexpr f32 scale_factor = 1;
+    constexpr f32 tolerance_factor = 2;
+    GZ_FORCE_INLINE b8 is_approximately_equal(float a, float b) {
+//        gz_info("f_epsilon: {}", f_epsilon);
+        double scale = std::fmax(abs(a), abs(b));
+        return abs(a - b) <= scale_factor * (tolerance_factor * f_epsilon);
+    }
+
+    GZ_FORCE_INLINE b8 is_approximately_zero(float val) {
+//        gz_info("f_epsilon: {}", f_epsilon);
+        return abs(val) <= scale_factor * (tolerance_factor * f_epsilon);
+    }
 }

@@ -45,6 +45,7 @@
 // All glm defines are predefined in cmake
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <flecs.h>
 // glm alias
 namespace GZ {
@@ -66,7 +67,7 @@ namespace GZ {
 	using mat3 = glm::mat3;
 	using mat2 = glm::mat2;
 
-	using quatf = glm::quat;
+	using quat = glm::quat;
 
 	using World = flecs::world;
 	using Entity = flecs::entity;

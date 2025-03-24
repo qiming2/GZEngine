@@ -24,7 +24,7 @@ namespace GZ {
 	};
 	struct GZ_API Renderer {
 	public:
-		b8 init(void *window_handle);
+		b8 init(void *window_handle, World &world);
 		b8 deinit();
 		void init_imgui_vulkan(ImGui_ImplVulkan_InitInfo *init_info);
 		void* get_main_color_texture_imgui_id();
@@ -44,6 +44,9 @@ namespace GZ {
 	public: // Geometry related
 		void submit_mesh(std::shared_ptr<Mesh> mesh);
 		void set_model_matrix(const u32 &index, const mat4 &model);
+    private: // From initialization
+        void *window_handle; // Platform specific
+        World world;
 	private:
 		// temp mesh for drawing
 		std::vector<std::shared_ptr<Mesh>> m_meshes;
@@ -86,8 +89,6 @@ namespace GZ {
 		std::vector<VkSemaphore> imageAvailableSemaphores;
 		std::vector<VkSemaphore> renderFinishedSemaphores;
 		std::vector<VkFence> inFlightFences;
-
-		void *window_handle; // Platform specific
 		
 		std::vector<VkBuffer> uniformBuffers;
 		std::vector<VkDeviceMemory> uniformBuffersMemory;

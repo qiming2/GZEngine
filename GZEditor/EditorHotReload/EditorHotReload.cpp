@@ -186,9 +186,13 @@ namespace GZ {
         static vec3 color;
         ImGui::ColorEdit3("Some phacy stuff", &color[0]);
         ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "Yo yo how about some more fancy stuff");
-        ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Yo yo how about this fancy stuff");
+        ImGui::TextColored({0.4, 0.3, 0.1, 1.0}, "Yo yo how about different color?");
         ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Yo yo this fancy stuff");
-
+        static b8 yaxi = false;
+        ImGui::Checkbox("Xiaowen ya xi!", &yaxi);
+        if (yaxi) {
+            ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Ya xi la!");
+        }
         ImGui::End();
     }
 }
@@ -196,8 +200,6 @@ namespace GZ {
 using namespace GZ;
 
 CR_EXPORT int cr_main(struct cr_plugin *ctx, enum cr_op operation) {
-    //assert(ctx);
-
     
     EditorContext *data = (EditorContext *)(ctx->userdata);
     switch (operation) {

@@ -23,6 +23,7 @@
 #include "FileUtil.h"
 #include "MathUtil.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/RenderModule.h"
 #include "Physics/PhysicsModule.h"
 #include "Common/CommonModule.h"
 
@@ -223,7 +224,7 @@ namespace GZ {
 		
 		// TODO(Qiming)(VULKAN)
 		gz_renderer = new Renderer();
-		gz_renderer->init((void *)window);
+		gz_renderer->init((void *)window, world);
         
 		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
@@ -274,8 +275,10 @@ namespace GZ {
         m_frame_data.deltaTime = 0.0f;
 
 		// Temp add sphere
-		gz_renderer->submit_mesh(Mesh::get_icosphere_mesh(0.5f));
-        gz_renderer->submit_mesh(Mesh::get_box_mesh());
+        auto sphere_mesh = Mesh::get_icosphere_mesh(0.5f);
+        auto box_mesh = Mesh::get_box_mesh();
+        gz_renderer->submit_mesh(sphere_mesh);
+        gz_renderer->submit_mesh(box_mesh);
 
 		// Before runnning, we install builtin ecs modules
 		private_install_builtin_modules();
@@ -306,13 +309,13 @@ namespace GZ {
 		SDL_AddEventWatch(expose_event_watch, this);
 
 		// Create some ents to test plugin ecs module
-		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, vec4{2.0, 2.0, 2.0, 1.0}, vec3{3.0, 3.0, 3.0}});
+        auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, quat(0.0, 0.0, 0.0, 1.0), vec3{3.0, 3.0, 3.0}});
 
 		e1.set<RigidbodyComponent>({physics_module.m_sphere_id});
-		
-		auto e2 = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, vec4{3.0, 3.0, 3.0, 2.0}, vec3{3.0, 3.0, 3.0}});
+        e1.set<MeshComponent>({sphere_mesh});
+		auto e2 = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, quat{0.0, 0.0, 0.0, 1.0}, vec3{3.0, 3.0, 3.0}});
 		e2.set<RigidbodyComponent>({physics_module.m_box_id});
-		
+        e2.set<MeshComponent>({box_mesh});
 	}
 
 	App::~App()
@@ -504,6 +507,8 @@ namespace GZ {
 		common_module.install_into(world, reg);
 		physics_module.install_into(world, reg);
 		physics_module.create_default_objects();
+        RenderModule render_module;
+        render_module.install_into(world, reg);
 	}
 
 	void App::private_render()

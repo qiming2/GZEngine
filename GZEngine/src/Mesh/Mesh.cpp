@@ -17,6 +17,9 @@ namespace GZ {
 
 	}
 
+    std::shared_ptr<Mesh> Mesh::load_mesh_from_obj(const std::string_view &path) {
+        return nullptr;
+    }
 	
 	std::shared_ptr<Mesh> Mesh::get_icosphere_mesh(f32 radius /*= 0.5f*/, i32 recursion_level)
 	{

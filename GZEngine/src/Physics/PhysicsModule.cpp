@@ -13,6 +13,7 @@
 
 #include "CommonModule.h"
 #include "Log.h"
+#include "MathUtil.h"
 namespace GZ {
     using namespace JPH;
 
@@ -187,10 +188,18 @@ namespace GZ {
         if (!init())
             gz_error("Something wrong!");
 
-
+        GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
+        
+        GZ_PREV_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
         // System component initialization
-        q = world.query<TransformComponent, const RigidbodyComponent>();
-        q1 = world.query<const TransformComponent, const RigidbodyComponent>();
+        q = world.query<const TransformComponent, const RigidbodyComponent, const PrevTransformComponent>();
+        q1 = world.query<TransformComponent, const RigidbodyComponent, PrevTransformComponent>();
+
+        world.component<RigidbodyComponent>().on_add([&](flecs::entity e, RigidbodyComponent rigid_comp) {
+            e.get([&](const TransformComponent &t_comp){
+                e.set<PrevTransformComponent>({t_comp.p, t_comp.r});
+            });
+        });
 	}
 
 	void PhysicsModule::uninstall_from(World& world, ComponentRegistry& reg)
@@ -323,15 +332,16 @@ namespace GZ {
         
         m_sphere_id = m_body_interface->CreateAndAddBody(sphere_settings, EActivation::Activate);
         //m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, 0.0f, -5.0f));
-        m_body_interface->AddImpulse(m_sphere_id, {0.0f, 1000.0f, 0.0f});
+        m_body_interface->AddImpulse(m_sphere_id, {0.0f, 10000.0f, 0.0f});
         m_body_interface->SetRestitution(m_sphere_id, 0.5f);
         
 
         BodyCreationSettings box_settings(new BoxShape({0.5f, 0.5f, 0.5f}), RVec3(3.0f, 2.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
         m_box_id = m_body_interface->CreateAndAddBody(box_settings, EActivation::Activate);
         m_body_interface->SetLinearVelocity(m_box_id, {-1.0f, 1.0f, -1.0f});
-        m_body_interface->SetRestitution(m_box_id,0.7f);
-        m_body_interface->SetFriction(m_box_id, 0.0f);
+        m_body_interface->SetAngularVelocity(m_box_id, {0.0f, 10.0f, 0.0f});
+        m_body_interface->SetRestitution(m_box_id,0.8f);
+        m_body_interface->SetFriction(m_box_id, 0.01f);
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
         
@@ -342,9 +352,17 @@ namespace GZ {
         return vec3(jolt_val.GetX(), jolt_val.GetY(), jolt_val.GetZ());
     }
 
+    GZ_FORCE_INLINE quat to_glm(const Quat &jolt_val) {
+        return quat(jolt_val.GetX(), jolt_val.GetY(), jolt_val.GetZ(), jolt_val.GetW());
+    }
+
 	GZ_FORCE_INLINE RVec3 to_jolt(const vec3& glm_val) {
 		return RVec3(glm_val.x, glm_val.y, glm_val.z);
 	}
+
+    GZ_FORCE_INLINE Quat to_jolt(const quat& glm_val) {
+        return Quat(glm_val.x, glm_val.y, glm_val.z, glm_val.w);
+    }
 
     /*vec3 position = to_glm(m_body_interface->GetPosition(m_box_id));
             vec3 velocity = to_glm(m_body_interface->GetLinearVelocity(m_sphere_id));*/
@@ -354,12 +372,29 @@ namespace GZ {
 
     void PhysicsModule::simulate(f32 delta_time, World &world) {
         m_accumulated += delta_time;
-        
         // DO ECS To Sim here but we don't have animation or anything that actually manipulate the transform
         // maybe editor stuff?
         //gz_info("Entered simulate");
-		q.each([&](TransformComponent& t, const RigidbodyComponent& v) {
-			m_body_interface->SetPosition(v.id, to_jolt(t.p), EActivation::Activate);
+        
+        // Only Set when teleporting or kinematic body
+        q.each([&](const TransformComponent& t, const RigidbodyComponent& v, const PrevTransformComponent &prev_t) {
+            vec3 p_diff = (t.p - prev_t.p);
+            quat t_r_norm = glm::normalize(t.r);
+            quat prev_t_r_norm = glm::normalize(prev_t.r);
+            quat r_diff = (t_r_norm - prev_t_r_norm);
+            
+            if (!is_approximately_zero(p_diff.x) ||
+                !is_approximately_zero(p_diff.y) ||
+                !is_approximately_zero(p_diff.z)) {
+                m_body_interface->SetPosition(v.id, to_jolt(t.p), EActivation::Activate);
+            }
+            
+            if (!is_approximately_zero(r_diff.x) ||
+                !is_approximately_zero(r_diff.y) ||
+                !is_approximately_zero(r_diff.z) ||
+                !is_approximately_zero(r_diff.w)) {
+                m_body_interface->SetRotation(v.id, to_jolt(t_r_norm), EActivation::Activate);
+            }
 		});
 
         while (m_accumulated > m_simulation_step_time) {
@@ -369,8 +404,11 @@ namespace GZ {
             m_accumulated -= m_simulation_step_time;
         }
 
-		q.each([&](TransformComponent& t, const RigidbodyComponent& v) {
+        q1.each([&](TransformComponent& t, const RigidbodyComponent& v, PrevTransformComponent &prev_t) {
 		    t.p = to_glm(m_body_interface->GetPosition(v.id));
+            t.r = glm::normalize(to_glm(m_body_interface->GetRotation(v.id)));
+            prev_t.p = t.p;
+            prev_t.r = t.r;
 		});
     }
 

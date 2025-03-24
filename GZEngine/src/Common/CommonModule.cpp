@@ -10,6 +10,14 @@
 		GZ_COMPONENT_MEMBER_TYPE_DO(f32, w) \
 	GZ_COMPONENT_TYPE_END(vec4) \
 
+#define GZ_QUAT_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
+    GZ_COMPONENT_TYPE_DO(quat) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(f32, x) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(f32, y) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(f32, z) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(f32, w) \
+    GZ_COMPONENT_TYPE_END(quat) \
+
 #define GZ_VEC3_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
 	GZ_COMPONENT_TYPE_DO(vec3) \
 		GZ_COMPONENT_MEMBER_TYPE_DO(f32, x) \
@@ -33,27 +41,37 @@ namespace GZ {
 	struct DrawComponentImplStructName(vec4) final : IDrawComponentInterfaceName 
 	{ 
 		void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) override {
-			vec4 *vec_comp = static_cast<vec4 *>(comp);
+			vec4 *my_comp = static_cast<vec4 *>(comp);
 			const char * label = draw_ctx ? draw_ctx->name.data() : LOCATION;
-			ImGui::DragFloat4(label, &vec_comp->x);
+			ImGui::DragFloat4(label, &my_comp->x);
 		}
 	};
+
+    // Primitive draw component
+    struct DrawComponentImplStructName(quat) final : IDrawComponentInterfaceName
+    {
+        void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) override {
+            quat *my_comp = static_cast<quat *>(comp);
+            const char * label = draw_ctx ? draw_ctx->name.data() : LOCATION;
+            ImGui::DragFloat4(label, &my_comp->x);
+        }
+    };
 
 	struct DrawComponentImplStructName(vec3) final : IDrawComponentInterfaceName
 	{
 		void draw_imgui(void* comp, const ComponentRegistry * registry, World * world, DrawComponentContext * draw_ctx) override {
-			vec3* vec_comp = static_cast<vec3*>(comp);
+			vec3* my_comp = static_cast<vec3*>(comp);
 			const char* label = draw_ctx && draw_ctx->name.data() ? draw_ctx->name.data() : LOCATION;
-			ImGui::DragFloat3(label, &vec_comp->x);
+			ImGui::DragFloat3(label, &my_comp->x);
 		}
 	};
 
 	struct DrawComponentImplStructName(vec2) final : IDrawComponentInterfaceName
 	{
 		void draw_imgui(void* comp, const ComponentRegistry * registry, World * world, DrawComponentContext * draw_ctx) override {
-			vec2* vec_comp = static_cast<vec2*>(comp);
+			vec2* my_comp = static_cast<vec2*>(comp);
 			const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
-			ImGui::DragFloat2(label, &vec_comp->x);
+			ImGui::DragFloat2(label, &my_comp->x);
 		}
 	};
 
@@ -83,6 +101,10 @@ namespace GZ {
 		GZ_VEC4_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
 
 		GZ_VEC4_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
+        
+        GZ_QUAT_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
+
+        GZ_QUAT_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
 
 		GZ_VEC3_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
 

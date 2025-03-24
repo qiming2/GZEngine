@@ -10,6 +10,8 @@
 #include "Renderer.h"
 #include "Log.h"
 #include "FileUtil.h"
+#include "CommonModule.h"
+#include "RenderModule.h"
 
 #define vk_check_result(f) \
 do { \
@@ -561,6 +563,9 @@ namespace GZ {
 		PerObjectPushConstant model_m;
 		model_m.model = mat4(1.0f);
 		m_push_constants.push_back(model_m);
+        
+        mesh->set_index_buffer(m_mesh_index_buffers[mesh_index]);
+        mesh->set_vertex_buffer(m_mesh_vertex_buffers[mesh_index]);
 	}
 
 	void Renderer::create_swapchain()
@@ -1925,16 +1930,28 @@ const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj
 
 		// Draw meshes
 		{
-			for (i32 i = 0; i < m_meshes.size(); ++i) {
-				VkBuffer vertexBuffers[] = { m_mesh_vertex_buffers[i]};
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-				
-				vkCmdBindIndexBuffer(commandBuffer, m_mesh_index_buffers[i], 0, VK_INDEX_TYPE_UINT32);
-				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), &m_push_constants[i]);
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
-				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(m_meshes[i]->get_index_buffer().size()), 1, 0, 0, 0);
-			}
+            VkDeviceSize offsets[] = { 0 };
+            world.each([&](const TransformComponent &t_comp, const MeshComponent &mesh_comp) {
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh_comp.mesh_ref->vbuffer, offsets);
+                vkCmdBindIndexBuffer(commandBuffer, mesh_comp.mesh_ref->ibuffer, 0, VK_INDEX_TYPE_UINT32);
+                
+                mat4 ent_model = glm::translate(mat4(1.0f), t_comp.p);
+                
+                ent_model = ent_model * glm::mat4_cast(t_comp.r);
+                vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), glm::value_ptr(ent_model));
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
+                vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh_comp.mesh_ref->get_index_buffer().size()), 1, 0, 0, 0);
+            });
+//			for (i32 i = 0; i < m_meshes.size(); ++i) {
+//				VkBuffer vertexBuffers[] = { m_mesh_vertex_buffers[i]};
+//				VkDeviceSize offsets[] = { 0 };
+//				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+//				
+//				vkCmdBindIndexBuffer(commandBuffer, m_mesh_index_buffers[i], 0, VK_INDEX_TYPE_UINT32);
+//				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), &m_push_constants[i]);
+//				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
+//				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(m_meshes[i]->get_index_buffer().size()), 1, 0, 0, 0);
+//			}
 		}
 
 		vkCmdEndRenderPass(commandBuffer);
@@ -2027,8 +2044,9 @@ const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj
 		m_push_constants[index].model = model;
 	}
 
-	b8 Renderer::init(void* window_handle) {
+	b8 Renderer::init(void* window_handle, World &world) {
 		this->window_handle = window_handle;
+        this->world = world;
 		create_instance();
 		setup_debug_messenger();
 		create_surface();
