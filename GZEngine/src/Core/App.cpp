@@ -200,7 +200,7 @@ namespace GZ {
 
 		//Profiler
 		GZ::Profiler::init();
-		m_profiler_instance_ref = GZ::Profiler::g_profiler_instance;
+		m_profiler = &GZ::Profiler::g_profiler_instance;
 
 		char* wkd = SDL_GetCurrentDirectory();
 
@@ -294,10 +294,11 @@ namespace GZ {
 		plugin_data.reg = &reg;
 		plugin_data.imgui_ctx = ImGui::GetCurrentContext();
 		plugin_data.gz_renderer = gz_renderer;
+		plugin_data.profiler = m_profiler;
 		ctx.userdata = &plugin_data;
 		
 		cr_plugin_open(ctx, plugin_path);
-
+		
 		SDL_EventFilter expose_event_watch = [](void* usr_data, SDL_Event* event) -> b8 {
 			App* app = (App*)usr_data;
 
@@ -309,7 +310,7 @@ namespace GZ {
 		SDL_AddEventWatch(expose_event_watch, this);
 
 		// Create some ents to test plugin ecs module
-        auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, quat(0.0, 0.0, 0.0, 1.0), vec3{3.0, 3.0, 3.0}});
+		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, glm::angleAxis(glm::pi<f32>() * 2.0f, vec3{0, 0, 1.0f}), vec3{3.0, 3.0, 3.0}});
 
 		e1.set<RigidbodyComponent>({physics_module.m_sphere_id});
         e1.set<MeshComponent>({sphere_mesh});
@@ -410,9 +411,17 @@ namespace GZ {
 
 			// System, module, etc tick once after user update.
             // Module update: Animation, physics, ai, custom system, etc...
-			//world.progress(m_frame_data.deltaTime);
-////            
-            physics_module.simulate(m_frame_data.deltaTime, world);
+			{
+				ScopedProfiler world_profiler("World Progress");
+				world.progress(m_frame_data.deltaTime);
+			}
+			
+////        
+			{
+				ScopedProfiler physics_profiler("Physics");
+				physics_module.simulate(m_frame_data.deltaTime, world);
+			}
+            
 //
 			vec3 sphere_pos = physics_module.get_sphere_position();
 			vec3 box_pos = physics_module.get_box_position();
@@ -479,8 +488,7 @@ namespace GZ {
 		//patch EditorData
 		plugin_data.frame_data = m_frame_data;
 
-		m_profiler_instance_ref->clear();
-		m_profiler_instance_ref->start_frame();
+		m_profiler->start_frame();
         gz_renderer->begin_frame(m_frame_data.deltaTime);
         // Start the Dear ImGui frame
         ImGui_ImplVulkan_NewFrame();
@@ -493,12 +501,11 @@ namespace GZ {
 
 	void App::private_post_render()
 	{
-		m_profiler_instance_ref->end_frame();
+		m_profiler->end_frame();
 
-		f64 per_frame_ms = m_profiler_instance_ref->get_per_frame_data().measured_time / (f64)SDL_NS_PER_MS;
+		f64 per_frame_ms = m_profiler->get_last_per_frame_data().measured_time / (f64)SDL_NS_PER_MS;
 		u64 fps = static_cast<u64>(floor(1.0 / per_frame_ms * 1000.0));
-		
-		gz_info("Profiler testing ms: {:.5f} fps: {}", per_frame_ms, fps);
+
 	}
 
 	void App::private_install_builtin_modules()

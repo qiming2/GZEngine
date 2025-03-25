@@ -1935,9 +1935,18 @@ const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh_comp.mesh_ref->vbuffer, offsets);
                 vkCmdBindIndexBuffer(commandBuffer, mesh_comp.mesh_ref->ibuffer, 0, VK_INDEX_TYPE_UINT32);
                 
-                mat4 ent_model = glm::translate(mat4(1.0f), t_comp.p);
+				mat4 identity(1.0f);
+                mat4 t_mat = glm::translate(identity, t_comp.p);
                 
-                ent_model = ent_model * glm::mat4_cast(t_comp.r);
+				quat r_normalized = glm::normalize(t_comp.r);
+				mat4 r_mat = glm::mat4_cast(r_normalized);
+				
+                //ent_model = ent_model * glm::mat4_cast(glm::normalize(t_comp.r));
+				
+				mat4 s_mat = glm::scale(identity, t_comp.s);
+				mat4 ent_model = t_mat * r_mat ;
+				//ent_model = ent_model * ;
+
                 vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), glm::value_ptr(ent_model));
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
                 vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh_comp.mesh_ref->get_index_buffer().size()), 1, 0, 0, 0);

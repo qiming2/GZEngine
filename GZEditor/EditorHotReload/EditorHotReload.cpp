@@ -1,10 +1,10 @@
 #include <cr.h>
-#include <stdio.h>
 #include <imgui.h>
-#include <Log.h>
 
-#include <CommonModule.h>
-#include <App.h>
+#include "Log.h"
+#include "CommonModule.h"
+#include "App.h"
+#include "MathUtil.h"
 
 namespace GZ {
 	
@@ -92,8 +92,15 @@ namespace GZ {
 				counter++;
 			ImGui::SameLine();
 			ImGui::Text("counter = %d", counter);
+			
+			f64 per_frame_ms = data->profiler->get_last_per_frame_data().measured_time / (f64)SDL_NS_PER_MS;
+			ImGui::TextWrapped("Application average %.5f ms/frame (%.2f FPS)", per_frame_ms, 1.0f / per_frame_ms * 1000.0f);
 
-			ImGui::TextWrapped("Application average %.5f ms/frame (%.2f FPS)", data->frame_data.deltaTime, 1.0f / data->frame_data.deltaTime);
+			data->profiler->walk_last_perscope_frame_data([&](PerScopeProfilerData scope_profiler_data) {
+				f64 scope_frame_ms = get_ms_from_ns(scope_profiler_data.measured_time);
+				ImGui::TextWrapped("%s %.5f ms/frame1", scope_profiler_data.name.c_str(), scope_frame_ms);
+			});
+			
 			ImGui::End();
 			
 		}

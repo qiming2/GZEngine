@@ -34,7 +34,8 @@ namespace GZ {
 		World *world;
 		ComponentRegistry *reg;
 		ImGuiContext* imgui_ctx;
-		Renderer* gz_renderer;
+		Renderer *gz_renderer;
+		Profiler *profiler;
 		FrameData frame_data;
 
 		b8 m_show_demo_window = true;
@@ -71,8 +72,6 @@ namespace GZ {
         PhysicsModule physics_module;
 
 	private: // editor stuff
-		void private_on_imgui_render();
-		
 		EditorContext plugin_data;
 
 		
@@ -81,7 +80,7 @@ namespace GZ {
 		cr_plugin ctx;
 
 		// Profiler
-		std::shared_ptr<Profiler> m_profiler_instance_ref;
+		Profiler *m_profiler;
 
 		b8 is_fullscreen = false;
 		SDL_EventFilter expose_event_watch;

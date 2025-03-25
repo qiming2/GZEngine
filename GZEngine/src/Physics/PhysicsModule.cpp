@@ -377,39 +377,39 @@ namespace GZ {
         //gz_info("Entered simulate");
         
         // Only Set when teleporting or kinematic body
-        q.each([&](const TransformComponent& t, const RigidbodyComponent& v, const PrevTransformComponent &prev_t) {
-            vec3 p_diff = (t.p - prev_t.p);
-            quat t_r_norm = glm::normalize(t.r);
-            quat prev_t_r_norm = glm::normalize(prev_t.r);
-            quat r_diff = (t_r_norm - prev_t_r_norm);
-            
-            if (!is_approximately_zero(p_diff.x) ||
-                !is_approximately_zero(p_diff.y) ||
-                !is_approximately_zero(p_diff.z)) {
-                m_body_interface->SetPosition(v.id, to_jolt(t.p), EActivation::Activate);
-            }
-            
-            if (!is_approximately_zero(r_diff.x) ||
-                !is_approximately_zero(r_diff.y) ||
-                !is_approximately_zero(r_diff.z) ||
-                !is_approximately_zero(r_diff.w)) {
-                m_body_interface->SetRotation(v.id, to_jolt(t_r_norm), EActivation::Activate);
-            }
-		});
+  //      q.each([&](const TransformComponent& t, const RigidbodyComponent& v, const PrevTransformComponent &prev_t) {
+  //          vec3 p_diff = (t.p - prev_t.p);
+  //          quat t_r_norm = glm::normalize(t.r);
+  //          quat prev_t_r_norm = glm::normalize(prev_t.r);
+  //          quat r_diff = (t_r_norm - prev_t_r_norm);
+  //          
+  //          if (!is_approximately_zero(p_diff.x) ||
+  //              !is_approximately_zero(p_diff.y) ||
+  //              !is_approximately_zero(p_diff.z)) {
+  //              m_body_interface->SetPosition(v.id, to_jolt(t.p), EActivation::Activate);
+  //          }
+  //          
+  //          if (!is_approximately_zero(r_diff.x) ||
+  //              !is_approximately_zero(r_diff.y) ||
+  //              !is_approximately_zero(r_diff.z) ||
+  //              !is_approximately_zero(r_diff.w)) {
+  //              m_body_interface->SetRotation(v.id, to_jolt(t_r_norm), EActivation::Activate);
+  //          }
+		//});
 
-        while (m_accumulated > m_simulation_step_time) {
-            // Step the world
-            m_body_interface->AddForce(m_box_id, {0.0, 100.0, 0.0});
-            m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
-            m_accumulated -= m_simulation_step_time;
-        }
+  //      while (m_accumulated > m_simulation_step_time) {
+  //          // Step the world
+  //          m_body_interface->AddForce(m_box_id, {0.0, 100.0, 0.0});
+  //          m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
+  //          m_accumulated -= m_simulation_step_time;
+  //      }
 
-        q1.each([&](TransformComponent& t, const RigidbodyComponent& v, PrevTransformComponent &prev_t) {
-		    t.p = to_glm(m_body_interface->GetPosition(v.id));
-            t.r = glm::normalize(to_glm(m_body_interface->GetRotation(v.id)));
-            prev_t.p = t.p;
-            prev_t.r = t.r;
-		});
+  //      q1.each([&](TransformComponent& t, const RigidbodyComponent& v, PrevTransformComponent &prev_t) {
+		//    t.p = to_glm(m_body_interface->GetPosition(v.id));
+  //          t.r = glm::normalize(to_glm(m_body_interface->GetRotation(v.id)));
+  //          prev_t.p = t.p;
+  //          prev_t.r = t.r;
+		//});
     }
 
     void PhysicsModule::destroy_default_objects() {

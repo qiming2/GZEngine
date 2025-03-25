@@ -1,6 +1,7 @@
 #include <gzpch.h>
 #include "CommonModule.h"
 
+#include "Profiler.h"
 // glm registrations
 #define GZ_VEC4_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
 	GZ_COMPONENT_TYPE_DO(vec4) \
@@ -46,14 +47,66 @@ namespace GZ {
 			ImGui::DragFloat4(label, &my_comp->x);
 		}
 	};
+	
+	static float normalize_angle(float degrees) {
+		// 1. Wrap to [0, 360) range
+		degrees = std::fmod(degrees, 360.0f);
 
+		// 2. Shift to [-180, 180) for better UI display
+		if (degrees > 180.0f) {
+			degrees -= 360.0f;
+		}
+		else if (degrees < -180.0f) {
+			degrees += 360.0f;
+		}
+
+		// Optional: Snap near-threshold values to prevent jitter
+		const float epsilon = 0.001f;
+		if (std::abs(degrees - 180.0f) < epsilon) {
+			degrees = -180.0f;
+		}
+		if (std::abs(degrees + 180.0f) < epsilon) {
+			degrees = 180.0f;
+		}
+
+		return degrees;
+	}
+
+	static glm::vec3 normalize_angles(glm::vec3 euler_deg) {
+		return glm::vec3(
+			normalize_angle(euler_deg.x),
+			normalize_angle(euler_deg.y),
+			normalize_angle(euler_deg.z)
+		);
+	}
     // Primitive draw component
     struct DrawComponentImplStructName(quat) final : IDrawComponentInterfaceName
     {
+		// This is weird
         void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) override {
-            quat *my_comp = static_cast<quat *>(comp);
-            const char * label = draw_ctx ? draw_ctx->name.data() : LOCATION;
-            ImGui::DragFloat4(label, &my_comp->x);
+			
+			{
+				ScopedProfiler quat_imgui("Quat imgui");
+					 quat* my_comp = static_cast<quat*>(comp);
+				vec3 origin_angles = glm::degrees(glm::eulerAngles(*my_comp));
+				//normalize_angles(origin_angles);
+				
+				vec3 euler_angles = origin_angles;
+				
+
+				const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
+				ImGui::DragFloat3(label, glm::value_ptr(euler_angles));
+				//ImGui::DragFloat4(label, glm::value_ptr(*my_comp));
+				//glm::quat(1)
+				glm::vec3 delta = glm::radians(euler_angles - origin_angles);
+
+				*my_comp = *my_comp * glm::quat(delta);
+				//*my_comp = glm::quat(glm::radians(euler_angles));
+
+			}
+           
+			
+			
         }
     };
 

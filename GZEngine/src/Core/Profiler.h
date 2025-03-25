@@ -1,7 +1,8 @@
 #pragma once
 #include <array>
 
-#define SCOPE_PROFILER_MAX 100
+#define MAX_SCOPE_PROFILER 100
+#define MAX_PROFILER_FRAMES_IN_FLIGHT 2
 namespace GZ {
 
 	// Don't change these default!
@@ -22,25 +23,29 @@ namespace GZ {
 
 	// We just hard code a number since we can just increase this when we need to
 	// we don't expose the core profiler, we just expose ScopedProfiler to user
+	
+	// Once end_frame is called, all statistics would be available for
+	// use
 	struct Profiler {
 		
-		static std::shared_ptr<Profiler> g_profiler_instance;
+		static Profiler g_profiler_instance;
 		static void init();
 		void start_frame();
 		void end_frame();
-		size_t start_scope_frame(const std::string &name);
+		
+		GZ_API const PerframeProfilerData & get_last_per_frame_data() const;
+		GZ_API void walk_last_perscope_frame_data(std::function<void(const PerScopeProfilerData &)> func) const;
+		GZ_API const std::span<PerScopeProfilerData> get_last_perscope_frame_data_span();
+	private:
+		size_t start_scope_frame(const std::string& name);
 		void end_scope_frame(size_t);
-		const PerframeProfilerData & get_per_frame_data() const;
-		void get_perscope_frame_data(std::function<void(const PerScopeProfilerData &)> func) const;
-		const std::span<PerScopeProfilerData> get_perscope_frame_data_span();
-
-		// This is very important for scoped data
-		void clear();
+		friend class ScopedProfiler;
 	private:
-		std::array<PerScopeProfilerData, SCOPE_PROFILER_MAX> m_perscope_profiler_data;
-		PerframeProfilerData m_perframe_profiler_data;
+		std::array<PerScopeProfilerData, MAX_SCOPE_PROFILER> m_perscope_profiler_data[MAX_PROFILER_FRAMES_IN_FLIGHT];
+		PerframeProfilerData m_perframe_profiler_data[MAX_PROFILER_FRAMES_IN_FLIGHT];
 	private:
-		size_t m_slot_index = 0;
+		size_t m_slot_index[MAX_PROFILER_FRAMES_IN_FLIGHT] = {0, 0};
+		size_t m_cur_frame_index = 1; // start with 1
 	};
 	
 	struct ScopedProfiler {

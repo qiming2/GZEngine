@@ -7,12 +7,12 @@
 
 // Declaration order does not matter but Registratin order in module install_into does matter like how c works
 
+// rotation is x, y, z axis
 #define GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
 	GZ_COMPONENT_TYPE_DO(TransformComponent) \
 		GZ_COMPONENT_MEMBER_TYPE_DO(vec3, p) \
 		GZ_COMPONENT_MEMBER_TYPE_DO(quat, r) \
 		GZ_COMPONENT_MEMBER_TYPE_DO(vec3, s) \
-		GZ_COMPONENT_MEMBER_TYPE_DO(b8, test_bool) \
 	GZ_COMPONENT_TYPE_END(TransformComponent) \
 
 namespace GZ {
