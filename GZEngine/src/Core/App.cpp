@@ -252,7 +252,7 @@ namespace GZ {
 		//ImGui::StyleColorsDark();
 		//ImGui::StyleColorsLight();
 		SetupImGuiStyle();
-
+		
 		// Setup Platform/Renderer backends
 		ImGui_ImplSDL3_InitForVulkan(window);
 		ImGui_ImplVulkan_InitInfo init_info = {};
@@ -310,13 +310,35 @@ namespace GZ {
 		SDL_AddEventWatch(expose_event_watch, this);
 
 		// Create some ents to test plugin ecs module
-		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, glm::angleAxis(glm::pi<f32>() * 2.0f, vec3{0, 0, 1.0f}), vec3{3.0, 3.0, 3.0}});
+		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, vec3{90.0f, 0, 0}, vec3{1.0, 1.0, 1.0}});
 
 		e1.set<RigidbodyComponent>({physics_module.m_sphere_id});
         e1.set<MeshComponent>({sphere_mesh});
-		auto e2 = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, quat{0.0, 0.0, 0.0, 1.0}, vec3{3.0, 3.0, 3.0}});
+		auto e2 = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, vec3{45.0f, 0.0f, 0.0f}, vec3{1.0, 1.0, 1.0}});
 		e2.set<RigidbodyComponent>({physics_module.m_box_id});
         e2.set<MeshComponent>({box_mesh});
+		
+		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
+		gz_renderer->submit_mesh(model_mesh);
+		auto e3 = world.entity("Player")
+			.set<TransformComponent>({vec3{0.0, 0.0, 0.0}, vec3{0, 0, 0}, vec3{1.0, 1.0, 1.0}})
+			.set<MeshComponent>({model_mesh});
+		
+		static f32 rotate_scale = 2.0f;
+		world.system("Rotate Character")
+			.write<TransformComponent>()
+			.run([&](WorldIter& it) {
+			auto player = world.lookup("Player");
+			TransformComponent *t = player.get_mut<TransformComponent>();
+			quat cur = t->r;
+			quat rotate = glm::angleAxis(GZ_PI * rotate_scale * it.delta_time(), vec3{ 0, 1, 0 });
+			cur = glm::normalize(cur * rotate);
+			//cur = glm::rotate(cur, it.delta_time() * rotate_scale, vec3{0, 1, 0});
+			t->r = cur;
+
+			//t->r = vec3{0, t->r.y + it.delta_time() * 45.0f, 0};
+			gz_info("Rotating character!");
+		});
 	}
 
 	App::~App()
@@ -402,7 +424,6 @@ namespace GZ {
                 continue;
             }
 
-			
 			// No need for checking for resize as it is handled
 			private_pre_render();
 //			// User defined module tick here
@@ -417,18 +438,18 @@ namespace GZ {
 			}
 			
 ////        
-			{
+			/*{
 				ScopedProfiler physics_profiler("Physics");
 				physics_module.simulate(m_frame_data.deltaTime, world);
-			}
+			}*/
             
 //
-			vec3 sphere_pos = physics_module.get_sphere_position();
+			/*vec3 sphere_pos = physics_module.get_sphere_position();
 			vec3 box_pos = physics_module.get_box_position();
 
 
 			gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
-			gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
+			gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));*/
 
 			private_render();
 			private_post_render();
@@ -463,18 +484,13 @@ namespace GZ {
         // no events
 		private_resize();
         private_pre_render();
+
+		cr_plugin_update(ctx);
+		
 		world.progress(m_frame_data.deltaTime);
 		//            
-		physics_module.simulate(m_frame_data.deltaTime, world);
-
-		vec3 sphere_pos = physics_module.get_sphere_position();
-		vec3 box_pos = physics_module.get_box_position();
-
-		gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
-		gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));
-
-        
-		cr_plugin_update(ctx);
+		//physics_module.simulate(m_frame_data.deltaTime, world);
+		
         private_render();
         private_post_render();
 	}

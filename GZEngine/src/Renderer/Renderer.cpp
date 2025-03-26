@@ -1938,8 +1938,8 @@ const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj
 				mat4 identity(1.0f);
                 mat4 t_mat = glm::translate(identity, t_comp.p);
                 
-				quat r_normalized = glm::normalize(t_comp.r);
-				mat4 r_mat = glm::mat4_cast(r_normalized);
+				//quat r_normalized = glm::normalize(t_comp.r);
+				mat4 r_mat = glm::mat4_cast(glm::normalize(t_comp.r));
 				
                 //ent_model = ent_model * glm::mat4_cast(glm::normalize(t_comp.r));
 				
@@ -2077,7 +2077,7 @@ const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj
 		create_texture_image();
 		create_texture_image_view();
 		create_texture_sampler();
-        load_model();
+        //load_model();
 		create_uniform_buffer();
 		create_descriptor_pool();
 		create_descriptor_sets();

@@ -23,6 +23,7 @@ namespace GZ {
 	// vec3 is already defined, we don't need to do these again
 	
 	GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
+
 }
 
 // Component formatter

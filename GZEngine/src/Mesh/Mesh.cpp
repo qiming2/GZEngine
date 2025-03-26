@@ -1,6 +1,9 @@
 #include <gzpch.h>
+#include <tiny_obj_loader.h>
 
 #include "Mesh.h"
+#include "Log.h"
+#include "FileUtil.h"
 
 namespace GZ {
 	Mesh::Mesh() {
@@ -18,7 +21,49 @@ namespace GZ {
 	}
 
     std::shared_ptr<Mesh> Mesh::load_mesh_from_obj(const std::string_view &path) {
-        return nullptr;
+		
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		std::string warn, err;
+		std::string load_path;
+		FileUtil::get_valid_host_system_path(path.data(), load_path);
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, load_path.c_str())) {
+			gz_core_error("Load model failed!");
+		}
+		
+		std::vector<Vertex> loaded_vertices;
+		std::vector<uint32_t> loaded_indices;
+		u32 cur_index = 0;
+		for (const auto& shape : shapes) {
+			for (const auto& index : shape.mesh.indices) {
+				Vertex vert{};
+
+				vert.pos = {
+					attrib.vertices[3 * index.vertex_index + 0],
+					attrib.vertices[3 * index.vertex_index + 1],
+					attrib.vertices[3 * index.vertex_index + 2],
+				};
+
+				vert.uv = {
+					attrib.texcoords[2 * index.texcoord_index + 0],
+					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+				};
+
+				vert.color = {
+					1.0f, 1.0f, 1.0f
+				};
+
+				loaded_vertices.emplace_back(vert);
+
+				loaded_indices.emplace_back((u32)loaded_indices.size());
+				cur_index = (cur_index + 1) % 3;
+			}
+		}
+
+		std::shared_ptr<Mesh> merged_model_mesh = std::make_shared<Mesh>(loaded_vertices, loaded_indices);
+		
+        return merged_model_mesh;
     }
 	
 	std::shared_ptr<Mesh> Mesh::get_icosphere_mesh(f32 radius /*= 0.5f*/, i32 recursion_level)

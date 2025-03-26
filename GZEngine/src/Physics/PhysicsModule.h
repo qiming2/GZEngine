@@ -3,6 +3,8 @@
 
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/PhysicsSettings.h>
+#include <Jolt/Math/Real.h>
+#include <Jolt/Math/Quat.h>
 
 #include "CommonModule.h"
 #include "ComponentInterface.h"
@@ -15,7 +17,7 @@
 #define GZ_PREV_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
     GZ_COMPONENT_TYPE_DO(PrevTransformComponent) \
         GZ_COMPONENT_MEMBER_TYPE_DO(vec3, p) \
-        GZ_COMPONENT_MEMBER_TYPE_DO(quat, r) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(vec3, r) \
     GZ_COMPONENT_TYPE_END(PrevTransformComponent) \
 
 namespace GZ {
@@ -29,8 +31,8 @@ namespace GZ {
         void install_into(World &world, ComponentRegistry &reg) override;
         void uninstall_from(World &world, ComponentRegistry &reg) override;
     private: // system queries
-        flecs::query<const TransformComponent, const RigidbodyComponent, const PrevTransformComponent> q;
-        flecs::query<TransformComponent, const RigidbodyComponent, PrevTransformComponent> q1;
+        flecs::query<const TransformComponent, const RigidbodyComponent> q;
+        flecs::query<TransformComponent, const RigidbodyComponent> q1;
     public:
         b8 init();
     

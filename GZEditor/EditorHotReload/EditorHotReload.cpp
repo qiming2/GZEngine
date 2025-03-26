@@ -167,7 +167,7 @@ namespace GZ {
         //compInter->draw_imgui(&transform->p, reg, world, &ctx);
 
 		size_t i = 0;
-		auto e = world->lookup("Hello");
+		auto e = world->lookup("Player");
 		std::shared_ptr<IDrawComponentInterfaceName> cur;
 		e.each([&](Identifier id) {
 			ImGui::PushID(i++);

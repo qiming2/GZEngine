@@ -4,6 +4,8 @@
 #define EPSILON
 namespace GZ {
 
+    constexpr f32 GZ_PI = glm::pi<f32>();
+
 	GZ_FORCE_INLINE f64 get_s_from_ns(u64 ns) {
 		return static_cast<f64>(ns) / SDL_NS_PER_SECOND;
 	}
@@ -28,5 +30,15 @@ namespace GZ {
     GZ_FORCE_INLINE b8 is_approximately_zero(float val) {
 //        gz_info("f_epsilon: {}", f_epsilon);
         return abs(val) <= scale_factor * (tolerance_factor * f_epsilon);
+    }
+
+    // no normalization
+    // we are doing everything in degrees, so convert to radians
+    GZ_FORCE_INLINE quat to_quat(const vec3 &euler_angles) {
+        return quat(glm::radians((euler_angles)));
+    }
+
+    GZ_FORCE_INLINE vec3 to_euler(const quat& normalized_qua) {
+        return glm::degrees(glm::eulerAngles(normalized_qua));
     }
 }
