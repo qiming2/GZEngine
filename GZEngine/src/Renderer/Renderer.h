@@ -32,7 +32,7 @@ namespace GZ {
 
 		// Generic draw function right now
 		void begin_frame(const f32 &deltaTime);
-		
+
 		void end_frame();
 		void set_imgui_draw_data(ImDrawData *imgui_data);
 		void will_deinit();
@@ -165,7 +165,6 @@ namespace GZ {
 		void create_texture_image();
 		void create_texture_image_view();
 		void create_texture_sampler();
-        void load_model();
 		void create_uniform_buffer();
 		void create_descriptor_pool();
 		void create_descriptor_sets();

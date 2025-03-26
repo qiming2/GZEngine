@@ -279,10 +279,7 @@ namespace GZ {
         auto box_mesh = Mesh::get_box_mesh();
         gz_renderer->submit_mesh(sphere_mesh);
         gz_renderer->submit_mesh(box_mesh);
-
-		// Before runnning, we install builtin ecs modules
-		private_install_builtin_modules();
-
+		
 		// plugin system
 #ifdef GZ_PLATFORM_APPLE
         const char *plugin_path = "/Users/qimingguan/qiming/GZEngine/build/GZEditor/EditorHotReload/Debug/libGZEditorHotReload.dylib";
@@ -309,6 +306,11 @@ namespace GZ {
 		};
 		SDL_AddEventWatch(expose_event_watch, this);
 
+		// Init all ecs modules, systems, components
+		// Before runnning, we install builtin ecs modules
+		world.set_threads(4);
+		private_install_builtin_modules();
+		
 		// Create some ents to test plugin ecs module
 		auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, vec3{90.0f, 0, 0}, vec3{1.0, 1.0, 1.0}});
 
@@ -337,7 +339,6 @@ namespace GZ {
 			t->r = cur;
 
 			//t->r = vec3{0, t->r.y + it.delta_time() * 45.0f, 0};
-			gz_info("Rotating character!");
 		});
 	}
 
@@ -429,6 +430,12 @@ namespace GZ {
 //			// User defined module tick here
 			
 			cr_plugin_update(ctx);
+			if (io.WantCaptureKeyboard || io.WantCaptureMouse) {
+				gz_info("Imgui want to capture events");
+			}
+			else {
+				gz_info("Send inputs to game");
+			}
 
 			// System, module, etc tick once after user update.
             // Module update: Animation, physics, ai, custom system, etc...
@@ -436,24 +443,9 @@ namespace GZ {
 				ScopedProfiler world_profiler("World Progress");
 				world.progress(m_frame_data.deltaTime);
 			}
-			
-////        
-			/*{
-				ScopedProfiler physics_profiler("Physics");
-				physics_module.simulate(m_frame_data.deltaTime, world);
-			}*/
-            
-//
-			/*vec3 sphere_pos = physics_module.get_sphere_position();
-			vec3 box_pos = physics_module.get_box_position();
-
-
-			gz_renderer->set_model_matrix(1, glm::translate(mat4(1.0f), sphere_pos));
-			gz_renderer->set_model_matrix(2, glm::translate(mat4(1.0f), box_pos));*/
 
 			private_render();
 			private_post_render();
-			//gz_info("{}", 1.0 / m_frame_data.deltaTime);
 		}
         
 
@@ -526,6 +518,7 @@ namespace GZ {
 
 	void App::private_install_builtin_modules()
 	{
+		// Modules can be plugin
 		CommonModule common_module;
 		common_module.install_into(world, reg);
 		physics_module.install_into(world, reg);

@@ -119,10 +119,6 @@ namespace GZ {
 		// 4. Show main shaing
 		if (data->m_show_main_scene) {
 
-			// rethink ui design later
-//            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
-
-//            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
 			ImGui::Begin("Main Scene", &data->m_show_main_scene, 0);
 			ImGui::SetWindowSize({ 200.0f, 200.0f });
 
@@ -138,8 +134,14 @@ namespace GZ {
 			ImGui::Image((ImTextureID)data->main_tex_id, main_scene_cur_window_size, { 0, 0 }, { 1, 1 });
 			ImGui::PopStyleVar();
 
+			// Check whether scene is focused whether
+			// we are in runtime mode
+			if (ImGui::IsWindowFocused()) {
+				// Maybe hide cursor?
+				io.WantCaptureKeyboard = false;
+				io.WantCaptureMouse = false;
+			}
 			ImGui::End();
-			//            ImGui::PopStyleVar();
 		}
 
         ImGui::Begin("Another Window1");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)

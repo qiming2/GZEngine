@@ -210,15 +210,22 @@ namespace GZ {
         q = world.query<const TransformComponent, const RigidbodyComponent>();
         q1 = world.query<TransformComponent, const RigidbodyComponent>();
 
+        // Systems can be multithreaded, so we could take advantage of this
+
         System ecs_to_sim = world.system<const TransformComponent, const RigidbodyComponent>("ecs_to_sim")
             .kind(flecs::OnUpdate)
+            .multi_threaded()
             .each([&](WorldIter &it, size_t index, const TransformComponent& transform, const RigidbodyComponent& rigidbody) {
              m_body_interface->SetPositionAndRotationWhenChanged(rigidbody.id, to_jolt(transform.p), to_jolt(glm::normalize(transform.r)), EActivation::Activate);
         });
 
+        
 		System physics_update = world.system("physics_update")
             .kind(flecs::OnUpdate)
 			.run([&](WorldIter& it) {
+            
+
+
 			m_accumulated += it.delta_time();
 			while (m_accumulated > m_simulation_step_time) {
 				// Step the world
@@ -229,6 +236,7 @@ namespace GZ {
 
 		System sim_to_ecs = world.system<TransformComponent, const RigidbodyComponent>("sim_to_ecs")
             .kind(flecs::OnUpdate)
+            .multi_threaded()
 			.each([&](WorldIter& it, size_t index, TransformComponent& transform, const RigidbodyComponent& rigidbody) {
 
 			transform.p = to_glm(m_body_interface->GetPosition(rigidbody.id));

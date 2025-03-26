@@ -1719,60 +1719,6 @@ namespace GZ {
 		end_single_time_commands(commandBuffer);
 	}
 
-
-    #ifdef GZ_PLATFORM_APPLE
-        const std::string viking_obj_path = "asset/model/viking_room.obj";
-        
-        const std::string meng_yuan_obj_path = "asset/model/meng_yuan.obj";
-const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj";
-    #else
-        const std::string viking_obj_path = "asset\\model\\viking_room.obj";
-        const std::string meng_yuan_obj_path = "asset\\model\\meng_yuan.obj";
-		const std::string anime_char_obj_path = "asset\\model\\SD_Anime_Character_Char.obj";
-    #endif
-    void Renderer::load_model() {
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
-		std::string load_path = meng_yuan_obj_path;
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, load_path.c_str())) {
-            gz_core_error("Load model failed!");
-        }
-
-		std::vector<Vertex> loaded_vertices;
-		std::vector<uint32_t> loaded_indices;
-		u32 cur_index = 0;
-        for (const auto &shape: shapes) {
-            for (const auto &index: shape.mesh.indices) {
-                Vertex vert{};
-                
-                vert.pos = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2],
-                };
-                
-                vert.uv = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
-                
-                vert.color = {
-                    1.0f, 1.0f, 1.0f
-                };
-                
-                loaded_vertices.emplace_back(vert);
-
-                loaded_indices.emplace_back((u32)loaded_indices.size());
-                cur_index = (cur_index + 1) % 3;
-            }
-        }
-
-		std::shared_ptr<Mesh> merged_model_mesh = std::make_shared<Mesh>(loaded_vertices, loaded_indices);
-		submit_mesh(merged_model_mesh);
-    }
-
 	void Renderer::create_uniform_buffer()
 	{
 		// This really should be a storage buffer since it is only updated once per frame
@@ -1951,16 +1897,6 @@ const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
                 vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh_comp.mesh_ref->get_index_buffer().size()), 1, 0, 0, 0);
             });
-//			for (i32 i = 0; i < m_meshes.size(); ++i) {
-//				VkBuffer vertexBuffers[] = { m_mesh_vertex_buffers[i]};
-//				VkDeviceSize offsets[] = { 0 };
-//				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-//				
-//				vkCmdBindIndexBuffer(commandBuffer, m_mesh_index_buffers[i], 0, VK_INDEX_TYPE_UINT32);
-//				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), &m_push_constants[i]);
-//				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
-//				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(m_meshes[i]->get_index_buffer().size()), 1, 0, 0, 0);
-//			}
 		}
 
 		vkCmdEndRenderPass(commandBuffer);
@@ -2077,7 +2013,6 @@ const std::string anime_char_obj_path = "asset/model/SD_Anime_Character_Char.obj
 		create_texture_image();
 		create_texture_image_view();
 		create_texture_sampler();
-        //load_model();
 		create_uniform_buffer();
 		create_descriptor_pool();
 		create_descriptor_sets();
