@@ -36,6 +36,10 @@
 	GZ_COMPONENT_TYPE_DO(b8) \
 	GZ_COMPONENT_TYPE_END(b8) \
 
+#define GZ_f32_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
+    GZ_COMPONENT_TYPE_DO(f32) \
+    GZ_COMPONENT_TYPE_END(f32) \
+
 namespace GZ {
 	
 	// Primitive draw component
@@ -133,9 +137,18 @@ namespace GZ {
 		void draw_imgui(void* comp, const ComponentRegistry* registry, World* world, DrawComponentContext* draw_ctx) override {
 			b8* b8_comp = static_cast<b8*>(comp);
 			const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
-			ImGui::Checkbox("label", b8_comp);
+			ImGui::Checkbox(label, b8_comp);
 		}
 	};
+
+    struct DrawComponentImplStructName(f32) final : IDrawComponentInterfaceName
+    {
+        void draw_imgui(void* comp, const ComponentRegistry* registry, World* world, DrawComponentContext* draw_ctx) override {
+            f32* f32_comp = static_cast<f32*>(comp);
+            const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
+            ImGui::DragFloat(label, f32_comp);
+        }
+    };
 
 	GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW, GZ_COMPONENT_TYPE_END_IMPL_DRAW);
 
@@ -148,6 +161,9 @@ namespace GZ {
 		GZ_b8_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
 
 
+        GZ_f32_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
+        
+        GZ_f32_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
 		// flecs does not know how to register transform component which
 		// contains vec3, it works just like c/c++
 		
@@ -172,6 +188,7 @@ namespace GZ {
 
 		GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
 
+        world.component<EditorTag>();
 		//// Need to register transform
 		//// This is what the above macro would expand to
 		//ComponentID vec3_id = world.component<vec3>().id();

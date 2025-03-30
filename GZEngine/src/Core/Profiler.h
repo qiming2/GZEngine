@@ -30,7 +30,7 @@ namespace GZ {
 		
 		static Profiler g_profiler_instance;
 		static void init();
-		void start_frame();
+		void begin_frame();
 		void end_frame();
 		
 		GZ_API const PerframeProfilerData & get_last_per_frame_data() const;

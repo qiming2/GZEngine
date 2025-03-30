@@ -16,14 +16,26 @@
 	GZ_COMPONENT_TYPE_END(TransformComponent) \
 
 namespace GZ {
-	
+    // Specifically editor stuff
+    struct EditorTag{};
+
 	// declaration order does not matter
 
 	// Many vec types already declared and defined, but not registered in world!
 	// vec3 is already defined, we don't need to do these again
-	
-	GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
+    
 
+//	GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
+
+    struct TransformComponent {
+        vec3 p = vec3{0, 0, 0};
+        quat r = quat(1, 0, 0, 0);
+        vec3 s = vec3(1, 1, 1);
+        
+        GZ_FORCE_INLINE mat4 get_model_matrix() const {
+            return glm::translate(mat4(1.0f), p) * glm::mat4_cast(glm::normalize(r)) * glm::scale(mat4(1.0f), s);
+        }
+    };
 }
 
 // Component formatter

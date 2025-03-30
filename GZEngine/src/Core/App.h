@@ -13,6 +13,7 @@
 #include "PhysicsModule.h"
 #include "ComponentInterface.h"
 #include "Profiler.h"
+#include "Input.h"
 
 namespace GZ {
 	struct AppSpec {
@@ -36,6 +37,7 @@ namespace GZ {
 		ImGuiContext* imgui_ctx;
 		Renderer *gz_renderer;
 		Profiler *profiler;
+        Input *input;
 		FrameData frame_data;
 
 		b8 m_show_demo_window = true;
@@ -45,7 +47,7 @@ namespace GZ {
 
 		u32 m_main_view_w = 0, m_main_view_h = 0;
 		ImTextureID main_tex_id;
-		vec4 m_clear_color = vec4(0.18f, 0.18f, 0.18f, 1.00f);
+		vec4 m_clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.00f);
 
 		ed::EditorContext* m_node_Context = nullptr;
 	};
@@ -81,6 +83,8 @@ namespace GZ {
 
 		// Profiler
 		Profiler *m_profiler;
+        
+        Input *m_input;
 
 		b8 is_fullscreen = false;
 		SDL_EventFilter expose_event_watch;
@@ -96,11 +100,11 @@ namespace GZ {
 
 		u32 window_w = 1960, window_h = 1080;
 	private:
-        b8 is_app_initialized = false;
-        void private_render();
+        void private_end_render_frame();
 		void private_resize();
-		void private_pre_render();
-		void private_post_render();
+        void private_begin_frame();
+        void private_end_frame();
+		void private_begin_render_frame();
 		void private_install_builtin_modules();
 	};
 

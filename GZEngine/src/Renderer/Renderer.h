@@ -40,7 +40,7 @@ namespace GZ {
 
 		// Used by editor
 		void set_viewport_size(u32 w, u32 h);
-		void set_clear_value(vec4 clear_color = vec4(0.18, 0.18, 0.18, 1.0));
+		void set_clear_value(vec4 clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.0));
 	public: // Geometry related
 		void submit_mesh(std::shared_ptr<Mesh> mesh);
 		void set_model_matrix(const u32 &index, const mat4 &model);
@@ -126,7 +126,7 @@ namespace GZ {
 		// viewport w, h
 		u32 viewport_w = 0, viewport_h = 0;
 
-		vec4 clear_color = vec4(0.18, 0.18, 0.18, 1.0);
+		vec4 clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.0);
 
 		u32 current_frame_index = 0;
 		static const int MAX_FRAMES_IN_FLIGHT = 2;

@@ -3,8 +3,10 @@
 
 #include "Log.h"
 #include "CommonModule.h"
+#include "RenderModule.h"
 #include "App.h"
 #include "MathUtil.h"
+#include "Input.h"
 
 namespace GZ {
 	
@@ -118,29 +120,74 @@ namespace GZ {
 
 		// 4. Show main shaing
 		if (data->m_show_main_scene) {
-
+           
 			ImGui::Begin("Main Scene", &data->m_show_main_scene, 0);
+            // Check whether scene is focused whether
+            // we are in runtime mode
+            static b8 is_main_view_focused = false;
+            if (ImGui::IsWindowFocused()) {
+                // Maybe hide cursor?
+                io.WantCaptureKeyboard = false;
+                io.WantCaptureMouse = false;
+                // Show/Hide cursor
+                
+                is_main_view_focused = true;
+            } else {
+                is_main_view_focused = false;
+            }
 			ImGui::SetWindowSize({ 200.0f, 200.0f });
-
+            static f32 move_speed = 2.0f;
 			// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
-			if (data->m_main_view_w != static_cast<u32>(main_scene_cur_window_size.x) || data->m_main_view_h != static_cast<u32>(main_scene_cur_window_size.y)) {
-				data->m_main_view_w = static_cast<u32>(main_scene_cur_window_size.x);
-				data->m_main_view_h = static_cast<u32>(main_scene_cur_window_size.y);
-				data->gz_renderer->set_viewport_size(data->m_main_view_w, data->m_main_view_h);
-			}
+            ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
+            data->world->each([&](CameraComponent &cam_comp, TransformComponent &t_comp){
+                if (cam_comp.is_perspective) {
+                    if (cam_comp.aspect != static_cast<f32>(main_scene_cur_window_size.x / main_scene_cur_window_size.y)) {
+                        cam_comp.fov_y = glm::radians(45.0f);
+                        cam_comp.aspect = static_cast<f32>(main_scene_cur_window_size.x / main_scene_cur_window_size.y);
+                    }
+                } else {
+                    if (cam_comp.viewport_w != main_scene_cur_window_size.x || cam_comp.viewport_h != main_scene_cur_window_size.y) {
+                        cam_comp.viewport_w = main_scene_cur_window_size.x;
+                        cam_comp.viewport_h = main_scene_cur_window_size.y;
+                    }
+                }
+                
+                if (is_main_view_focused) {
+                    
+                    mat4 orientation = glm::mat4_cast(t_comp.r);
+                    vec3 right = glm::normalize(orientation[0].xyz());
+                    vec3 up = glm::normalize(orientation[1].xyz());
+                    vec3 forward = -glm::normalize(orientation[2].xyz());
+                    if (data->input->is_key_down(SCANCODE_W)) {
+                        t_comp.p += forward * data->frame_data.deltaTime * move_speed;
+                    }
+                    
+                    if (data->input->is_key_down(SCANCODE_S)) {
+                        t_comp.p -= forward * data->frame_data.deltaTime * move_speed;
+                    }
+
+                    if (data->input->is_key_down(SCANCODE_A)) {
+                        t_comp.p -= right * data->frame_data.deltaTime * move_speed;
+                    }
+                    
+                    if (data->input->is_key_down(SCANCODE_D)) {
+                        t_comp.p += right * data->frame_data.deltaTime * move_speed;
+                    }
+                    
+                    if (data->input->is_key_down(SCANCODE_Q)) {
+                        t_comp.p += up * data->frame_data.deltaTime * move_speed;
+                    }
+                    
+                    if (data->input->is_key_down(SCANCODE_E)) {
+                        t_comp.p -= up * data->frame_data.deltaTime * move_speed;
+                    }
+                }
+                
+            });
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 0.0f);
 			ImGui::Image((ImTextureID)data->main_tex_id, main_scene_cur_window_size, { 0, 0 }, { 1, 1 });
 			ImGui::PopStyleVar();
-
-			// Check whether scene is focused whether
-			// we are in runtime mode
-			if (ImGui::IsWindowFocused()) {
-				// Maybe hide cursor?
-				io.WantCaptureKeyboard = false;
-				io.WantCaptureMouse = false;
-			}
 			ImGui::End();
 		}
 
@@ -150,26 +197,16 @@ namespace GZ {
         ImGui::Text("Testtest!");
         if (ImGui::Button("Tick Me"))
             gz_info("Oh yeah asd sa!");
-
-        auto e1 = data->world->lookup("Hello");
-        
-		/*const char* a = GZ_COMPONENT_TYPE_IMPL_DRAW(Hello);
-		gz_info(a);*/
-        //gz_info(e1.id());
-
+ 
         World *world = data->world;
         ComponentRegistry *reg = data->reg;
 
-        TransformComponent *transform = e1.get_mut<TransformComponent>();
-        ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "Hello");
-        ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "2123");
-        //draw_component_imgui_ui_transform(transform);
         DrawComponentContext ctx;
         ctx.name = "position";
         //compInter->draw_imgui(&transform->p, reg, world, &ctx);
 
 		size_t i = 0;
-		auto e = world->lookup("Player");
+		auto e = world->lookup("Camera");
 		std::shared_ptr<IDrawComponentInterfaceName> cur;
 		e.each([&](Identifier id) {
 			ImGui::PushID(i++);

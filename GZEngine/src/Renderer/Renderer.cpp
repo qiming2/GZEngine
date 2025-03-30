@@ -421,18 +421,11 @@ namespace GZ {
 	void Renderer::update_uniform_buffer(u32 current_frame_index)
 	{
 		UniformBufferObject ubo{};
-		static f32 angle = 0.0f;
-		angle += 0.25f * glm::pi<f32>() * deltaTime;
-		mat4 t_model = glm::scale(mat4(1.0f), vec3{2.0f ,2.0f, 2.0f});
-		t_model = glm::rotate(t_model, angle, vec3(0.0f, 1.0f, 0.0f));
-		set_model_matrix(0, t_model);
 
-		ubo.view = glm::lookAt(glm::vec3(0.0f, 2.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		
-		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 100.0f);
-		if (viewport_w != 0) {
-			ubo.proj = glm::perspective(glm::radians(45.0f), viewport_w / (float) viewport_h, 0.1f, 100.0f);
-		}
+        world.each([&](const CameraComponent &camera_comp, const TransformComponent &t_comp){
+            ubo.proj = camera_comp.get_projection_matrix();
+            ubo.view = glm::inverse(t_comp.get_model_matrix());
+        });
 		
 		// This is necessary for vulkan, since vulkan'y is fliped
 		//ubo.proj[1][1] *= -1.0f;
@@ -1881,17 +1874,17 @@ namespace GZ {
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh_comp.mesh_ref->vbuffer, offsets);
                 vkCmdBindIndexBuffer(commandBuffer, mesh_comp.mesh_ref->ibuffer, 0, VK_INDEX_TYPE_UINT32);
                 
-				mat4 identity(1.0f);
-                mat4 t_mat = glm::translate(identity, t_comp.p);
-                
-				//quat r_normalized = glm::normalize(t_comp.r);
-				mat4 r_mat = glm::mat4_cast(glm::normalize(t_comp.r));
-				
-                //ent_model = ent_model * glm::mat4_cast(glm::normalize(t_comp.r));
-				
-				mat4 s_mat = glm::scale(identity, t_comp.s);
-				mat4 ent_model = t_mat * r_mat ;
-				//ent_model = ent_model * ;
+//				mat4 identity(1.0f);
+//                mat4 t_mat = glm::translate(identity, t_comp.p);
+//                
+//				//quat r_normalized = glm::normalize(t_comp.r);
+//				mat4 r_mat = glm::mat4_cast(glm::normalize(t_comp.r));
+//				
+//                //ent_model = ent_model * glm::mat4_cast(glm::normalize(t_comp.r));
+//				
+//				mat4 s_mat = glm::scale(identity, t_comp.s);
+//				mat4 ent_model = t_mat * r_mat ;
+                mat4 ent_model = t_comp.get_model_matrix();
 
                 vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), glm::value_ptr(ent_model));
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);

@@ -29,9 +29,9 @@ namespace GZ {
 		std::string load_path;
 		FileUtil::get_valid_host_system_path(path.data(), load_path);
 		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, load_path.c_str())) {
-			gz_core_error("Load model failed!");
+            gz_core_error("Load model failed!:", err.c_str());
 		}
-		
+
 		std::vector<Vertex> loaded_vertices;
 		std::vector<uint32_t> loaded_indices;
 		u32 cur_index = 0;

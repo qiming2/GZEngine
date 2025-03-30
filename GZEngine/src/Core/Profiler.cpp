@@ -26,7 +26,7 @@ namespace GZ {
 		Profiler::g_profiler_instance = Profiler();
 	}
 
-	void Profiler::start_frame()
+	void Profiler::begin_frame()
 	{
 		// Using double buffer
 		m_cur_frame_index = (m_cur_frame_index + 1) % MAX_PROFILER_FRAMES_IN_FLIGHT;
