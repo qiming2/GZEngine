@@ -39,17 +39,9 @@ namespace GZ {
 		Profiler *profiler;
         Input *input;
 		FrameData frame_data;
-
-		b8 m_show_demo_window = true;
-		b8 m_show_another_window = true;
-		b8 m_show_node_editor = true;
-		b8 m_show_main_scene = true;
-
-		u32 m_main_view_w = 0, m_main_view_h = 0;
-		ImTextureID main_tex_id;
-		vec4 m_clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.00f);
-
-		ed::EditorContext* m_node_Context = nullptr;
+        SDL_Window *window;
+        ed::EditorContext* m_node_context = nullptr;
+        ImTextureID main_tex_id;
 	};
 
 

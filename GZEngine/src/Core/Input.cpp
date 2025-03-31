@@ -57,9 +57,9 @@ void Input::begin_frame() {
         }
     }
     vec2 cur_mouse_pos;
-    const vec2 &pre_mouse_pos = g_input_instance.m_input_states[0].mouse_p;
+    const vec2 &pre_mouse_pos = g_input_instance.m_input_states[1].mouse_p;
     SDL_GetMouseState(&cur_mouse_pos.x, &cur_mouse_pos.y);
-    g_input_instance.m_input_states[0].mouse_p_delta = cur_mouse_pos - pre_mouse_pos;
+    SDL_GetRelativeMouseState(&g_input_instance.m_input_states[0].mouse_p_delta.x, &g_input_instance.m_input_states[0].mouse_p_delta.y);
     g_input_instance.m_input_states[0].mouse_p = cur_mouse_pos;
     m_event_count = 0;
 }

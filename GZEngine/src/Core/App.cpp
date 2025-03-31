@@ -59,12 +59,15 @@ namespace GZ {
 
 		this->is_fullscreen = spec.is_fullscreen;
 
-		SDL_WindowFlags sdl_resizable_flag = 0;
+        SDL_WindowFlags sdl_resizable_flags = 0;
+		SDL_WindowFlags sdl_boarderless_flags = 0;
 #ifndef GZ_DIST
-		sdl_resizable_flag = SDL_WINDOW_RESIZABLE;
+        sdl_resizable_flags = SDL_WINDOW_RESIZABLE;
+#else
+        sdl_boarderless_flags = SDL_WINDOW_BORDERLESS;
 #endif
-
-		SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN | sdl_resizable_flag;
+        
+        SDL_WindowFlags window_flags = SDL_WINDOW_VULKAN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN | sdl_resizable_flags | sdl_boarderless_flags;
 		window = SDL_CreateWindow("GZ Editor", spec.window_width, spec.window_height, window_flags);
 		if (window == nullptr) {
 			gz_error("SDL Create window Failed!: {}", SDL_GetError());
@@ -75,10 +78,11 @@ namespace GZ {
 		gz_renderer = new Renderer();
 		gz_renderer->init((void *)window, world);
         
-		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_SetWindowPosition(window, 0, 0);
 
-		SDL_ShowWindow(window);
         SDL_SetWindowFullscreen(window, is_fullscreen);
+		SDL_ShowWindow(window);
+        
 
 		// Imgui setup
 		// Setup Dear ImGui context
@@ -114,7 +118,7 @@ namespace GZ {
 		// Node editor
 		ed::Config config;
 		config.SettingsFile = "Simple.json";
-		plugin_data.m_node_Context = ed::CreateEditor(&config);
+		plugin_data.m_node_context = ed::CreateEditor(&config);
 
         //// Setup physics engine
         //physics_module.init();
@@ -141,6 +145,7 @@ namespace GZ {
 		plugin_data.imgui_ctx = ImGui::GetCurrentContext();
 		plugin_data.gz_renderer = gz_renderer;
 		plugin_data.profiler = m_profiler;
+        plugin_data.window = window;
 		ctx.userdata = &plugin_data;
 		
 		cr_plugin_open(ctx, plugin_path);
@@ -149,9 +154,10 @@ namespace GZ {
 			App* app = (App*)usr_data;
 
 			if (event->type == SDL_EVENT_WINDOW_EXPOSED) {
-				
+                // Need to pump events otherwise input states would be invalid
 				app->loop();
-			}
+            }
+            
 			return true;
 		};
 		SDL_AddEventWatch(expose_event_watch, this);
@@ -248,6 +254,7 @@ namespace GZ {
 					case SDLK_P:
 						is_fullscreen = !is_fullscreen;
 						SDL_SetWindowFullscreen(window, is_fullscreen);
+                        SDL_SetWindowPosition(window, 0, 0);
                         continue;
                         break;
 					}
