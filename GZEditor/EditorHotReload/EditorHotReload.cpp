@@ -287,7 +287,7 @@ namespace GZ {
             }
 
             ImGui::Begin("Another Window1");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
+            ImGui::Text("Hello yeeeee from another window!");
             ImGui::Text("Hello from another window second edition!");
             ImGui::Text("Testtest!");
             if (ImGui::Button("Tick Me"))
@@ -325,7 +325,7 @@ namespace GZ {
             //comp_interface->draw_second_stuff(transform);
             
             static vec3 color;
-            ImGui::ColorEdit3("Some phacy stuff", &color[0]);
+            ImGui::ColorEdit3("Good stuff", &color[0]);
             ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "Yo yo how about some more fancy stuff");
             ImGui::TextColored({0.4, 0.3, 0.1, 1.0}, "Yo yo how about different color?");
             ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Yo yo this fancy stuff");
@@ -341,24 +341,21 @@ namespace GZ {
     
 
 using namespace GZ;
-static EditorHotReload *hot_reload;
+
 CR_EXPORT int cr_main(struct cr_plugin *ctx, enum cr_op operation) {
-    
+    static EditorHotReload hot_reload;
     EditorContext *data = (EditorContext *)(ctx->userdata);
     switch (operation) {
         case CR_LOAD:
-            hot_reload = new EditorHotReload();
-            hot_reload->editor_plugin_load(data);
+            hot_reload.editor_plugin_load(data);
             return true; // loading back from a reload
 
         case CR_STEP:
-            hot_reload->editor_plugin_update(data);
+            hot_reload.editor_plugin_update(data);
             return true;
         case CR_UNLOAD:
-            delete hot_reload;
             return true; // preparing to a new reload
         case CR_CLOSE:
-            delete hot_reload;
             return true; // the plugin will close and not reload anymore
     }
 

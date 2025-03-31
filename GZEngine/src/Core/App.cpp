@@ -77,10 +77,9 @@ namespace GZ {
 		// TODO(Qiming)(VULKAN)
 		gz_renderer = new Renderer();
 		gz_renderer->init((void *)window, world);
-        
-        SDL_SetWindowPosition(window, 0, 0);
 
         SDL_SetWindowFullscreen(window, is_fullscreen);
+		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		SDL_ShowWindow(window);
         
 
@@ -254,7 +253,7 @@ namespace GZ {
 					case SDLK_P:
 						is_fullscreen = !is_fullscreen;
 						SDL_SetWindowFullscreen(window, is_fullscreen);
-                        SDL_SetWindowPosition(window, 0, 0);
+                        SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                         continue;
                         break;
 					}
