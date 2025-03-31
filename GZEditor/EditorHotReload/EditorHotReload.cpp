@@ -137,6 +137,7 @@ namespace GZ {
             }
 			ImGui::SetWindowSize({ 200.0f, 200.0f });
             static f32 move_speed = 2.0f;
+			static f32 acceleration = 2.0f;
 			// Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
             ImVec2 main_scene_cur_window_size = ImGui::GetContentRegionAvail();
             data->world->each([&](CameraComponent &cam_comp, TransformComponent &t_comp){
@@ -181,6 +182,16 @@ namespace GZ {
                     if (data->input->is_key_down(SCANCODE_E)) {
                         t_comp.p -= up * data->frame_data.deltaTime * move_speed;
                     }
+
+					
+					f32 y_wheel_delta = data->input->get_mouse_wheel_y_delta();
+					vec2 m_p = data->input->get_mouse_pos();
+					vec2 m_p_delta = data->input->get_mouse_pos_delta();
+
+					if (glm::abs(y_wheel_delta) > glm::epsilon<f32>()) {
+						move_speed += acceleration * y_wheel_delta * data->frame_data.deltaTime;
+						move_speed = glm::clamp(move_speed, 2.0f, 10.0f);
+					}
                 }
                 
             });

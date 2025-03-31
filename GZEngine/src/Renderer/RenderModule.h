@@ -14,8 +14,8 @@
     GZ_COMPONENT_TYPE_DO(CameraComponent) \
         GZ_COMPONENT_MEMBER_TYPE_DO(f32, fov_y) \
         GZ_COMPONENT_MEMBER_TYPE_DO(f32, aspect) \
-        GZ_COMPONENT_MEMBER_TYPE_DO(f32, near) \
-        GZ_COMPONENT_MEMBER_TYPE_DO(f32, far) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(f32, n) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(f32, f) \
         GZ_COMPONENT_MEMBER_TYPE_DO(b8, is_perspective) \
         GZ_COMPONENT_MEMBER_TYPE_DO(b8, is_primary) \
     GZ_COMPONENT_TYPE_END(CameraComponent) \
@@ -32,8 +32,9 @@ namespace GZ {
             f32 viewport_h;
             f32 aspect;
         };
-        f32 near = 0.1f;
-        f32 far = 100.0f;
+
+        f32 n = 0.1f;
+        f32 f = 100.0f;
         
         b8 is_perspective = true;
         b8 is_primary = false;
@@ -41,7 +42,7 @@ namespace GZ {
         GZ_FORCE_INLINE mat4 get_projection_matrix() const {
             mat4 ret(1.0f);
             if (is_perspective) {
-                ret = glm::perspective(fov_y, aspect, near, far);
+                ret = glm::perspective(fov_y, aspect, n, f);
             } else {
                 ret = glm::ortho(-viewport_w / 2.0f, viewport_w / 2.0f, -viewport_h / 2.0f, viewport_h / 2.0f, 0.1f, 100.0f);
             }

@@ -149,6 +149,7 @@ namespace GZ {
 			App* app = (App*)usr_data;
 
 			if (event->type == SDL_EVENT_WINDOW_EXPOSED) {
+				
 				app->loop();
 			}
 			return true;
@@ -166,8 +167,8 @@ namespace GZ {
         
         // Camera component
         auto camera_e = world.entity("Camera")
-            .set<CameraComponent>({GZ_PI * 0.25f, static_cast<f32>(spec.window_width / spec.window_height), 0.1f, 100.0f, true, .is_primary = true})
-            .set<TransformComponent>({vec3{0.0, 0.0, 2.0}});
+            .set<CameraComponent>({GZ_PI * 0.25f, static_cast<f32>(spec.window_width / spec.window_height), 0.1f, 100.0f, true, true})
+            .set<TransformComponent>({.p = vec3{0.0, 0.0, 2.0}});
         
         auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0}});
 
@@ -231,6 +232,7 @@ namespace GZ {
             // so we call pre_render to get start new frames for imgui
             // and renderer
             
+			
 			while (SDL_PollEvent(&e)) {
 				switch (e.type) {
 				case SDL_EVENT_QUIT:
@@ -261,16 +263,13 @@ namespace GZ {
 					continue;
 				}
                 
-//                switch (e.type) {
-//                case SDL_EVENT_KEY_DOWN:
-//
-//                    gz_info("Keydown:{}", SDL_GetKeyName(e.key.key));
-//                    break;
-//                case SDL_EVENT_KEY_UP:
-//                    gz_info("Keyup:{}", SDL_GetKeyName(e.key.key));
-//                    break;
-//                }
+				switch (e.type) {
+				case SDL_EVENT_MOUSE_WHEEL:
 
+					m_input->add_input_event(e);
+					continue;
+					break;
+				}
 			}
             
 			if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)
@@ -331,7 +330,7 @@ namespace GZ {
         //patch EditorData
         plugin_data.frame_data = m_frame_data;
         m_profiler->begin_frame();
-        m_input->begin_frame();
+		m_input->begin_frame();
     }
 
 	void App::private_begin_render_frame()
