@@ -375,7 +375,7 @@ namespace GZ {
         m_sphere_id = m_body_interface->CreateAndAddBody(sphere_settings, EActivation::Activate);
         //m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, 0.0f, -5.0f));
         m_body_interface->AddImpulse(m_sphere_id, {0.0f, 10000.0f, 0.0f});
-        m_body_interface->SetRestitution(m_sphere_id, 0.5f);
+        m_body_interface->SetRestitution(m_sphere_id, 0.1f);
         
 
         BodyCreationSettings box_settings(new BoxShape({0.5f, 0.5f, 0.5f}), RVec3(3.0f, 2.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);

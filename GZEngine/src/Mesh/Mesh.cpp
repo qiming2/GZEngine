@@ -4,6 +4,7 @@
 #include "Mesh.h"
 #include "Log.h"
 #include "FileUtil.h"
+#include "MathUtil.h"
 
 namespace GZ {
 	Mesh::Mesh() {
@@ -65,7 +66,7 @@ namespace GZ {
 		
         return merged_model_mesh;
     }
-	
+
 	std::shared_ptr<Mesh> Mesh::get_icosphere_mesh(f32 radius /*= 0.5f*/, i32 recursion_level)
 	{
 		static std::shared_ptr<Mesh> s_sphere_inst = nullptr;
@@ -209,6 +210,67 @@ namespace GZ {
 		return sphere_mesh;
 	}
 	
+    std::shared_ptr<Mesh> Mesh::get_uvsphere_mesh(f32 radius, i32 num_stack, i32 num_slice) {
+        static std::shared_ptr<Mesh> s_uvsphere_inst = nullptr;
+        if (s_uvsphere_inst != nullptr) {
+            return s_uvsphere_inst;
+        }
+        
+        s_uvsphere_inst = std::make_shared<Mesh>();
+        std::vector<Vertex> &v_buffer = s_uvsphere_inst->m_vertex_buffer;
+        std::vector<u32> &i_buffer = s_uvsphere_inst->m_index_buffer;
+        v_buffer.reserve((num_stack + 1) * (num_slice + 1));
+        i_buffer.reserve(v_buffer.capacity() * 6);
+        
+        for (size_t i = 0; i < num_stack + 1; ++i) {
+            // UV from top to bottom is 0 to 1, so we need to reverse this
+            f32 stack_percentage = static_cast<f32>(i) / num_stack;
+            f32 theta = stack_percentage * GZ_PI;
+            f32 cos_theta = std::cos(theta);
+            f32 sin_theta = std::sin(theta);
+            
+            f32 x, y, z;
+            vec3 normal; // not used right now
+            Vertex vert;
+            for (size_t j = 0; j < num_slice + 1; ++j) {
+                f32 slice_percentage = static_cast<f32>(j) / num_slice;
+                f32 phi = slice_percentage * GZ_TWO_PI;
+                f32 cos_phi = std::cos(phi);
+                f32 sin_phi = std::sin(phi);
+                
+                x = sin_theta * cos_phi * radius;
+                y = cos_theta * radius;
+                z = sin_theta * sin_phi * radius;
+                
+                vert.pos = vec3(x, y, z);
+
+                normal = glm::normalize(vert.pos);
+                
+                vert.uv = vec2(1.0 - slice_percentage, stack_percentage);
+                
+                v_buffer.push_back(vert);
+                
+                if (i > 0 && j > 0) {
+                    u32 v0 = (i - 1) * (num_slice + 1) + j - 1;
+                    u32 v1 = (i - 1) * (num_slice + 1) + j;
+                    u32 v2 = i * (num_slice + 1) + j - 1;
+                    u32 v3 = i * (num_slice + 1) + j;
+                    
+                    i_buffer.push_back(v0);
+                    i_buffer.push_back(v3);
+                    i_buffer.push_back(v2);
+                    
+                    i_buffer.push_back(v0);
+                    i_buffer.push_back(v1);
+                    i_buffer.push_back(v3);
+                }
+                
+            }
+        }
+
+        return s_uvsphere_inst;
+    }
+
 	std::shared_ptr<Mesh> Mesh::get_box_mesh(vec3 extent /*= {0.5f, 0.5f, 0.5f}*/)
 	{
 		static std::shared_ptr<Mesh> s_box_inst = nullptr;

@@ -1395,18 +1395,17 @@ namespace GZ {
 
 	void Renderer::create_texture_image()
 	{
-#ifdef GZ_PLATFORM_APPLE
+
 		std::string image_path = "asset/texture/yuanshenqidong.png";
         std::string viking_texture_path = "asset/texture/viking_room.png";
         std::string meng_yuan_texture_path = "asset/texture/meng_yuan.png";
+        std::string tile_texture_path = "asset/texture/texture_13.png";
         
-#else
-		std::string image_path = "asset\\texture\\yuanshenqidong.png";
-        std::string viking_texture_path = "asset\\texture\\viking_room.png";
-        std::string meng_yuan_texture_path = "asset\\texture\\meng_yuan.png";
-#endif
 		i32 texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load(meng_yuan_texture_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        
+        std::string load_path;
+        FileUtil::get_valid_host_system_path(tile_texture_path.c_str(), load_path);
+		stbi_uc* pixels = stbi_load(load_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 		if (!pixels) {

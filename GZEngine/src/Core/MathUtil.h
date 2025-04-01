@@ -5,6 +5,8 @@
 namespace GZ {
 
     constexpr f32 GZ_PI = glm::pi<f32>();
+    constexpr f32 GZ_TWO_PI = glm::two_pi<f32>();
+    constexpr quat GZ_QUAT_IDENTITY = glm::identity<quat>();
 
 	GZ_FORCE_INLINE f64 get_s_from_ns(u64 ns) {
 		return static_cast<f64>(ns) / SDL_NS_PER_SECOND;

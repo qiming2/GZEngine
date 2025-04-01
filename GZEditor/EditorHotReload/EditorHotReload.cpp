@@ -259,19 +259,43 @@ namespace GZ {
                             move_speed = glm::clamp(move_speed, 2.0f, 10.0f);
                         }
                         
+                        vec3 euler = glm::eulerAngles(t_comp.r);
+
                         // Rotate camera
+                        vec3 euler_delta(0, 0, 0);
+                        quat yaw_delta = GZ_QUAT_IDENTITY;
                         if (glm::abs(m_p_delta.x) > glm::epsilon<f32>()) {
                             // yaw
-                            t_comp.r *= glm::angleAxis(glm::radians(-m_p_delta.x * frame_data.deltaTime * 10.0f), up);
+                            euler_delta.y = glm::radians(-m_p_delta.x * frame_data.deltaTime * 10.0f);
+                            yaw_delta = glm::angleAxis(glm::radians(-m_p_delta.x * frame_data.deltaTime * 10.0f), vec3(0, 1, 0));
                         }
                         
-//                        if (glm::abs(m_p_delta.y) > glm::epsilon<f32>()) {
-//                            // pitch
-//                            t_comp.r *= glm::angleAxis(glm::radians(-m_p_delta.y * frame_data.deltaTime * 10.0f), right);
-//                            
-//                        }
+                        quat pitch_delta = GZ_QUAT_IDENTITY;
+                        if (glm::abs(m_p_delta.y) > glm::epsilon<f32>()) {
+                            // pitch
+                            euler_delta.x = glm::radians(-m_p_delta.y * frame_data.deltaTime * 10.0f);
+                            pitch_delta = glm::angleAxis(glm::radians(-m_p_delta.y * frame_data.deltaTime * 10.0f), vec3(1, 0, 0));
+
+                        }
                         
+//                        t_comp.r = glm::normalize(quat(euler) * quat(euler_delta));
+                        t_comp.r = glm::normalize(yaw_delta * t_comp.r * pitch_delta);
                         
+//                        // Camera pitch is constrained to -90 to 90
+//                        glm::vec3 f = t_comp.r * vec3(0, 0, -1);
+//                        
+//                        glm::vec3 desiredUp = glm::vec3(0.0f, 1.0f, 0.0f);
+//                        
+//                        // Recompute right to be orthogonal to both
+//                        glm::vec3 r = glm::normalize(glm::cross(f, desiredUp));
+//                        
+//                        // Recompute proper up to maintain orthogonality
+//                        glm::vec3 u = glm::cross(r, f);
+//                        
+//                        // Reconstruct orientation from these vectors
+//                        t_comp.r = glm::quatLookAt(f, u);
+                        
+
                     } else {
                         if (is_relative_mode) {
                             SDL_WarpMouseInWindow(window, rect.x + rect.w / 2.0f, rect.y + rect.h / 2.0f);

@@ -90,8 +90,7 @@ namespace GZ {
         void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) override {
 			
 			{
-				ScopedProfiler quat_imgui("Quat imgui");
-					 quat* my_comp = static_cast<quat*>(comp);
+                quat* my_comp = static_cast<quat*>(comp);
 				vec3 origin_angles = glm::degrees(glm::eulerAngles(*my_comp));
 				//normalize_angles(origin_angles);
 				
@@ -104,7 +103,7 @@ namespace GZ {
 				//glm::quat(1)
 				glm::vec3 delta = glm::radians(euler_angles - origin_angles);
 
-				*my_comp = *my_comp * glm::quat(delta);
+				*my_comp = glm::normalize(*my_comp * glm::quat(delta));
 				//*my_comp = glm::quat(glm::radians(euler_angles));
 
 			}

@@ -76,6 +76,8 @@ namespace GZ {
 		static std::shared_ptr<Mesh> get_icosphere_mesh(f32 radius = 0.5f, i32 recursion_level = 5);
 		static std::shared_ptr<Mesh> get_box_mesh(vec3 extent = {0.5f, 0.5f, 0.5f});
         
+        static std::shared_ptr<Mesh> get_uvsphere_mesh(f32 radius = 0.5f, i32 num_stack = 32, i32 num_slice = 64);
+        
         static std::shared_ptr<Mesh> load_mesh_from_obj(const std::string_view &path);
 	private:
 		std::vector<Vertex> m_vertex_buffer;

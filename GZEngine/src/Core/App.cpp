@@ -127,7 +127,7 @@ namespace GZ {
         m_frame_data.deltaTime = 0.0f;
 
 		// Temp add sphere
-        auto sphere_mesh = Mesh::get_icosphere_mesh(0.5f);
+        auto sphere_mesh = Mesh::get_uvsphere_mesh(0.5f);
         auto box_mesh = Mesh::get_box_mesh();
         gz_renderer->submit_mesh(sphere_mesh);
         gz_renderer->submit_mesh(box_mesh);
