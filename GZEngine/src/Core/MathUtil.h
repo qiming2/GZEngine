@@ -8,6 +8,10 @@ namespace GZ {
     constexpr f32 GZ_TWO_PI = glm::two_pi<f32>();
     constexpr quat GZ_QUAT_IDENTITY = glm::identity<quat>();
 
+    constexpr vec3 GZ_UP = vec3(0.0f, 1.0f, 0.0f);
+    constexpr vec3 GZ_RIGHT = vec3(1.0f, 0.0f, 0.0f);
+    constexpr vec3 GZ_FORWARD = vec3(0.0f, 0.0f, 1.0f);
+
 	GZ_FORCE_INLINE f64 get_s_from_ns(u64 ns) {
 		return static_cast<f64>(ns) / SDL_NS_PER_SECOND;
 	}
