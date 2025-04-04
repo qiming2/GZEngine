@@ -241,11 +241,11 @@ namespace GZ {
                         }
                         
                         if (data->input->is_key_down(SCANCODE_Q)) {
-                            t_comp.p += up * data->frame_data.deltaTime * move_speed;
+                            t_comp.p -= up * data->frame_data.deltaTime * move_speed;
                         }
                         
                         if (data->input->is_key_down(SCANCODE_E)) {
-                            t_comp.p -= up * data->frame_data.deltaTime * move_speed;
+                            t_comp.p += up * data->frame_data.deltaTime * move_speed;
                         }
 
                         
