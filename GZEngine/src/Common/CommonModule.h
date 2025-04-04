@@ -17,8 +17,11 @@
 
 namespace GZ {
     // Specifically editor stuff
-    struct EditorTag{};
+    struct EditorTrait{};
 
+    struct DirtyTrait{};
+    struct LoadingTrait{};
+    struct ReadyTrait{};
 	// declaration order does not matter
 
 	// Many vec types already declared and defined, but not registered in world!
@@ -57,4 +60,56 @@ namespace GZ {
 	};
 }
 
+// ------------------------- Sync point examples --------
 
+
+//        struct TestComponent {
+//            std::string test = "YoYo";
+//        };
+//        world.component<TestComponent>().add(flecs::Exclusive);
+//
+//        auto test_ent = world.entity().set<TestComponent, DirtyTrait>({"ssdasdqw"});
+//
+//        world.system<const TestComponent>("test_dirty")
+//            .term_at(0).second<DirtyTrait>()
+//            .write<TestComponent, ReadyTrait>()
+//            .kind(flecs::OnUpdate)
+//            .each([&](const Entity &ent, const TestComponent &test_comp) {
+//                ent.set<TestComponent, ReadyTrait>({"Ready to roll!"});
+//                ent.set<vec3>({});
+//                gz_info("With dirty matching {}", test_comp.test);
+//        });
+//
+//        System physics_update = world.system<const TestComponent>("test_update")
+//            .kind(flecs::OnUpdate)
+//            .run([=](WorldIter& it) {
+//                gz_info("Hello test");
+//                if (test_ent.has<TestComponent, ReadyTrait>()) {
+//                    gz_info("Has readytrait");
+//                } else {
+//                    gz_info("Does not have readytrait");
+//                }
+//
+//                if (test_ent.has<vec3>()) {
+//                    gz_info("has vec3");
+//                }
+//        });
+//
+//        world.system<const TestComponent>("test")
+//            .term_at(0).second<ReadyTrait>()
+//            .multi_threaded()
+//            .kind(flecs::OnUpdate)
+//            .each([&](Entity ent, const TestComponent &test_comp) {
+//                gz_info("without matching dirty {}", test_comp.test);
+//        });
+        
+//        world.system("test_update")
+//            .kind(flecs::OnUpdate)
+//            .run([&](WorldIter& it) {
+//            m_accumulated += it.delta_time();
+//            while (m_accumulated > m_simulation_step_time) {
+//                // Step the world
+//                m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
+//                m_accumulated -= m_simulation_step_time;
+//            }
+//        });

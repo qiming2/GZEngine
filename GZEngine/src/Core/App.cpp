@@ -9,7 +9,6 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 #include <imgui_stdlib.h>
-#include <filesystem>
 
 #include <vulkan/vulkan.h>
 #include <imgui.h>
@@ -119,10 +118,6 @@ namespace GZ {
 		config.SettingsFile = "Simple.json";
 		plugin_data.m_node_context = ed::CreateEditor(&config);
 
-        //// Setup physics engine
-        //physics_module.init();
-        //physics_module.create_default_objects();
-
         m_frame_data.prevTime = SDL_GetTicksNS();
         m_frame_data.deltaTime = 0.0f;
 
@@ -164,6 +159,10 @@ namespace GZ {
 		// Init all ecs modules, systems, components
 		// Before runnning, we install builtin ecs modules
 		world.set_threads(4);
+        
+        // Here should be sandbox/game logic modules
+        
+        // builtin modules should happen after
 		private_install_builtin_modules();
 		
         
@@ -183,6 +182,11 @@ namespace GZ {
 		e2.set<RigidbodyComponent>({physics_module.m_box_id});
         e2.set<MeshComponent>({box_mesh});
 		
+        auto floor_ent = world.entity("floor")
+            .set<TransformComponent>({vec3{0.0, -3.0, 0.0}, quat{1, 0, 0, 0}, vec3{10.0, 2.0, 10.0}})
+            .set<RigidbodyComponent>({physics_module.m_floor_id})
+            .set<MeshComponent>({box_mesh});
+        
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
 		gz_renderer->submit_mesh(model_mesh);
 		auto e3 = world.entity("Player")

@@ -348,7 +348,7 @@ namespace GZ {
         // Next we can create a rigid body to serve as the floor, we make a large box
         // Create the settings for the collision volume (the shape).
         // Note that for simple shapes (like boxes) you can also directly construct a BoxShape.
-        BoxShapeSettings floor_shape_settings(Vec3(100.0f, 1.0f, 100.0f));
+        BoxShapeSettings floor_shape_settings(Vec3(10.0f, 1.0f, 10.0f));
         floor_shape_settings.SetEmbedded(); // A ref counted object on the stack (base class RefTarget) should be marked as such to prevent it from being freed when its reference count goes to 0.
 
         // Create the shape
@@ -445,15 +445,6 @@ namespace GZ {
         UnregisterTypes();
         delete Factory::sInstance;
         Factory::sInstance = nullptr;
-    }
-
-    //////////////////////////////// Hacking Stuff /////////////////////////////////////
-	vec3 PhysicsModule::get_sphere_position() {
-        return to_glm(m_body_interface->GetPosition(m_sphere_id));
-	}
-
-    vec3 PhysicsModule::get_box_position() {
-        return to_glm(m_body_interface->GetPosition(m_box_id));
     }
     
 }

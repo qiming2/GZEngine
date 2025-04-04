@@ -43,14 +43,12 @@ namespace GZ {
     
         void deinit();
     public: // Test and hack things together
-        vec3 get_sphere_position();
-        vec3 get_box_position();
-         JPH::BodyID m_box_id;
-         JPH::BodyID m_sphere_id;
+        JPH::BodyID m_box_id;
+        JPH::BodyID m_sphere_id;
+        JPH::BodyID m_floor_id;
     private: // temp testing objects
         // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
         void destroy_default_objects();
-        JPH::BodyID m_floor_id;
     
     private: // runtime use
         f32 m_accumulated = 0.0f;

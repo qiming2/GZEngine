@@ -187,7 +187,10 @@ namespace GZ {
 
 		GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
 
-        world.component<EditorTag>();
+        world.component<EditorTrait>();
+        world.component<DirtyTrait>();
+        world.component<LoadingTrait>();
+        world.component<ReadyTrait>();
 		//// Need to register transform
 		//// This is what the above macro would expand to
 		//ComponentID vec3_id = world.component<vec3>().id();
