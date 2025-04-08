@@ -8,7 +8,10 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 
 #include "CommonModule.h"
@@ -24,8 +27,14 @@ namespace GZ {
     namespace Layers
     {
         static constexpr ObjectLayer NON_MOVING = 0;
-        static constexpr ObjectLayer MOVING = 1;
-        static constexpr ObjectLayer NUM_LAYERS = 2;
+        static constexpr ObjectLayer CHARACTER = 1;
+        static constexpr ObjectLayer MOVING = 2;
+
+        
+        static constexpr ObjectLayer NUM_LAYERS = 3;
+
+        // Convenience layer decl
+        static constexpr ObjectLayer ALL_MOVING_OBJECTS = CHARACTER | MOVING;
     };
 
     /// Class that determines if two object layers can collide
@@ -37,9 +46,11 @@ namespace GZ {
             switch (inObject1)
             {
             case Layers::NON_MOVING:
-                return inObject2 == Layers::MOVING; // Non moving only collides with moving
+                return inObject2 | Layers::ALL_MOVING_OBJECTS; // Non moving only collides with moving
             case Layers::MOVING:
                 return true; // Moving collides with everything
+            case Layers::CHARACTER:
+                return true;
             default:
                 gz_error("Non defined object layer");
                 return false;
@@ -69,6 +80,7 @@ namespace GZ {
             // Create a mapping table from object to broad phase layer
             mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
             mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
+            mObjectToBroadPhase[Layers::CHARACTER] = BroadPhaseLayers::MOVING;
         }
 
         virtual uint GetNumBroadPhaseLayers() const override
@@ -126,6 +138,8 @@ namespace GZ {
                 return inLayer2 == BroadPhaseLayers::MOVING;
             case Layers::MOVING:
                 return true;
+            case Layers::CHARACTER:
+                return true;
             default:
                 gz_error("Layer not defined {}", inLayer1);
                 return false;
@@ -141,7 +155,7 @@ namespace GZ {
         virtual ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override
         {
             //gz_info("Contact validate callback");
-
+            
             // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
             return ValidateResult::AcceptAllContactsForThisBodyPair;
         }
@@ -199,16 +213,20 @@ namespace GZ {
 		return Quat(glm_val.x, glm_val.y, glm_val.z, glm_val.w);
 	}
 
+    GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW, GZ_COMPONENT_TYPE_END_IMPL_DRAW);
+
 	void PhysicsModule::install_into(World& world, ComponentRegistry& reg)
 	{
         if (!init())
             gz_error("Something wrong!");
 
-        GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
-        
         // System component initialization
-        q = world.query<const TransformComponent, const RigidbodyComponent>();
-        q1 = world.query<TransformComponent, const RigidbodyComponent>();
+        GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
+
+        GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
+        
+        GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
+        //static auto character_q = world.query<const TransformComponent, const CharacterComponent>();
 
         // Systems can be multithreaded, so we could take advantage of this
 
@@ -219,18 +237,49 @@ namespace GZ {
              m_body_interface->SetPositionAndRotationWhenChanged(rigidbody.id, to_jolt(transform.p), to_jolt(glm::normalize(transform.r)), EActivation::Activate);
         });
 
+		System ecs_to_sim_char = world.system<const TransformComponent, const CharacterComponent>("ecs_to_sim_char")
+			.kind(flecs::OnUpdate)
+			.multi_threaded()
+			.each([&](WorldIter& it, size_t index, const TransformComponent& transform, const CharacterComponent& char_comp) {
+		    m_main_character->SetPosition(to_jolt(transform.p));
+		    m_main_character->SetRotation(to_jolt(transform.r));
+            m_main_character->SetLinearVelocity(to_jolt(char_comp.vel));
+		});
         
+        // Calculate num physics ticks need to happen in current frame, this is needed since
+        // Jolt's character and physics world update are separate, and we want to take advantage of multithreaded system update
+        // so we pre calculate num ticks here
+		System pre_physics_update = world.system("pre_physics_update")
+			.kind(flecs::OnUpdate)
+			.run([&](WorldIter& it) {
+            
+            m_num_physics_ticks_cur_frame = 0;
+			m_accumulated += it.delta_time();
+			m_num_physics_ticks_cur_frame = static_cast<size_t>(m_accumulated / m_simulation_step_time);
+			m_accumulated = std::fmodf(m_accumulated, m_simulation_step_time);
+		});
+
 		System physics_update = world.system("physics_update")
             .kind(flecs::OnUpdate)
 			.run([&](WorldIter& it) {
-            
 
+            size_t num_ticks = m_num_physics_ticks_cur_frame;
+            while (num_ticks) {
+                m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
+                num_ticks--;
+            }
+		});
 
-			m_accumulated += it.delta_time();
-			while (m_accumulated > m_simulation_step_time) {
-				// Step the world
-				m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
-				m_accumulated -= m_simulation_step_time;
+		// Character is also a physics update, so we need to run in phyiscs update system
+		System character_update = world.system<const TransformComponent, const CharacterComponent>("character_update")
+			.kind(flecs::OnUpdate)
+			.multi_threaded()
+			.each([&](WorldIter& it, size_t index, const TransformComponent& transform, const CharacterComponent& char_comp) {
+			size_t num_ticks = m_num_physics_ticks_cur_frame;
+			while (num_ticks) {
+				// Character update
+				m_main_character->Update(m_simulation_step_time, to_jolt(GZ_UP) * m_physics_system.GetGravity().Length(), m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
+				num_ticks--;
 			}
 		});
 
@@ -241,6 +290,16 @@ namespace GZ {
 
 			transform.p = to_glm(m_body_interface->GetPosition(rigidbody.id));
 			transform.r = glm::normalize(to_glm(m_body_interface->GetRotation(rigidbody.id)));
+		});
+
+		System sim_to_ecs_char = world.system<TransformComponent, CharacterComponent>("sim_to_ecs_char")
+			.kind(flecs::OnUpdate)
+			.multi_threaded()
+			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
+
+			transform.p = to_glm(m_main_character->GetPosition());
+			transform.r = glm::normalize(to_glm(m_main_character->GetRotation()));
+            char_comp.vel = to_glm(m_main_character->GetLinearVelocity());
 		});
 	}
 
@@ -336,7 +395,7 @@ namespace GZ {
         // variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
 		// We don't need locking
 		m_body_interface = &(m_physics_system.GetBodyInterfaceNoLock());
-
+        
         // No we can start creating some physics body
         m_is_initialized = true;
 		return true;
@@ -348,7 +407,7 @@ namespace GZ {
         // Next we can create a rigid body to serve as the floor, we make a large box
         // Create the settings for the collision volume (the shape).
         // Note that for simple shapes (like boxes) you can also directly construct a BoxShape.
-        BoxShapeSettings floor_shape_settings(Vec3(10.0f, 1.0f, 10.0f));
+        BoxShapeSettings floor_shape_settings(Vec3(100.0f, 1.0f, 100.0f));
         floor_shape_settings.SetEmbedded(); // A ref counted object on the stack (base class RefTarget) should be marked as such to prevent it from being freed when its reference count goes to 0.
 
         // Create the shape
@@ -386,8 +445,36 @@ namespace GZ {
         m_body_interface->SetFriction(m_box_id, 0.01f);
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
+
+        f32 character_height = 1.0f;
+        f32 character_radius = 0.25;
+        f32 character_inner_fraction = 1.0f;
+		CharacterVirtualSettings settings;
+		auto mStandingShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * character_height + character_radius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * character_height, character_radius)).Create().Get();
+
+		auto mInnerStandingShape = RotatedTranslatedShapeSettings(Vec3(0, 0.5f * character_height + character_radius, 0), Quat::sIdentity(), new CapsuleShape(0.5f * character_inner_fraction * character_height, character_inner_fraction* character_radius)).Create().Get();
+
+		settings.mShape = mStandingShape;
+		settings.mInnerBodyShape = mInnerStandingShape;
+        settings.mInnerBodyLayer = Layers::CHARACTER;
+		settings.mSupportingVolume = Plane(Vec3::sAxisY(), -character_radius); // Accept contacts that touch the lower sphere of the capsule
+		m_main_character = new CharacterVirtual(&settings, RVec3(0.0f, 0.0f, 0.0f), Quat::sIdentity(), uint64(0), &m_physics_system);
         
+        // Get ids from character, most likely we are just going to use inner rigidbody id,
+        /*mAnimatedCharacterVirtualWithInnerBody->GetInnerBodyID();
+        mAnimatedCharacterVirtualWithInnerBody->GetID();
+        mAnimatedCharacterVirtualWithInnerBody->SetUserData(0);*/
+
         
+
+        // We don't need to char vs char for now, I think we don't even need character virutal since we are top down with no ramp stuff like that,
+        // kinematic object should just suffice the need, but we can practice using this class so if in the future we want to make a first person and open world rpg,
+        // the knowledge can be handy.
+		/*
+        static auto m_contact_char = CharacterVsCharacterCollisionSimple();
+        mAnimatedCharacterVirtualWithInnerBody->SetCharacterVsCharacterCollision(&m_contact_char);
+		m_contact_char.Add(mAnimatedCharacterVirtualWithInnerBody);
+        */
     }
 
     /*vec3 position = to_glm(m_body_interface->GetPosition(m_box_id));
@@ -431,9 +518,7 @@ namespace GZ {
     }
 
     void PhysicsModule::deinit() {
-        // TODO(Qiming): remove once refactored physics
-        destroy_default_objects();
-        
+        delete m_main_character;
         delete m_broad_phase_layer_interface;
         delete m_object_vs_broadphase_layer_filter;
         delete m_object_vs_object_layer_filter;

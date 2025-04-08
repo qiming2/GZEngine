@@ -1404,7 +1404,7 @@ namespace GZ {
 		i32 texWidth, texHeight, texChannels;
         
         std::string load_path;
-        FileUtil::get_valid_host_system_path(tile_texture_path.c_str(), load_path);
+        FileUtil::get_valid_host_system_path(meng_yuan_texture_path.c_str(), load_path);
 		stbi_uc* pixels = stbi_load(load_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 

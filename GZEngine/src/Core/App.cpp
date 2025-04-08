@@ -72,6 +72,8 @@ namespace GZ {
 			gz_error("SDL Create window Failed!: {}", SDL_GetError());
 			exit(1);
 		}
+		window_w = spec.window_width;
+		window_h = spec.window_height;
 		
 		// TODO(Qiming)(VULKAN)
 		gz_renderer = new Renderer();
@@ -120,12 +122,6 @@ namespace GZ {
 
         m_frame_data.prevTime = SDL_GetTicksNS();
         m_frame_data.deltaTime = 0.0f;
-
-		// Temp add sphere
-        auto sphere_mesh = Mesh::get_uvsphere_mesh(0.5f);
-        auto box_mesh = Mesh::get_box_mesh();
-        gz_renderer->submit_mesh(sphere_mesh);
-        gz_renderer->submit_mesh(box_mesh);
 		
 		// plugin system
 #ifdef GZ_PLATFORM_APPLE
@@ -161,58 +157,25 @@ namespace GZ {
 		world.set_threads(4);
         
         // Here should be sandbox/game logic modules
-        
+        private_game_install_modules();
+
         // builtin modules should happen after
 		private_install_builtin_modules();
 		
         
         // deserilize or create/install default entities to world
 		// Create some ents to test plugin ecs module
-        
-        // Camera component
-        auto camera_e = world.entity("Camera")
-            .set<CameraComponent>({GZ_PI * 0.25f, static_cast<f32>(spec.window_width / spec.window_height), 0.1f, 100.0f, true, true})
-            .set<TransformComponent>({.p = vec3{0.0, 0.0, 2.0}});
-        
-        auto e1 = world.entity("Hello").set<TransformComponent>({vec3{1.0, 1.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0}});
+		private_setup_initial_scene();
 
-		e1.set<RigidbodyComponent>({physics_module.m_sphere_id});
-        e1.set<MeshComponent>({sphere_mesh});
-        auto e2 = world.entity("Hello1").set<TransformComponent>({vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0}});
-		e2.set<RigidbodyComponent>({physics_module.m_box_id});
-        e2.set<MeshComponent>({box_mesh});
-		
-        auto floor_ent = world.entity("floor")
-            .set<TransformComponent>({vec3{0.0, -3.0, 0.0}, quat{1, 0, 0, 0}, vec3{10.0, 2.0, 10.0}})
-            .set<RigidbodyComponent>({physics_module.m_floor_id})
-            .set<MeshComponent>({box_mesh});
-        
-		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
-		gz_renderer->submit_mesh(model_mesh);
-		auto e3 = world.entity("Player")
-			.set<TransformComponent>({vec3{0.0, 0.0, 0.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0}})
-			.set<MeshComponent>({model_mesh});
-
-		static f32 rotate_scale = 2.0f;
-		world.system("Rotate Character")
-			.write<TransformComponent>()
-			.run([&](WorldIter& it) {
-			auto player = world.lookup("Player");
-			TransformComponent *t = player.get_mut<TransformComponent>();
-			quat cur = t->r;
-			quat rotate = glm::angleAxis(GZ_PI * rotate_scale * it.delta_time(), vec3{ 0, 1, 0 });
-			cur = glm::normalize(cur * rotate);
-			//cur = glm::rotate(cur, it.delta_time() * rotate_scale, vec3{0, 1, 0});
-			t->r = cur;
-
-			//t->r = vec3{0, t->r.y + it.delta_time() * 45.0f, 0};
-		});
-        
+             
 	}
 
 	App::~App()
 	{
 		cr_plugin_close(ctx);
+
+		// TODO(Qiming): remove once refactored physics
+		physics_module.destroy_default_objects();
         physics_module.deinit();
         
 		SDL_RemoveEventWatch(expose_event_watch, this);
@@ -376,6 +339,41 @@ namespace GZ {
         render_module.install_into(world, reg);
 	}
 
+	void App::private_setup_initial_scene()
+	{
+		// Temp add sphere
+		auto sphere_mesh = Mesh::get_uvsphere_mesh(0.5f);
+		auto box_mesh = Mesh::get_box_mesh();
+		gz_renderer->submit_mesh(sphere_mesh);
+		gz_renderer->submit_mesh(box_mesh);
+
+		auto camera_e = world.entity("Camera")
+			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, true })
+			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
+
+		auto e1 = world.entity("Hello").set<TransformComponent>({ vec3{1.0, 1.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} });
+
+		e1.set<RigidbodyComponent>({ physics_module.m_sphere_id });
+		e1.set<MeshComponent>({ sphere_mesh });
+		auto e2 = world.entity("Hello1").set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} });
+		e2.set<RigidbodyComponent>({ physics_module.m_box_id });
+		e2.set<MeshComponent>({ box_mesh });
+
+		auto floor_ent = world.entity("floor")
+			.set<TransformComponent>({ vec3{0.0, -2.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
+			.set<RigidbodyComponent>({ physics_module.m_floor_id })
+			.set<MeshComponent>({ box_mesh });
+
+		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
+		gz_renderer->submit_mesh(model_mesh);
+		auto e3 = world.entity("Player")
+			.set<TransformComponent>({ vec3{0.0, 0.0, 0.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+			.set<MeshComponent>({ model_mesh })
+			.set<CharacterComponent>({.vel = {0, 0.1, 0}});
+
+		// Character controller
+	}
+
 	void App::private_end_render_frame()
 	{
 
@@ -389,6 +387,24 @@ namespace GZ {
 		gz_renderer->set_imgui_draw_data(main_draw_data);
 		gz_renderer->end_frame();
         
+	}
+
+	void App::private_game_install_modules()
+	{
+		static f32 rotate_scale = 2.0f;
+		world.system("Rotate Character")
+			.write<TransformComponent>()
+			.run([&](WorldIter& it) {
+			auto player = world.lookup("Player");
+			TransformComponent* t = player.get_mut<TransformComponent>();
+			quat cur = t->r;
+			quat rotate = glm::angleAxis(GZ_PI * rotate_scale * it.delta_time(), vec3{ 0, 1, 0 });
+			cur = glm::normalize(cur * rotate);
+			//cur = glm::rotate(cur, it.delta_time() * rotate_scale, vec3{0, 1, 0});
+			t->r = cur;
+
+			//t->r = vec3{0, t->r.y + it.delta_time() * 45.0f, 0};
+		});
 	}
 
 }

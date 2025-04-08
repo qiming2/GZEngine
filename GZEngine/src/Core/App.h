@@ -91,6 +91,7 @@ namespace GZ {
 		bool is_running = true;
 
 		u32 window_w = 1960, window_h = 1080;
+		void private_setup_initial_scene();
 	private:
         void private_end_render_frame();
 		void private_resize();
@@ -98,6 +99,7 @@ namespace GZ {
         void private_end_frame();
 		void private_begin_render_frame();
 		void private_install_builtin_modules();
+		void private_game_install_modules();
 	};
 
 	

@@ -29,7 +29,7 @@ target_compile_definitions(Jolt PUBLIC DOUBLE_PRECISION=OFF)
 # target_compile_definitions(Jolt PUBLIC FLOATING_POINT_EXCEPTIONS_ENABLED=OFF)
 target_compile_definitions(Jolt PUBLIC CPP_EXCEPTIONS_ENABLED=OFF)
 target_compile_definitions(Jolt PUBLIC CPP_RTTI_ENABLED=OFF)
-target_compile_definitions(Jolt PUBLIC OBJECT_LAYER_BITS=32)
+target_compile_definitions(Jolt PUBLIC JPH_OBJECT_LAYER_BITS=32)
 
 message("SDL...!")
 set(SDL_SHARED ON)

@@ -3,6 +3,7 @@
 
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/PhysicsSettings.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Quat.h>
 
@@ -14,30 +15,31 @@
         GZ_COMPONENT_MEMBER_TYPE_DO(JPH::BodyID, id) \
     GZ_COMPONENT_TYPE_END(RigidbodyComponent) \
 
-#define GZ_PREV_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
-    GZ_COMPONENT_TYPE_DO(PrevTransformComponent) \
-        GZ_COMPONENT_MEMBER_TYPE_DO(vec3, p) \
-        GZ_COMPONENT_MEMBER_TYPE_DO(vec3, r) \
-    GZ_COMPONENT_TYPE_END(PrevTransformComponent) \
+#define GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
+    GZ_COMPONENT_TYPE_DO(CharacterComponent) \
+        GZ_COMPONENT_MEMBER_TYPE_DO(vec3, vel) \
+    GZ_COMPONENT_TYPE_END(CharacterComponent) \
 
 namespace GZ {
 
     GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
 
-    GZ_PREV_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
+    GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
 
     struct PhysicsModule : Module {
     public: // Module interface
         void install_into(World &world, ComponentRegistry &reg) override;
         void uninstall_from(World &world, ComponentRegistry &reg) override;
     private: // system queries
-        flecs::query<const TransformComponent, const RigidbodyComponent> q;
-        flecs::query<TransformComponent, const RigidbodyComponent> q1;
+        
     public:
         b8 init();
     
         // Temporary
         void create_default_objects();
+
+		// Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
+		void destroy_default_objects();
     
         void simulate(f32 delta_time, World &world);
     
@@ -46,12 +48,12 @@ namespace GZ {
         JPH::BodyID m_box_id;
         JPH::BodyID m_sphere_id;
         JPH::BodyID m_floor_id;
-    private: // temp testing objects
-        // Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
-        void destroy_default_objects();
-    
+        JPH::BodyID m_character_id;
+    private: // Character stuff
+        JPH::CharacterVirtual *m_main_character;
     private: // runtime use
         f32 m_accumulated = 0.0f;
+        size_t m_num_physics_ticks_cur_frame = 0;
     private: // init setup
         b8 m_is_initialized = false;
         JPH::BroadPhaseLayerInterface *m_broad_phase_layer_interface;
