@@ -422,8 +422,9 @@ namespace GZ {
 	{
 		UniformBufferObject ubo{};
 
-        world.each([&](const CameraComponent &camera_comp, const TransformComponent &t_comp){
-            ubo.proj = camera_comp.get_projection_matrix();
+        world.each([&](const CameraComponent &cam_comp, const TransformComponent &t_comp){
+			if (!cam_comp.is_primary) return;
+            ubo.proj = cam_comp.get_projection_matrix();
             ubo.view = glm::inverse(t_comp.get_model_matrix());
         });
 		

@@ -13,6 +13,8 @@ namespace GZ {
     constexpr vec3 GZ_RIGHT = vec3(1.0, 0.0, 0.0);
     constexpr vec3 GZ_FORWARD = vec3(0.0, 0.0, 1.0);
 
+    constexpr f32 GZ_FLOAT_EPSILON = std::numeric_limits<f32>::epsilon();
+
 	GZ_FORCE_INLINE f64 get_s_from_ns(u64 ns) {
 		return static_cast<f64>(ns) / SDL_NS_PER_SECOND;
 	}

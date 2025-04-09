@@ -161,13 +161,11 @@ namespace GZ {
 
         // builtin modules should happen after
 		private_install_builtin_modules();
-		
-        
-        // deserilize or create/install default entities to world
+
+		// deserilize or create/install default entities to world
 		// Create some ents to test plugin ecs module
 		private_setup_initial_scene();
-
-             
+		
 	}
 
 	App::~App()
@@ -175,8 +173,8 @@ namespace GZ {
 		cr_plugin_close(ctx);
 
 		// TODO(Qiming): remove once refactored physics
-		physics_module.destroy_default_objects();
-        physics_module.deinit();
+		m_physics_module.destroy_default_objects();
+        m_physics_module.deinit();
         
 		SDL_RemoveEventWatch(expose_event_watch, this);
 		gz_renderer->will_deinit();
@@ -188,6 +186,7 @@ namespace GZ {
 
 		gz_renderer->deinit();
 		delete gz_renderer;
+
 		SDL_DestroyWindow(window);
 		SDL_Quit();
 	}
@@ -331,47 +330,52 @@ namespace GZ {
 	void App::private_install_builtin_modules()
 	{
 		// Modules can be plugin
-		CommonModule common_module;
-		common_module.install_into(world, reg);
-		physics_module.install_into(world, reg);
-		physics_module.create_default_objects();
-        RenderModule render_module;
-        render_module.install_into(world, reg);
+		m_common_module.install_into(world, reg);
+		m_physics_module.install_into(world, reg);
+        m_render_module.install_into(world, reg);
 	}
 
 	void App::private_setup_initial_scene()
 	{
+		m_physics_module.create_default_objects();
 		// Temp add sphere
 		auto sphere_mesh = Mesh::get_uvsphere_mesh(0.5f);
 		auto box_mesh = Mesh::get_box_mesh();
 		gz_renderer->submit_mesh(sphere_mesh);
 		gz_renderer->submit_mesh(box_mesh);
 
-		auto camera_e = world.entity("Camera")
+		auto flying_cam = world.entity("Flying Camera")
 			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, true })
 			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
+		
+		auto char_cam = world.entity("Character Camera")
+			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, false})
+			.set<TransformComponent>({ .p = vec3{0.0, 2.0, 2.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
 
-		auto e1 = world.entity("Hello").set<TransformComponent>({ vec3{1.0, 1.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} });
+		auto e1 = world.entity("Hello")
+			.set<TransformComponent>({ vec3{1.0, 2.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+			.set<RigidbodyComponent>({ m_physics_module.m_sphere_id })
+			.set<MeshComponent>({ sphere_mesh });
 
-		e1.set<RigidbodyComponent>({ physics_module.m_sphere_id });
-		e1.set<MeshComponent>({ sphere_mesh });
-		auto e2 = world.entity("Hello1").set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} });
-		e2.set<RigidbodyComponent>({ physics_module.m_box_id });
-		e2.set<MeshComponent>({ box_mesh });
+		auto e2 = world.entity("Hello1")
+			.set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+			.set<RigidbodyComponent>({ m_physics_module.m_box_id })
+			.set<MeshComponent>({ box_mesh });
+		
 
 		auto floor_ent = world.entity("floor")
 			.set<TransformComponent>({ vec3{0.0, -2.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
-			.set<RigidbodyComponent>({ physics_module.m_floor_id })
+			.set<RigidbodyComponent>({ m_physics_module.m_floor_id })
 			.set<MeshComponent>({ box_mesh });
 
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
 		gz_renderer->submit_mesh(model_mesh);
 		auto e3 = world.entity("Player")
-			.set<TransformComponent>({ vec3{0.0, 0.0, 0.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+			.set<TransformComponent>({ vec3{1.0, 1.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
 			.set<CharacterComponent>({.vel = {0, 0.1, 0}});
 
-		// Character controller
+		
 	}
 
 	void App::private_end_render_frame()
@@ -392,18 +396,79 @@ namespace GZ {
 	void App::private_game_install_modules()
 	{
 		static f32 rotate_scale = 2.0f;
-		world.system("Rotate Character")
-			.write<TransformComponent>()
+		static f32 move_speed = 10.0f;
+		world.system("Character Controller")
+			.write<CharacterComponent, TransformComponent>()
 			.run([&](WorldIter& it) {
-			auto player = world.lookup("Player");
+			Entity player = it.world().lookup("Player");
 			TransformComponent* t = player.get_mut<TransformComponent>();
-			quat cur = t->r;
+			CharacterComponent* char_comp = player.get_mut<CharacterComponent>();
+			/*quat cur = t->r;
 			quat rotate = glm::angleAxis(GZ_PI * rotate_scale * it.delta_time(), vec3{ 0, 1, 0 });
 			cur = glm::normalize(cur * rotate);
-			//cur = glm::rotate(cur, it.delta_time() * rotate_scale, vec3{0, 1, 0});
-			t->r = cur;
+			t->r = cur;*/
 
-			//t->r = vec3{0, t->r.y + it.delta_time() * 45.0f, 0};
+			Entity follow_cam = it.world().lookup("Character Camera");
+			const TransformComponent *cam_t_comp = follow_cam.get<TransformComponent>();
+			mat3 orientation = mat3_cast(cam_t_comp->r);
+			vec3 right = glm::normalize(vec3{orientation[0].x, 0, orientation[0].z});
+			vec3 up = GZ_UP;
+			vec3 forward = -glm::normalize(glm::cross(right, up));
+			t->p.y = 0.0f;
+			
+			vec2 move_axis = {0, 0};
+			b8 is_moving = false;
+			if (m_input->is_key_down(SCANCODE_W)) {
+				move_axis.y = 1.0f;
+				is_moving = true;
+			}
+			else if (m_input->is_key_down(SCANCODE_S)) {
+				move_axis.y = -1.0f;
+				is_moving = true;
+			}
+
+			if (m_input->is_key_down(SCANCODE_D)) {
+				move_axis.x = 1.0f;
+				is_moving = true;
+			}
+			else if (m_input->is_key_down(SCANCODE_A)) {
+				move_axis.x = -1.0f;
+				is_moving = true;
+			}
+
+			if (is_moving) {
+				char_comp->vel = glm::normalize(move_axis.x * right + move_axis.y * forward) * move_speed;
+			}
+			else {
+				char_comp->vel = vec3(0.0f);
+			}
+		});
+
+		static vec3 cam_dir = -glm::normalize(vec3{ 1, 1, 1 });
+		static f32 cam_dist_min = 2.0f;
+		static f32 cam_dist_max = 10.0f;
+		static f32 zoom_speed = 400.0f;
+		static f32 cur_cam_dist = 3.0f;
+		world.system("Following Camera")
+			.write<CameraComponent, TransformComponent>()
+			.run([=](WorldIter& it) {
+			Entity follow_cam = it.world().lookup("Character Camera");
+			Entity player = it.world().lookup("Player");
+			const CameraComponent *cam_comp = follow_cam.get<CameraComponent>();
+			if (!cam_comp || !cam_comp->is_primary) return;
+			const TransformComponent* player_t_comp = player.get<TransformComponent>();
+
+			TransformComponent *cam_t_comp = follow_cam.get_mut<TransformComponent>();
+			
+			f32 y_delta = m_input->get_mouse_wheel_y_delta();
+			if (std::abs(y_delta) > GZ_FLOAT_EPSILON) {
+				cur_cam_dist = glm::clamp(cur_cam_dist - y_delta * zoom_speed * it.delta_time(), cam_dist_min, cam_dist_max);
+			}
+
+			vec3 look_dir = cam_dir;
+			cam_t_comp->p = player_t_comp->p - cam_dir * cur_cam_dist;
+			cam_t_comp->r = glm::quatLookAt(look_dir, GZ_UP);
+
 		});
 	}
 

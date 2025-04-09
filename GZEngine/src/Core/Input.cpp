@@ -1,6 +1,7 @@
 #include <gzpch.h>
 
 #include "Input.h"
+#include "Log.h"
 
 namespace GZ {
 Input Input::g_input_instance;
@@ -38,6 +39,9 @@ void Input::begin_frame() {
     for (size_t i = 0; i < SCANCODE_COUNT; ++i) {
         g_input_instance.m_input_states[0].key_states[i] = keystates[i];
     }
+
+    // Reset wheel data
+    g_input_instance.m_input_states[0].mouse_wheel_delta = vec2{0.0f, 0.0f};
 
     // we process any event
     for (size_t i = 0; i < m_event_count; ++i) {

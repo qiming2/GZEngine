@@ -8,6 +8,7 @@
 #include "App.h"
 #include "MathUtil.h"
 #include "Input.h"
+#include "flecs.h"
 
 namespace GZ {
 	
@@ -35,6 +36,14 @@ namespace GZ {
         vec4 m_clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.00f);
         FrameData frame_data;
         
+        // Camera Stuff
+		size_t m_primary_cam_index = 0;
+		size_t m_num_total_cams = 1;
+        flecs::query<CameraComponent> cam_q;
+        flecs::query<CameraComponent, TransformComponent> cam_trans_q;
+
+        // Player
+        Entity player_ent;
     public:
         void editor_plugin_load(const EditorContext *data) {
             ImGui::SetCurrentContext(data->imgui_ctx);
@@ -48,16 +57,42 @@ namespace GZ {
             input = data->input;
             node_context = data->m_node_context;
             window = data->window;
+
+            cam_q = world->query<CameraComponent>();
+            cam_trans_q = world->query<CameraComponent, TransformComponent>();
+            m_num_total_cams = 0;
+            m_primary_cam_index = 0;
+            b8 has_primary_cam = false;
+            // Only Select the first primary camera for rendering, toggle off the other cams
+            // who are set up as primary cam
+            cam_q.each([&](Entity ent, CameraComponent& cam_comp) {
+                gz_info("Camera: {}", ent.name().c_str());
+                m_num_total_cams++;
+                if (!cam_comp.is_primary) return;
+
+                if (!has_primary_cam) {
+                    has_primary_cam = true;
+                    m_primary_cam_index = m_num_total_cams-1;
+                }
+                else {
+                    cam_comp.is_primary = false;
+                }
+            });
+
+            if (!m_num_total_cams) gz_warn("There is no camera in the scene!");
+            
+            player_ent = world->lookup("Player");
+            if (!player_ent.is_alive()) gz_warn("Player Entity is not alive in the scene?");
         }
         
-        void per_frame_param_update(EditorContext *data) {
+        void private_per_frame_param_update(EditorContext *data) {
             main_tex_id = data->main_tex_id;
             frame_data = data->frame_data;
         }
 
         //static CommonInterface<Component> *comp_interface = new CommonInterface<TransformComponent>();
         void editor_plugin_update(EditorContext *data) {
-            per_frame_param_update(data);
+            private_per_frame_param_update(data);
             ImGuiIO& io = ImGui::GetIO();
 
             if (ImGui::BeginMainMenuBar())
@@ -164,6 +199,7 @@ namespace GZ {
                 static b8 is_main_view_focused = false;
                 if (ImGui::IsWindowFocused()) {
                     // Maybe hide cursor?
+
                     io.WantCaptureKeyboard = false;
                     io.WantCaptureMouse = false;
                     // Show/Hide cursor
@@ -178,13 +214,25 @@ namespace GZ {
                 // Check whether scene is focused whether
                 // we are in runtime mode
                 
-                static f32 move_speed = 2.0f;
-                static f32 acceleration = 2.0f;
                 // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
                 ImVec2 main_scene_cur_start_pos = ImGui::GetItemRectMin();
                 
                 SDL_Rect rect = {.x = static_cast<int>(main_scene_cur_start_pos.x), .y = static_cast<int>(main_scene_cur_start_pos.y), .w = static_cast<int>(main_scene_cur_window_size.x), .h = static_cast<int>(main_scene_cur_window_size.y)};
-                data->world->each([&](CameraComponent &cam_comp, TransformComponent &t_comp){
+
+                if (is_main_view_focused && input->is_key_pressed(SCANCODE_TAB)) {
+                    // Switch camera here
+                    m_primary_cam_index = (m_primary_cam_index + 1) % m_num_total_cams;
+                    cam_q.each([&](WorldIter &it, size_t index, CameraComponent &cam_comp) {
+                        if (index == m_primary_cam_index) {
+                            cam_comp.is_primary = true;
+                        }
+                        else {
+                            cam_comp.is_primary = false;
+                        }
+                    });
+                }
+
+                cam_trans_q.each([&](Entity ent, CameraComponent &cam_comp, TransformComponent &t_comp){
                     if (cam_comp.is_perspective) {
                         if (cam_comp.aspect != static_cast<f32>(main_scene_cur_window_size.x / main_scene_cur_window_size.y)) {
                             cam_comp.fov_y = glm::radians(45.0f);
@@ -196,7 +244,17 @@ namespace GZ {
                             cam_comp.viewport_h = main_scene_cur_window_size.y;
                         }
                     }
-                    
+
+                    if (!cam_comp.is_primary) return;
+					// Switch cam mode
+					switch (m_primary_cam_index) {
+					case 0:
+						private_flying_cam_controller(t_comp);
+						break;
+					case 1:
+						//private_follow_cam_controller(t_comp);
+                        break;
+					}
                     
                     b8 is_relative_mode = SDL_GetWindowRelativeMouseMode(window);
                     int w, h;
@@ -220,82 +278,6 @@ namespace GZ {
                             gz_info("Show cursor");
                         }
                         
-                        mat4 orientation = glm::mat4_cast(t_comp.r);
-                        vec3 right = glm::normalize(orientation[0].xyz());
-                        vec3 up = glm::normalize(orientation[1].xyz());
-                        vec3 forward = -glm::normalize(orientation[2].xyz());
-                        if (data->input->is_key_down(SCANCODE_W)) {
-                            t_comp.p += forward * data->frame_data.deltaTime * move_speed;
-                        }
-                        
-                        if (data->input->is_key_down(SCANCODE_S)) {
-                            t_comp.p -= forward * data->frame_data.deltaTime * move_speed;
-                        }
-
-                        if (data->input->is_key_down(SCANCODE_A)) {
-                            t_comp.p -= right * data->frame_data.deltaTime * move_speed;
-                        }
-                        
-                        if (data->input->is_key_down(SCANCODE_D)) {
-                            t_comp.p += right * data->frame_data.deltaTime * move_speed;
-                        }
-                        
-                        if (data->input->is_key_down(SCANCODE_Q)) {
-                            t_comp.p -= up * data->frame_data.deltaTime * move_speed;
-                        }
-                        
-                        if (data->input->is_key_down(SCANCODE_E)) {
-                            t_comp.p += up * data->frame_data.deltaTime * move_speed;
-                        }
-
-                        
-                        f32 y_wheel_delta = data->input->get_mouse_wheel_y_delta();
-                        vec2 m_p = data->input->get_mouse_pos();
-                        vec2 m_p_delta = data->input->get_mouse_pos_delta();
-
-                        if (glm::abs(y_wheel_delta) > glm::epsilon<f32>()) {
-                            move_speed += acceleration * y_wheel_delta * data->frame_data.deltaTime;
-                        }
-
-                        if (input->is_key_down(SCANCODE_LCTRL) && input->is_key_pressed(SCANCODE_EQUALS)) {
-                            move_speed += 1.5f;
-                        }
-                        else if (input->is_key_down(SCANCODE_LCTRL) && input->is_key_pressed(SCANCODE_MINUS)) {
-                            move_speed -= 1.5f;
-                        }
-                        move_speed = glm::clamp(move_speed, 2.0f, 10.0f);
-                        
-                        // Camera rotation
-                        quat yaw_delta = GZ_QUAT_IDENTITY;
-                        if (glm::abs(m_p_delta.x) > glm::epsilon<f32>()) {
-                            // yaw
-                            yaw_delta = glm::angleAxis(glm::radians(-m_p_delta.x * frame_data.deltaTime * 10.0f), GZ_UP);
-                        }
-
-                        static f32 cam_r_factor = 0.40f;
-                        // Can also use up and down arrow
-                        if (input->is_key_down(SCANCODE_RIGHT)) {
-                            yaw_delta *= glm::angleAxis(GZ_PI * frame_data.deltaTime * cam_r_factor, -GZ_UP);
-                        }
-                        else if (input->is_key_down(SCANCODE_LEFT)) {
-                            yaw_delta *= glm::angleAxis(GZ_PI * frame_data.deltaTime * cam_r_factor, GZ_UP);
-                        }
-                        
-                        quat pitch_delta = GZ_QUAT_IDENTITY;
-                        if (glm::abs(m_p_delta.y) > glm::epsilon<f32>()) {
-                            // pitch
-                            pitch_delta = glm::angleAxis(glm::radians(-m_p_delta.y * frame_data.deltaTime * 10.0f), GZ_RIGHT);
-                        }
-
-						// Can also use up and down arrow
-						if (input->is_key_down(SCANCODE_UP)) {
-							pitch_delta *= glm::angleAxis(glm::radians(GZ_PI * frame_data.deltaTime * 10.0f), GZ_RIGHT);
-						}
-						else if (input->is_key_down(SCANCODE_DOWN)) {
-							pitch_delta *= glm::angleAxis(glm::radians(GZ_PI * frame_data.deltaTime * 10.0f), -GZ_RIGHT);
-						}
-                        
-                        t_comp.r = glm::normalize(yaw_delta * t_comp.r * pitch_delta);
 
                     } else {
                         if (is_relative_mode) {
@@ -310,56 +292,149 @@ namespace GZ {
                 ImGui::PopStyleVar();
                 ImGui::End();
             }
-
-            ImGui::Begin("Another Window1");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello yeeeee from another window!");
-            ImGui::Text("Hello from another window second edition!");
-            ImGui::Text("Testtest!");
-            if (ImGui::Button("Tick Me"))
-                gz_info("Oh yeah asd sa!");
+            {
+                ImGui::Begin("Another Window1");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+                ImGui::Text("Hello yeeeee from another window!");
+                ImGui::Text("Hello from another window second edition!");
+                ImGui::Text("Testtest!");
+                if (ImGui::Button("Tick Me"))
+                    gz_info("Oh yeah asd sa!");
      
-            World *world = data->world;
-            ComponentRegistry *reg = data->reg;
+                World *world = data->world;
+                ComponentRegistry *reg = data->reg;
 
-            DrawComponentContext ctx;
-            ctx.name = "position";
-            //compInter->draw_imgui(&transform->p, reg, world, &ctx);
+                DrawComponentContext ctx;
+                ctx.name = "position";
+                //compInter->draw_imgui(&transform->p, reg, world, &ctx);
 
-            size_t i = 0;
-            auto e = world->lookup("Player");
-            std::shared_ptr<IDrawComponentInterfaceName> cur;
-            e.each([&](Identifier id) {
-                ImGui::PushID(i++);
-                void *comp = e.get_mut(id.raw_id());
-                cur = reg->get_draw_interface(id);
-                if (cur) {
-                    cur->draw_imgui(comp, reg, world, &ctx);
-                }
-                else {
-                    const char * name = id.type_id().name().c_str();
-                    
-                    if (name == nullptr) {
-                        gz_warn("No name on this component!");
-                        return;
+                size_t i = 0;
+                auto e = world->lookup("Player");
+                std::shared_ptr<IDrawComponentInterfaceName> cur;
+                e.each([&](Identifier id) {
+                    ImGui::PushID(i++);
+                    void *comp = e.get_mut(id.raw_id());
+                    cur = reg->get_draw_interface(id);
+                    if (cur) {
+                        cur->draw_imgui(comp, reg, world, &ctx);
                     }
-                    ImGui::LabelText("", "%s Component is Not Drawable!", name);
+                    else {
+                        const char * name = id.type_id().name().c_str();
+                    
+                        if (name == nullptr) {
+                            gz_warn("No name on this component!");
+                            return;
+                        }
+                        ImGui::LabelText("", "%s Component is Not Drawable!", name);
+                    }
+                    ImGui::PopID();
+                });
+            
+                //comp_interface->draw_second_stuff(transform);
+            
+                static vec3 color;
+                ImGui::ColorEdit3("Good stuff", &color[0]);
+                ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "Yo yo how about some more fancy stuff");
+                ImGui::TextColored({0.4, 0.3, 0.1, 1.0}, "Yo yo how about different color?");
+                ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Yo yo this fancy stuff");
+                static b8 yaxi = false;
+                ImGui::Checkbox("Xiaoggasdasdasen ya xi!", &yaxi);
+                if (yaxi) {
+                    ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Ya xi la!");
                 }
-                ImGui::PopID();
-            });
-            
-            //comp_interface->draw_second_stuff(transform);
-            
-            static vec3 color;
-            ImGui::ColorEdit3("Good stuff", &color[0]);
-            ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "Yo yo how about some more fancy stuff");
-            ImGui::TextColored({0.4, 0.3, 0.1, 1.0}, "Yo yo how about different color?");
-            ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Yo yo this fancy stuff");
-            static b8 yaxi = false;
-            ImGui::Checkbox("Xiaoggasdasdasen ya xi!", &yaxi);
-            if (yaxi) {
-                ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Ya xi la!");
+                ImGui::End();
             }
-            ImGui::End();
+        }
+
+        void private_follow_cam_controller(TransformComponent& t_comp) {
+            gz_info("Follow player");
+            const TransformComponent *player_t_comp = player_ent.get<TransformComponent>();
+
+			static vec3 cam_offset = {4, 8, 4};
+            vec3 look_dir = glm::normalize(- cam_offset);
+            t_comp.p = player_t_comp->p + cam_offset;
+            t_comp.r = glm::quatLookAt(look_dir, GZ_UP);
+        }
+
+        void private_flying_cam_controller(TransformComponent &t_comp) {
+			static f32 move_speed = 2.0f;
+			static f32 acceleration = 2.0f;
+
+			mat4 orientation = glm::mat3_cast(t_comp.r);
+			vec3 right = glm::normalize(orientation[0].xyz());
+			vec3 up = glm::normalize(orientation[1].xyz());
+			vec3 forward = -glm::normalize(orientation[2].xyz());
+			if (input->is_key_down(SCANCODE_W)) {
+				t_comp.p += forward * frame_data.deltaTime * move_speed;
+			}
+
+			if (input->is_key_down(SCANCODE_S)) {
+				t_comp.p -= forward * frame_data.deltaTime * move_speed;
+			}
+
+			if (input->is_key_down(SCANCODE_A)) {
+				t_comp.p -= right * frame_data.deltaTime * move_speed;
+			}
+
+			if (input->is_key_down(SCANCODE_D)) {
+				t_comp.p += right * frame_data.deltaTime * move_speed;
+			}
+
+			if (input->is_key_down(SCANCODE_Q)) {
+				t_comp.p -= up * frame_data.deltaTime * move_speed;
+			}
+
+			if (input->is_key_down(SCANCODE_E)) {
+				t_comp.p += up * frame_data.deltaTime * move_speed;
+			}
+
+
+			f32 y_wheel_delta = input->get_mouse_wheel_y_delta();
+			vec2 m_p = input->get_mouse_pos();
+			vec2 m_p_delta = input->get_mouse_pos_delta();
+
+			if (glm::abs(y_wheel_delta) > glm::epsilon<f32>()) {
+				move_speed += acceleration * y_wheel_delta * frame_data.deltaTime;
+			}
+
+			if (input->is_key_down(SCANCODE_LCTRL) && input->is_key_pressed(SCANCODE_EQUALS)) {
+				move_speed += 1.5f;
+			}
+			else if (input->is_key_down(SCANCODE_LCTRL) && input->is_key_pressed(SCANCODE_MINUS)) {
+				move_speed -= 1.5f;
+			}
+			move_speed = glm::clamp(move_speed, 2.0f, 10.0f);
+
+			// Camera rotation
+			quat yaw_delta = GZ_QUAT_IDENTITY;
+			if (glm::abs(m_p_delta.x) > glm::epsilon<f32>()) {
+				// yaw
+				yaw_delta = glm::angleAxis(glm::radians(-m_p_delta.x * frame_data.deltaTime * 10.0f), GZ_UP);
+			}
+
+			static f32 cam_r_factor = 0.40f;
+			// Can also use up and down arrow
+			if (input->is_key_down(SCANCODE_RIGHT)) {
+				yaw_delta *= glm::angleAxis(GZ_PI * frame_data.deltaTime * cam_r_factor, -GZ_UP);
+			}
+			else if (input->is_key_down(SCANCODE_LEFT)) {
+				yaw_delta *= glm::angleAxis(GZ_PI * frame_data.deltaTime * cam_r_factor, GZ_UP);
+			}
+
+			quat pitch_delta = GZ_QUAT_IDENTITY;
+			if (glm::abs(m_p_delta.y) > glm::epsilon<f32>()) {
+				// pitch
+				pitch_delta = glm::angleAxis(glm::radians(-m_p_delta.y * frame_data.deltaTime * 10.0f), GZ_RIGHT);
+			}
+
+			// Can also use up and down arrow
+			if (input->is_key_down(SCANCODE_UP)) {
+				pitch_delta *= glm::angleAxis(glm::radians(GZ_PI * frame_data.deltaTime * 10.0f), GZ_RIGHT);
+			}
+			else if (input->is_key_down(SCANCODE_DOWN)) {
+				pitch_delta *= glm::angleAxis(glm::radians(GZ_PI * frame_data.deltaTime * 10.0f), -GZ_RIGHT);
+			}
+
+			t_comp.r = glm::normalize(yaw_delta * t_comp.r * pitch_delta);
         }
     };
 }

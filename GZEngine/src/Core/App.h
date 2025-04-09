@@ -11,6 +11,7 @@
 #include "Renderer.h"
 #include "Log.h"
 #include "PhysicsModule.h"
+#include "RenderModule.h"
 #include "ComponentInterface.h"
 #include "Profiler.h"
 #include "Input.h"
@@ -63,7 +64,9 @@ namespace GZ {
 		ComponentRegistry reg;
         
         // expose physics for prototyping
-        PhysicsModule physics_module;
+        PhysicsModule m_physics_module;
+		CommonModule m_common_module;
+		RenderModule m_render_module;
 
 	private: // editor stuff
 		EditorContext plugin_data;

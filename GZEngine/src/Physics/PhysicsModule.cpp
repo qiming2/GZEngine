@@ -26,15 +26,15 @@ namespace GZ {
     // but only if you do collision testing).
     namespace Layers
     {
-        static constexpr ObjectLayer NON_MOVING = 0;
-        static constexpr ObjectLayer CHARACTER = 1;
-        static constexpr ObjectLayer MOVING = 2;
+        static constexpr ObjectLayer NON_MOVING = 1 << 0;
+        static constexpr ObjectLayer CHARACTER = 1 << 1;
+        static constexpr ObjectLayer MOVING = 1 << 2;
 
-        
         static constexpr ObjectLayer NUM_LAYERS = 3;
 
         // Convenience layer decl
         static constexpr ObjectLayer ALL_MOVING_OBJECTS = CHARACTER | MOVING;
+        static constexpr ObjectLayer ALL_OBJECTS = ObjectLayer(~0);
     };
 
     /// Class that determines if two object layers can collide
@@ -46,11 +46,11 @@ namespace GZ {
             switch (inObject1)
             {
             case Layers::NON_MOVING:
-                return inObject2 | Layers::ALL_MOVING_OBJECTS; // Non moving only collides with moving
+                return inObject2 & Layers::ALL_MOVING_OBJECTS; // Non moving only collides with moving
             case Layers::MOVING:
-                return true; // Moving collides with everything
+                return inObject2 & Layers::ALL_OBJECTS; // Moving collides with everything
             case Layers::CHARACTER:
-                return true;
+                return inObject2 & (Layers::ALL_OBJECTS);
             default:
                 gz_error("Non defined object layer");
                 return false;
@@ -77,10 +77,7 @@ namespace GZ {
     public:
         BPLayerInterfaceImpl()
         {
-            // Create a mapping table from object to broad phase layer
-            mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
-            mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
-            mObjectToBroadPhase[Layers::CHARACTER] = BroadPhaseLayers::MOVING;
+
         }
 
         virtual uint GetNumBroadPhaseLayers() const override
@@ -90,8 +87,14 @@ namespace GZ {
 
         virtual BroadPhaseLayer GetBroadPhaseLayer(ObjectLayer inLayer) const override
         {
-            JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
-            return mObjectToBroadPhase[inLayer];
+            /*JPH_ASSERT(inLayer < Layers::NUM_LAYERS);*/
+			switch (inLayer)
+			{
+            case Layers::NON_MOVING:    return BroadPhaseLayers::NON_MOVING;
+			case Layers::MOVING:        return BroadPhaseLayers::MOVING;
+			case Layers::CHARACTER:     return BroadPhaseLayers::MOVING;
+            default: gz_error("Layer not defined {}", static_cast<uint32_t>(inLayer)); return BroadPhaseLayers::NON_MOVING;
+			}
         }
 
     #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
@@ -101,13 +104,10 @@ namespace GZ {
             {
             case (BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:    return "NON_MOVING";
             case (BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:        return "MOVING";
-            default:                                                    JPH_ASSERT(false); return "INVALID";
+            default: gz_error("Layer not defined {}", static_cast<uint8_t>(inLayer));         return "INVALID";
             }
         }
     #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
-
-    private:
-        BroadPhaseLayer mObjectToBroadPhase[Layers::NUM_LAYERS];
     };
 
 
@@ -240,7 +240,7 @@ namespace GZ {
 		System ecs_to_sim_char = world.system<const TransformComponent, const CharacterComponent>("ecs_to_sim_char")
 			.kind(flecs::OnUpdate)
 			.multi_threaded()
-			.each([&](WorldIter& it, size_t index, const TransformComponent& transform, const CharacterComponent& char_comp) {
+			.each([&](WorldIter& it, size_t index, const TransformComponent &transform, const CharacterComponent &char_comp) {
 		    m_main_character->SetPosition(to_jolt(transform.p));
 		    m_main_character->SetRotation(to_jolt(transform.r));
             m_main_character->SetLinearVelocity(to_jolt(char_comp.vel));
@@ -278,7 +278,7 @@ namespace GZ {
 			size_t num_ticks = m_num_physics_ticks_cur_frame;
 			while (num_ticks) {
 				// Character update
-				m_main_character->Update(m_simulation_step_time, to_jolt(GZ_UP) * m_physics_system.GetGravity().Length(), m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
+				m_main_character->Update(m_simulation_step_time, to_jolt(vec3{0, 0, 0}), m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
 				num_ticks--;
 			}
 		});
@@ -299,7 +299,7 @@ namespace GZ {
 
 			transform.p = to_glm(m_main_character->GetPosition());
 			transform.r = glm::normalize(to_glm(m_main_character->GetRotation()));
-            char_comp.vel = to_glm(m_main_character->GetLinearVelocity());
+            //char_comp.vel = to_glm(m_main_character->GetLinearVelocity());
 		});
 	}
 
@@ -426,16 +426,16 @@ namespace GZ {
         // Now create a dynamic body to bounce on the floor
         // Note that this uses the shorthand version of creating and adding a body to the world
         BodyCreationSettings sphere_settings(new SphereShape(0.5f), RVec3(-1.0f, 1.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
-        sphere_settings.mGravityFactor = 1.0f; // We do our own gravity
-        sphere_settings.mOverrideMassProperties = EOverrideMassProperties::CalculateMassAndInertia;
+        //sphere_settings.mGravityFactor = 1.0f; // We do our own gravity
+        //sphere_settings.mOverrideMassProperties = EOverrideMassProperties::CalculateMassAndInertia;
 //        sphere_settings.mMassPropertiesOverride.mMass = EOverrideMassProperties::cal;
-        sphere_settings.mAngularDamping = 0.5f;
+        /*sphere_settings.mAngularDamping = 0.5f;*/
         
         m_sphere_id = m_body_interface->CreateAndAddBody(sphere_settings, EActivation::Activate);
         //m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, 0.0f, -5.0f));
         m_body_interface->AddImpulse(m_sphere_id, {0.0f, 10000.0f, 0.0f});
         m_body_interface->SetRestitution(m_sphere_id, 0.1f);
-        
+
 
         BodyCreationSettings box_settings(new BoxShape({0.5f, 0.5f, 0.5f}), RVec3(3.0f, 2.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
         m_box_id = m_body_interface->CreateAndAddBody(box_settings, EActivation::Activate);
@@ -446,7 +446,7 @@ namespace GZ {
         // Now you can interact with the dynamic body, in this case we're going to give it a velocity.
         // (note that if we had used CreateBody then we could have set the velocity straight on the body before adding it to the physics system)
 
-        f32 character_height = 1.0f;
+        f32 character_height = 0.5f;
         f32 character_radius = 0.25;
         f32 character_inner_fraction = 1.0f;
 		CharacterVirtualSettings settings;
@@ -460,6 +460,7 @@ namespace GZ {
 		settings.mSupportingVolume = Plane(Vec3::sAxisY(), -character_radius); // Accept contacts that touch the lower sphere of the capsule
 		m_main_character = new CharacterVirtual(&settings, RVec3(0.0f, 0.0f, 0.0f), Quat::sIdentity(), uint64(0), &m_physics_system);
         
+        gz_info("Character inner body id {}", m_main_character->GetInnerBodyID().GetIndexAndSequenceNumber());
         // Get ids from character, most likely we are just going to use inner rigidbody id,
         /*mAnimatedCharacterVirtualWithInnerBody->GetInnerBodyID();
         mAnimatedCharacterVirtualWithInnerBody->GetID();
@@ -515,10 +516,10 @@ namespace GZ {
         m_body_interface->DestroyBody(m_sphere_id);
         m_body_interface->RemoveBody(m_floor_id);
         m_body_interface->DestroyBody(m_floor_id);
+        delete m_main_character;
     }
 
     void PhysicsModule::deinit() {
-        delete m_main_character;
         delete m_broad_phase_layer_interface;
         delete m_object_vs_broadphase_layer_filter;
         delete m_object_vs_object_layer_filter;
