@@ -24,8 +24,10 @@ namespace GZ {
         GZ_API b8 is_key_up(Scancode code);
         GZ_API b8 is_action_pressed(const std::string &action_name);
         GZ_API vec2 get_mouse_pos_delta();
+        GZ_API b8 is_mouse_pos_changed();
         GZ_API vec2 get_mouse_pos();
         GZ_API vec2 get_mouse_wheel_delta();
+        GZ_API b8 is_mouse_wheel_changed();
         GZ_API f32 get_mouse_wheel_y_delta();
         GZ_API void set_action_keycode(const std::string& action_name); // haven't decided yet
         // void is_action_released(); // Don't really think it is needed here
@@ -39,6 +41,8 @@ namespace GZ {
 			vec2 mouse_p;
 			vec2 mouse_p_delta;
 			vec2 mouse_wheel_delta;
+            b8 is_mouse_wheel_changed;
+            b8 is_mouse_p_changed;
         };
         
     private: // Internal structure

@@ -17,6 +17,7 @@
 #include "CommonModule.h"
 #include "Log.h"
 #include "MathUtil.h"
+#include "RenderModule.h"
 namespace GZ {
     using namespace JPH;
 
@@ -229,7 +230,6 @@ namespace GZ {
         //static auto character_q = world.query<const TransformComponent, const CharacterComponent>();
 
         // Systems can be multithreaded, so we could take advantage of this
-
         System ecs_to_sim = world.system<const TransformComponent, const RigidbodyComponent>("ecs_to_sim")
             .kind(flecs::OnUpdate)
             .multi_threaded()
@@ -240,12 +240,12 @@ namespace GZ {
 		System ecs_to_sim_char = world.system<const TransformComponent, const CharacterComponent>("ecs_to_sim_char")
 			.kind(flecs::OnUpdate)
 			.multi_threaded()
-			.each([&](WorldIter& it, size_t index, const TransformComponent &transform, const CharacterComponent &char_comp) {
-		    m_main_character->SetPosition(to_jolt(transform.p));
-		    m_main_character->SetRotation(to_jolt(transform.r));
-            m_main_character->SetLinearVelocity(to_jolt(char_comp.vel));
+			.each([&](WorldIter& it, size_t index, const TransformComponent& transform, const CharacterComponent& char_comp) {
+			m_main_character->SetPosition(to_jolt(transform.p));
+			m_main_character->SetRotation(to_jolt(glm::normalize(transform.r)));
+			m_main_character->SetLinearVelocity(to_jolt(char_comp.vel));
 		});
-        
+
         // Calculate num physics ticks need to happen in current frame, this is needed since
         // Jolt's character and physics world update are separate, and we want to take advantage of multithreaded system update
         // so we pre calculate num ticks here
@@ -259,6 +259,35 @@ namespace GZ {
 			m_accumulated = std::fmodf(m_accumulated, m_simulation_step_time);
 		});
 
+		// Character is also a physics update, so we need to run in phyiscs update system
+		System character_update = world.system<TransformComponent, CharacterComponent>("character_update")
+			.kind(flecs::OnUpdate)
+			.multi_threaded()
+			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
+			size_t num_ticks = m_num_physics_ticks_cur_frame;
+			while (num_ticks) {
+				// Character update
+				//m_main_character->UpdateGroundVelocity();
+				// Settings for our update function
+				//CharacterVirtual::ExtendedUpdateSettings update_settings;
+
+				//// Update the character position
+				//m_main_character->ExtendedUpdate(m_simulation_step_time,
+				//	-m_main_character->GetUp() * m_physics_system.GetGravity().Length(),
+				//	update_settings,
+				//	m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER),
+				//	m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER),
+				//	{ },
+				//	{ },
+				//	*m_temp_allocator);
+
+				 //m_main_character->SetPosition(to_jolt(transform.p += char_comp.vel * it.delta_time()));
+				m_main_character->Update(m_simulation_step_time, to_jolt(vec3{ 0, 9.81, 0 }), m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
+				num_ticks--;
+			}
+
+		});
+
 		System physics_update = world.system("physics_update")
             .kind(flecs::OnUpdate)
 			.run([&](WorldIter& it) {
@@ -270,17 +299,14 @@ namespace GZ {
             }
 		});
 
-		// Character is also a physics update, so we need to run in phyiscs update system
-		System character_update = world.system<const TransformComponent, const CharacterComponent>("character_update")
+		System sim_to_ecs_char = world.system<TransformComponent, CharacterComponent>("sim_to_ecs_char")
 			.kind(flecs::OnUpdate)
 			.multi_threaded()
-			.each([&](WorldIter& it, size_t index, const TransformComponent& transform, const CharacterComponent& char_comp) {
-			size_t num_ticks = m_num_physics_ticks_cur_frame;
-			while (num_ticks) {
-				// Character update
-				m_main_character->Update(m_simulation_step_time, to_jolt(vec3{0, 0, 0}), m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
-				num_ticks--;
-			}
+			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
+
+			transform.p = to_glm(m_main_character->GetPosition());
+			transform.r = glm::normalize(to_glm(m_main_character->GetRotation()));
+			char_comp.vel = to_glm(m_main_character->GetLinearVelocity());
 		});
 
 		System sim_to_ecs = world.system<TransformComponent, const RigidbodyComponent>("sim_to_ecs")
@@ -290,16 +316,6 @@ namespace GZ {
 
 			transform.p = to_glm(m_body_interface->GetPosition(rigidbody.id));
 			transform.r = glm::normalize(to_glm(m_body_interface->GetRotation(rigidbody.id)));
-		});
-
-		System sim_to_ecs_char = world.system<TransformComponent, CharacterComponent>("sim_to_ecs_char")
-			.kind(flecs::OnUpdate)
-			.multi_threaded()
-			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
-
-			transform.p = to_glm(m_main_character->GetPosition());
-			transform.r = glm::normalize(to_glm(m_main_character->GetRotation()));
-            //char_comp.vel = to_glm(m_main_character->GetLinearVelocity());
 		});
 	}
 
@@ -434,7 +450,7 @@ namespace GZ {
         m_sphere_id = m_body_interface->CreateAndAddBody(sphere_settings, EActivation::Activate);
         //m_body_interface->SetLinearVelocity(m_sphere_id, Vec3(0.0f, 0.0f, -5.0f));
         m_body_interface->AddImpulse(m_sphere_id, {0.0f, 10000.0f, 0.0f});
-        m_body_interface->SetRestitution(m_sphere_id, 0.1f);
+        m_body_interface->SetRestitution(m_sphere_id, 1.0f);
 
 
         BodyCreationSettings box_settings(new BoxShape({0.5f, 0.5f, 0.5f}), RVec3(3.0f, 2.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);

@@ -2,6 +2,7 @@
 
 #include "Input.h"
 #include "Log.h"
+#include "MathUtil.h"
 
 namespace GZ {
 Input Input::g_input_instance;
@@ -64,6 +65,12 @@ void Input::begin_frame() {
     const vec2 &pre_mouse_pos = g_input_instance.m_input_states[1].mouse_p;
     SDL_GetMouseState(&cur_mouse_pos.x, &cur_mouse_pos.y);
     SDL_GetRelativeMouseState(&g_input_instance.m_input_states[0].mouse_p_delta.x, &g_input_instance.m_input_states[0].mouse_p_delta.y);
+    g_input_instance.m_input_states[0].is_mouse_p_changed = std::abs(g_input_instance.m_input_states[0].mouse_p_delta.x) > GZ_FLOAT_EPSILON
+                                                            || std::abs(g_input_instance.m_input_states[0].mouse_p_delta.y) > GZ_FLOAT_EPSILON;
+
+	g_input_instance.m_input_states[0].is_mouse_wheel_changed = std::abs(g_input_instance.m_input_states[0].mouse_wheel_delta.x) > GZ_FLOAT_EPSILON
+		                                                    || std::abs(g_input_instance.m_input_states[0].mouse_wheel_delta.y) > GZ_FLOAT_EPSILON;
+
     g_input_instance.m_input_states[0].mouse_p = cur_mouse_pos;
     m_event_count = 0;
 }
@@ -89,12 +96,22 @@ vec2 Input::get_mouse_pos_delta() {
     return g_input_instance.m_input_states[0].mouse_p_delta;
 }
 
+GZ_API b8 Input::is_mouse_pos_changed()
+{
+    return g_input_instance.m_input_states[0].is_mouse_p_changed;
+}
+
 vec2 Input::get_mouse_pos() {
     return g_input_instance.m_input_states[0].mouse_p;
 }
 
 vec2 Input::get_mouse_wheel_delta() {
     return g_input_instance.m_input_states[0].mouse_wheel_delta;
+}
+
+GZ_API b8 Input::is_mouse_wheel_changed()
+{
+    return g_input_instance.m_input_states[0].is_mouse_wheel_changed;
 }
 
 f32 Input::get_mouse_wheel_y_delta() {

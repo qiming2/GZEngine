@@ -349,7 +349,7 @@ namespace GZ {
 			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
 		
 		auto char_cam = world.entity("Character Camera")
-			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, false})
+			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 1000.0f, true, false})
 			.set<TransformComponent>({ .p = vec3{0.0, 2.0, 2.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
 
 		auto e1 = world.entity("Hello")
@@ -371,7 +371,7 @@ namespace GZ {
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
 		gz_renderer->submit_mesh(model_mesh);
 		auto e3 = world.entity("Player")
-			.set<TransformComponent>({ vec3{1.0, 1.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+			.set<TransformComponent>({ vec3{1.0, 5.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
 			.set<CharacterComponent>({.vel = {0, 0.1, 0}});
 
@@ -396,7 +396,7 @@ namespace GZ {
 	void App::private_game_install_modules()
 	{
 		static f32 rotate_scale = 2.0f;
-		static f32 move_speed = 10.0f;
+		static f32 move_speed = 15.0f;
 		world.system("Character Controller")
 			.write<CharacterComponent, TransformComponent>()
 			.run([&](WorldIter& it) {
@@ -414,7 +414,7 @@ namespace GZ {
 			vec3 right = glm::normalize(vec3{orientation[0].x, 0, orientation[0].z});
 			vec3 up = GZ_UP;
 			vec3 forward = -glm::normalize(glm::cross(right, up));
-			t->p.y = 0.0f;
+			//t->p.y = 0.0f;
 			
 			vec2 move_axis = {0, 0};
 			b8 is_moving = false;
@@ -438,34 +438,67 @@ namespace GZ {
 
 			if (is_moving) {
 				char_comp->vel = glm::normalize(move_axis.x * right + move_axis.y * forward) * move_speed;
+				/*vec3 vel = glm::normalize(move_axis.x * right + move_axis.y * forward) * move_speed;
+				t->p = t->p + vel * it.delta_time();*/
+				//t->p.y = -1.0f;
+				vec3 new_forward = glm::normalize(move_axis.x * right + move_axis.y * forward);
+				t->r = glm::quatLookAt(-new_forward, GZ_UP);
+				
 			}
 			else {
-				char_comp->vel = vec3(0.0f);
+				char_comp->vel = vec3(0, 0, 0);
 			}
+			
+			
 		});
 
+		// 
 		static vec3 cam_dir = -glm::normalize(vec3{ 1, 1, 1 });
 		static f32 cam_dist_min = 2.0f;
 		static f32 cam_dist_max = 10.0f;
 		static f32 zoom_speed = 400.0f;
 		static f32 cur_cam_dist = 3.0f;
+		static f32 cam_pitch = 45.0f; // in degrees
+		static f32 cam_yaw = 45.0f; // in degrees
+		static f32 change_look_dir_speed = 50.0f;
 		world.system("Following Camera")
+			.kind(flecs::PostUpdate)
 			.write<CameraComponent, TransformComponent>()
 			.run([=](WorldIter& it) {
 			Entity follow_cam = it.world().lookup("Character Camera");
 			Entity player = it.world().lookup("Player");
-			const CameraComponent *cam_comp = follow_cam.get<CameraComponent>();
+			const CameraComponent* cam_comp = follow_cam.get<CameraComponent>();
 			if (!cam_comp || !cam_comp->is_primary) return;
 			const TransformComponent* player_t_comp = player.get<TransformComponent>();
 
-			TransformComponent *cam_t_comp = follow_cam.get_mut<TransformComponent>();
-			
+			TransformComponent* cam_t_comp = follow_cam.get_mut<TransformComponent>();
+
 			f32 y_delta = m_input->get_mouse_wheel_y_delta();
-			if (std::abs(y_delta) > GZ_FLOAT_EPSILON) {
+			if (m_input->is_mouse_wheel_changed()) {
 				cur_cam_dist = glm::clamp(cur_cam_dist - y_delta * zoom_speed * it.delta_time(), cam_dist_min, cam_dist_max);
 			}
+			
+			if (m_input->is_key_down(SCANCODE_RIGHT)) {
+				cam_yaw += it.delta_time() * change_look_dir_speed;
+			}
+			else if (m_input->is_key_down(SCANCODE_LEFT)) {
+				cam_yaw -= it.delta_time() * change_look_dir_speed;
+			}
 
-			vec3 look_dir = cam_dir;
+			// Can also use up and down arrow
+			if (m_input->is_key_down(SCANCODE_UP)) {
+				cam_pitch += it.delta_time() * change_look_dir_speed;
+			}
+			else if (m_input->is_key_down(SCANCODE_DOWN)) {
+				cam_pitch -= it.delta_time() * change_look_dir_speed;
+			}
+
+			cam_pitch = glm::clamp(cam_pitch, 1.0f, 89.0f);
+			cam_yaw = std::fmodf(cam_yaw, 360.0f);
+			f32 pitch_radians = glm::radians(cam_pitch);
+			f32 yaw_radians = glm::radians(cam_yaw);
+			vec3 look_dir = glm::normalize(-vec3{glm::cos(yaw_radians) * glm::cos(pitch_radians), glm::sin(pitch_radians), glm::sin(yaw_radians) * glm::cos(pitch_radians)});
+			cam_dir = look_dir;
 			cam_t_comp->p = player_t_comp->p - cam_dir * cur_cam_dist;
 			cam_t_comp->r = glm::quatLookAt(look_dir, GZ_UP);
 
