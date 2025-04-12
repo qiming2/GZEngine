@@ -18,4 +18,10 @@ namespace GZ {
     void RenderModule::uninstall_from(World &world, ComponentRegistry &reg) {
         
     }
+
+	void RenderModule::pass_context(ModuleContext& ctx)
+	{
+
+	}
+
 }

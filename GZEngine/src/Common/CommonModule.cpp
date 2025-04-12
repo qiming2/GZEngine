@@ -210,6 +210,11 @@ namespace GZ {
 	}
 
 	
+	void CommonModule::pass_context(ModuleContext& ctx)
+	{
+
+	}
+
 }
 
 

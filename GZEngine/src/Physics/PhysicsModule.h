@@ -4,6 +4,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Renderer/DebugRenderer.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Quat.h>
 
@@ -21,15 +22,18 @@
     GZ_COMPONENT_TYPE_END(CharacterComponent) \
 
 namespace GZ {
-
+    
     GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
 
     GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_DECLARE, GZ_COMPONENT_MEMBER_TYPE_DECLARE, GZ_COMPONENT_TYPE_END_DECLARE);
 
     struct PhysicsModule : Module {
-    public: // Module interface
-        void install_into(World &world, ComponentRegistry &reg) override;
+	public: // Module interface
+		void install_into(World& world, ComponentRegistry& reg) override;
         void uninstall_from(World &world, ComponentRegistry &reg) override;
+        void pass_context(ModuleContext &ctx) override;
+    public: // Tweakable vals, intend for quick debugging and testing, not really for shipping
+		b8 is_physics_debug_on = false;
     private: // system queries
         
     public:
@@ -68,6 +72,8 @@ namespace GZ {
         // Default to 1 / 60 secs per tick
         f32 m_simulation_step_time = 1.0f / 60.0f;
         i32 m_collision_step_per_simulate_step = 1;
+    private: // Physic debug usage
+        JPH::DebugRenderer *m_physics_renderer;
     };
 
 }

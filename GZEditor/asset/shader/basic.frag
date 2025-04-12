@@ -28,5 +28,6 @@ vec4 to_linear(vec4 sRGB)
 
 void main() {
     out_color = texture(texSampler, in_uv);
+    // out_color = vec4(in_color, 1.0);
     out_color = from_linear(out_color);
 }

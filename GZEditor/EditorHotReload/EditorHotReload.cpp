@@ -24,6 +24,9 @@ namespace GZ {
         ed::EditorContext *node_context = nullptr;
         SDL_Window *window = nullptr;
         ImTextureID main_tex_id;
+
+        PhysicsModule *physics_module = nullptr;
+        RenderModule *render_module = nullptr;
         
         b8 m_show_demo_window = true;
         b8 m_show_another_window = true;
@@ -57,6 +60,8 @@ namespace GZ {
             input = data->input;
             node_context = data->m_node_context;
             window = data->window;
+            physics_module = data->physics_module;
+            render_module = data->render_module;
 
             cam_q = world->query<CameraComponent>();
             cam_trans_q = world->query<CameraComponent, TransformComponent>();
@@ -183,14 +188,13 @@ namespace GZ {
             // 3. Show another simple window.
             if (m_show_another_window)
             {
-                ImGui::Begin("Another Window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-                ImGui::Text("Hello from another window!");
-                if (ImGui::Button("Close Me"))
-                    m_show_another_window = false;
+                ImGui::Begin("Module window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+                ImGui::Text("This window is for exposing module settings");
+                ImGui::Checkbox("Debug Physics", &physics_module->is_physics_debug_on);
 
                 ImGui::End();
             }
-
+            
             // 4. Show main shaing
             if (m_show_main_scene) {
                

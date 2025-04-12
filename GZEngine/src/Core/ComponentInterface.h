@@ -112,8 +112,9 @@ namespace GZ {
 	struct ComponentRegistry {
 
 		inline std::shared_ptr<IDrawComponentInterfaceName> get_draw_interface(ComponentID comp_id) const {
-			if (draw_component_interfaces.find(comp_id) != draw_component_interfaces.end()) {
-				return draw_component_interfaces.at(comp_id);
+			auto it = draw_component_interfaces.find(comp_id);
+			if (it != draw_component_interfaces.end()) {
+				return it->second;
 			}
 			return nullptr;
 		}

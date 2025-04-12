@@ -58,5 +58,6 @@ namespace GZ {
     struct RenderModule final : Module {
         void install_into(World &world, ComponentRegistry &reg) override;
         void uninstall_from(World &world, ComponentRegistry &reg) override;
+        void pass_context(ModuleContext &ctx) override;
     };
 }

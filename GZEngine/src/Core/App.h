@@ -43,8 +43,11 @@ namespace GZ {
         SDL_Window *window;
         ed::EditorContext* m_node_context = nullptr;
         ImTextureID main_tex_id;
-	};
 
+		// Modules for tweaking module related settings
+		PhysicsModule *physics_module;
+		RenderModule *render_module;
+	};
 
 	struct App {
 	public:
@@ -67,7 +70,6 @@ namespace GZ {
         PhysicsModule m_physics_module;
 		CommonModule m_common_module;
 		RenderModule m_render_module;
-
 	private: // editor stuff
 		EditorContext plugin_data;
 

@@ -13,11 +13,14 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Renderer/DebugRendererSimple.h>
 
 #include "CommonModule.h"
 #include "Log.h"
 #include "MathUtil.h"
 #include "RenderModule.h"
+#include "Renderer.h"
+
 namespace GZ {
     using namespace JPH;
 
@@ -51,7 +54,7 @@ namespace GZ {
             case Layers::MOVING:
                 return inObject2 & Layers::ALL_OBJECTS; // Moving collides with everything
             case Layers::CHARACTER:
-                return inObject2 & (Layers::ALL_OBJECTS);
+                return inObject2 & Layers::ALL_OBJECTS;
             default:
                 gz_error("Non defined object layer");
                 return false;
@@ -177,6 +180,45 @@ namespace GZ {
         }
     };
 
+
+	GZ_FORCE_INLINE vec3 to_glm(const RVec3& jolt_val) {
+		return vec3(jolt_val.GetX(), jolt_val.GetY(), jolt_val.GetZ());
+	}
+
+	GZ_FORCE_INLINE quat to_glm(const Quat& jolt_val) {
+		return quat(jolt_val.GetW(), jolt_val.GetX(), jolt_val.GetY(), jolt_val.GetZ());
+	}
+
+	GZ_FORCE_INLINE RVec3 to_jolt(const vec3& glm_val) {
+		return RVec3(glm_val.x, glm_val.y, glm_val.z);
+	}
+
+	GZ_FORCE_INLINE Quat to_jolt(const quat& glm_val) {
+		return Quat(glm_val.x, glm_val.y, glm_val.z, glm_val.w);
+	}
+
+    class PhysicsDebugRenderer : public DebugRendererSimple {
+    public:
+        PhysicsDebugRenderer(Renderer* renderer) {
+            m_renderer = renderer;
+        }
+    public:
+        virtual void DrawLine(RVec3Arg from, RVec3Arg to, ColorArg color) override {
+            gz_info("Physics Draw line Not implemented");
+        }
+
+        virtual void DrawTriangle(RVec3Arg inV1, RVec3Arg inV2, RVec3Arg inV3, ColorArg inColor, ECastShadow inCastShadow) override {
+            Vec4 color = inColor.ToVec4();
+            m_renderer->physics_debug_draw_triangle(to_glm(inV1), to_glm(inV2), to_glm(inV3), vec3{color.GetX(), color.GetY(), color.GetZ()});
+        }
+
+        virtual void DrawText3D(JPH::RVec3Arg inPosition, const string_view& inString, JPH::ColorArg inColor, float inHeight) override {
+            gz_info("Text not implemented");
+        }
+    private:
+        Renderer *m_renderer;
+    };
+
     // Callback for traces, connect this to your own trace function if you have one
     static void jolt_trace_impl(const char *inFMT, ...)
     {
@@ -197,22 +239,6 @@ namespace GZ {
         return false;
     }
     #endif
-
-	GZ_FORCE_INLINE vec3 to_glm(const RVec3& jolt_val) {
-		return vec3(jolt_val.GetX(), jolt_val.GetY(), jolt_val.GetZ());
-	}
-
-	GZ_FORCE_INLINE quat to_glm(const Quat& jolt_val) {
-		return quat(jolt_val.GetW(), jolt_val.GetX(), jolt_val.GetY(), jolt_val.GetZ());
-	}
-
-	GZ_FORCE_INLINE RVec3 to_jolt(const vec3& glm_val) {
-		return RVec3(glm_val.x, glm_val.y, glm_val.z);
-	}
-
-	GZ_FORCE_INLINE Quat to_jolt(const quat& glm_val) {
-		return Quat(glm_val.x, glm_val.y, glm_val.z, glm_val.w);
-	}
 
     GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW, GZ_COMPONENT_TYPE_END_IMPL_DRAW);
 
@@ -281,7 +307,6 @@ namespace GZ {
 				//	{ },
 				//	*m_temp_allocator);
 
-				 //m_main_character->SetPosition(to_jolt(transform.p += char_comp.vel * it.delta_time()));
 				m_main_character->Update(m_simulation_step_time, to_jolt(vec3{ 0, 9.81, 0 }), m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
 				num_ticks--;
 			}
@@ -317,10 +342,23 @@ namespace GZ {
 			transform.p = to_glm(m_body_interface->GetPosition(rigidbody.id));
 			transform.r = glm::normalize(to_glm(m_body_interface->GetRotation(rigidbody.id)));
 		});
+
+		System physics_debug_draw = world.system("physics_debug_draw")
+			.kind(flecs::OnUpdate)
+			.run([&](WorldIter& it) {
+            if (is_physics_debug_on)
+                m_physics_system.DrawBodies(BodyManager::DrawSettings(), m_physics_renderer);
+		});
 	}
 
 	void PhysicsModule::uninstall_from(World& world, ComponentRegistry& reg)
 	{
+
+	}
+
+	void PhysicsModule::pass_context(ModuleContext& ctx)
+	{
+        m_physics_renderer = new PhysicsDebugRenderer(ctx.renderer);
 
 	}
 
@@ -492,6 +530,7 @@ namespace GZ {
         mAnimatedCharacterVirtualWithInnerBody->SetCharacterVsCharacterCollision(&m_contact_char);
 		m_contact_char.Add(mAnimatedCharacterVirtualWithInnerBody);
         */
+
     }
 
     /*vec3 position = to_glm(m_body_interface->GetPosition(m_box_id));
@@ -536,6 +575,7 @@ namespace GZ {
     }
 
     void PhysicsModule::deinit() {
+        delete m_physics_renderer;
         delete m_broad_phase_layer_interface;
         delete m_object_vs_broadphase_layer_filter;
         delete m_object_vs_object_layer_filter;
@@ -548,5 +588,4 @@ namespace GZ {
         delete Factory::sInstance;
         Factory::sInstance = nullptr;
     }
-    
 }

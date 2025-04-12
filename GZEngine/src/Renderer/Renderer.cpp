@@ -12,6 +12,7 @@
 #include "FileUtil.h"
 #include "CommonModule.h"
 #include "RenderModule.h"
+#include "Profiler.h"
 
 #define vk_check_result(f) \
 do { \
@@ -553,13 +554,22 @@ namespace GZ {
 			vkDestroyBuffer(device, stagingBuffer, nullptr);
 			vkFreeMemory(device, stagingBufferMemory, nullptr);
 		}
-
-		PerObjectPushConstant model_m;
-		model_m.model = mat4(1.0f);
-		m_push_constants.push_back(model_m);
         
         mesh->set_index_buffer(m_mesh_index_buffers[mesh_index]);
         mesh->set_vertex_buffer(m_mesh_vertex_buffers[mesh_index]);
+	}
+
+	void Renderer::physics_debug_draw_triangle(const vec3& v1, const vec3& v2, const vec3& v3, const vec3 color)
+	{
+		Vertex vert;
+		vert.pos = v1;
+		vert.color = color;
+		vert.uv = {color.r, color.b};
+		m_physics_debug_triangles.push_back(vert);
+		vert.pos = v2;
+		m_physics_debug_triangles.push_back(vert);
+		vert.pos = v3;
+		m_physics_debug_triangles.push_back(vert);
 	}
 
 	void Renderer::create_swapchain()
@@ -1873,23 +1883,50 @@ namespace GZ {
             world.each([&](const TransformComponent &t_comp, const MeshComponent &mesh_comp) {
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh_comp.mesh_ref->vbuffer, offsets);
                 vkCmdBindIndexBuffer(commandBuffer, mesh_comp.mesh_ref->ibuffer, 0, VK_INDEX_TYPE_UINT32);
-                
-//				mat4 identity(1.0f);
-//                mat4 t_mat = glm::translate(identity, t_comp.p);
-//                
-//				//quat r_normalized = glm::normalize(t_comp.r);
-//				mat4 r_mat = glm::mat4_cast(glm::normalize(t_comp.r));
-//				
-//                //ent_model = ent_model * glm::mat4_cast(glm::normalize(t_comp.r));
-//				
-//				mat4 s_mat = glm::scale(identity, t_comp.s);
-//				mat4 ent_model = t_mat * r_mat ;
+
                 mat4 ent_model = t_comp.get_model_matrix();
 
                 vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), glm::value_ptr(ent_model));
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
                 vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh_comp.mesh_ref->get_index_buffer().size()), 1, 0, 0, 0);
             });
+		}
+
+		// Physics debug draw
+		{
+
+			if (m_physics_debug_vertex_buffer[current_frame_index] != VK_NULL_HANDLE) {
+				vkDestroyBuffer(device, m_physics_debug_vertex_buffer[current_frame_index], nullptr);
+				vkFreeMemory(device, m_physics_debug_vertex_buffer_memories[current_frame_index], nullptr);
+			}
+
+			ScopedProfiler debug_physics("Physics Debug timer");
+			if (!m_physics_debug_triangles.empty()) {
+				// generate some uvs
+				
+				VkDeviceSize offsets[] = { 0 };
+				VkDeviceSize bufferSize = sizeof(m_physics_debug_triangles[0]) * m_physics_debug_triangles.size();
+
+				create_buffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_physics_debug_vertex_buffer[current_frame_index], m_physics_debug_vertex_buffer_memories[current_frame_index]);
+
+				void* data;
+				vkMapMemory(device, m_physics_debug_vertex_buffer_memories[current_frame_index], 0, bufferSize, 0, &data);
+				memcpy(data, m_physics_debug_triangles.data(), (size_t)bufferSize);
+				vkUnmapMemory(device, m_physics_debug_vertex_buffer_memories[current_frame_index]);
+
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_physics_debug_vertex_buffer[current_frame_index], offsets);
+
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);
+
+				mat4 identity = mat4(1.0f);
+				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), glm::value_ptr(identity));
+
+				vkCmdDraw(commandBuffer, static_cast<uint32_t>(m_physics_debug_triangles.size()), 1, 0, 0);
+			}
+			else {
+				m_physics_debug_vertex_buffer[current_frame_index] = VK_NULL_HANDLE;
+				m_physics_debug_vertex_buffer_memories[current_frame_index] = VK_NULL_HANDLE;
+			}
 		}
 
 		vkCmdEndRenderPass(commandBuffer);
@@ -1975,12 +2012,6 @@ namespace GZ {
         }
 
 	}
-	
-	void Renderer::set_model_matrix(const u32& index, const mat4& model)
-	{
-		gz_assert(static_cast<u32>(m_push_constants.size()) > index, "Index [{}] out of range {}", index, m_push_constants.size());
-		m_push_constants[index].model = model;
-	}
 
 	b8 Renderer::init(void* window_handle, World &world) {
 		this->window_handle = window_handle;
@@ -2016,6 +2047,13 @@ namespace GZ {
 	}
 
 	b8 Renderer::deinit() {
+		
+		for (size_t i = 0; i < Renderer::MAX_FRAMES_IN_FLIGHT; ++i) {
+			if (m_physics_debug_vertex_buffer[i] != VK_NULL_HANDLE) {
+				vkDestroyBuffer(device, m_physics_debug_vertex_buffer[i], nullptr);
+				vkFreeMemory(device, m_physics_debug_vertex_buffer_memories[i], nullptr);
+			}
+		}
 
 		// Before delete, needs to call wait device idle
         cleanup_swapchain();
@@ -2035,7 +2073,7 @@ namespace GZ {
 		vkFreeMemory(device, textureImageMemory, nullptr);
 
 		vkDestroyPipeline(device, offScreenPipeline, nullptr);
-        vkDestroyPipeline(device, graphicsPipeline, nullptr);
+        vkDestroyPipeline(device, graphicsPipeline, nullptr);		
 
 		for (size_t i = 0; i < Renderer::MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
@@ -2069,6 +2107,12 @@ namespace GZ {
 	{
 		this->deltaTime = deltaTime;
 		this->accumulatedTime += deltaTime;
+		
+#ifdef GZ_DEBUG
+		if (!m_physics_debug_triangles.empty()) {
+			m_physics_debug_triangles.clear();
+		}
+#endif
 	}
 
 	void Renderer::render_frame()

@@ -43,10 +43,17 @@ namespace GZ {
 		void set_clear_value(vec4 clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.0));
 	public: // Geometry related
 		void submit_mesh(std::shared_ptr<Mesh> mesh);
-		void set_model_matrix(const u32 &index, const mat4 &model);
     private: // From initialization
         void *window_handle; // Platform specific
         World world;
+	private: // Configurable value
+
+		u32 viewport_w = 0, viewport_h = 0;
+
+		vec4 clear_color = vec4(26 / 255.0f, 26 / 255.0f, 26 / 255.0f, 1.0);
+
+		u32 current_frame_index = 0;
+		static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 	private:
 		// temp mesh for drawing
 		std::vector<std::shared_ptr<Mesh>> m_meshes;
@@ -54,7 +61,13 @@ namespace GZ {
 		std::vector<VkDeviceMemory> m_mesh_vertex_buffer_memories;
 		std::vector<VkBuffer> m_mesh_index_buffers;
 		std::vector<VkDeviceMemory> m_mesh_index_buffer_memories;
-		std::vector<PerObjectPushConstant> m_push_constants;
+	public: // Physics debug draw, probably can extend to a general draw
+		void physics_debug_draw_triangle(const vec3 &v1, const vec3 &v2, const vec3 &v3, const vec3 color);
+	private: // Physics debug related
+		std::vector<Vertex> m_physics_debug_triangles;
+		std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> m_physics_debug_vertex_buffer;
+		std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> m_physics_debug_vertex_buffer_memories;
+		
 	private: // Vk context
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
@@ -122,14 +135,6 @@ namespace GZ {
 
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	private: // Configurable value
-		// viewport w, h
-		u32 viewport_w = 0, viewport_h = 0;
-
-		vec4 clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.0);
-
-		u32 current_frame_index = 0;
-		static const int MAX_FRAMES_IN_FLIGHT = 2;
     private: // temp test model
         // Test obj:
         const uint32_t viking_texture_width = 800;

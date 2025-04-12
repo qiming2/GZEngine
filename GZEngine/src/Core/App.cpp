@@ -18,6 +18,7 @@
 #include <imgui_node_editor.h>
 #include <defines.h>
 
+#include "Module.h"
 #include "Log.h"
 #include "FileUtil.h"
 #include "MathUtil.h"
@@ -136,6 +137,8 @@ namespace GZ {
 		plugin_data.gz_renderer = gz_renderer;
 		plugin_data.profiler = m_profiler;
         plugin_data.window = window;
+		plugin_data.physics_module = &m_physics_module;
+		plugin_data.render_module = &m_render_module;
 		ctx.userdata = &plugin_data;
 		
 		cr_plugin_open(ctx, plugin_path);
@@ -329,9 +332,17 @@ namespace GZ {
 
 	void App::private_install_builtin_modules()
 	{
+		// Setup module context
+		ModuleContext ctx;
+		ctx.input = m_input;
+		ctx.world = &world;
+		ctx.reg = &reg;
+		ctx.renderer = gz_renderer;
+		ctx.window = window;
 		// Modules can be plugin
 		m_common_module.install_into(world, reg);
 		m_physics_module.install_into(world, reg);
+		m_physics_module.pass_context(ctx);
         m_render_module.install_into(world, reg);
 	}
 
@@ -355,25 +366,29 @@ namespace GZ {
 		auto e1 = world.entity("Hello")
 			.set<TransformComponent>({ vec3{1.0, 2.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<RigidbodyComponent>({ m_physics_module.m_sphere_id })
-			.set<MeshComponent>({ sphere_mesh });
+			.set<MeshComponent>({ sphere_mesh })
+			;
 
 		auto e2 = world.entity("Hello1")
 			.set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<RigidbodyComponent>({ m_physics_module.m_box_id })
-			.set<MeshComponent>({ box_mesh });
+			.set<MeshComponent>({ box_mesh })
+			;
 		
-
+		// We need to multiply with two since box mesh from our mesh lib is +-0.5
 		auto floor_ent = world.entity("floor")
-			.set<TransformComponent>({ vec3{0.0, -2.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
+			.set<TransformComponent>({ vec3{0.0, -1.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
 			.set<RigidbodyComponent>({ m_physics_module.m_floor_id })
-			.set<MeshComponent>({ box_mesh });
+			.set<MeshComponent>({ box_mesh })
+			;
 
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
 		gz_renderer->submit_mesh(model_mesh);
 		auto e3 = world.entity("Player")
-			.set<TransformComponent>({ vec3{1.0, 5.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
-			.set<CharacterComponent>({.vel = {0, 0.1, 0}});
+			.set<CharacterComponent>({.vel = {0, 0.1, 0}})
+			;
 
 		
 	}
@@ -403,10 +418,6 @@ namespace GZ {
 			Entity player = it.world().lookup("Player");
 			TransformComponent* t = player.get_mut<TransformComponent>();
 			CharacterComponent* char_comp = player.get_mut<CharacterComponent>();
-			/*quat cur = t->r;
-			quat rotate = glm::angleAxis(GZ_PI * rotate_scale * it.delta_time(), vec3{ 0, 1, 0 });
-			cur = glm::normalize(cur * rotate);
-			t->r = cur;*/
 
 			Entity follow_cam = it.world().lookup("Character Camera");
 			const TransformComponent *cam_t_comp = follow_cam.get<TransformComponent>();
@@ -438,21 +449,16 @@ namespace GZ {
 
 			if (is_moving) {
 				char_comp->vel = glm::normalize(move_axis.x * right + move_axis.y * forward) * move_speed;
-				/*vec3 vel = glm::normalize(move_axis.x * right + move_axis.y * forward) * move_speed;
-				t->p = t->p + vel * it.delta_time();*/
-				//t->p.y = -1.0f;
+
 				vec3 new_forward = glm::normalize(move_axis.x * right + move_axis.y * forward);
 				t->r = glm::quatLookAt(-new_forward, GZ_UP);
-				
 			}
 			else {
 				char_comp->vel = vec3(0, 0, 0);
 			}
 			
-			
 		});
 
-		// 
 		static vec3 cam_dir = -glm::normalize(vec3{ 1, 1, 1 });
 		static f32 cam_dist_min = 2.0f;
 		static f32 cam_dist_max = 10.0f;
