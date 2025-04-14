@@ -155,6 +155,10 @@ namespace GZ {
     class MyContactListener : public ContactListener
     {
     public:
+        MyContactListener(World& world) {
+            m_world = &world;
+        }
+    public:
         // See: ContactListener
         virtual ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override
         {
@@ -164,9 +168,14 @@ namespace GZ {
             return ValidateResult::AcceptAllContactsForThisBodyPair;
         }
 
-        virtual void OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
+		virtual void OnContactAdded(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings) override
         {
-            gz_info("Body {} has contacts with Body {}", inBody1.GetID().GetIndexAndSequenceNumber(), inBody2.GetID().GetIndexAndSequenceNumber());
+            // we need another rigidbodycomponent on removed hook, otherwise invisible objects are still moving
+            if (!m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).is_alive() || !m_world->entity(static_cast<flecs::entity_t>(inBody2.GetUserData())).is_alive() ) return;
+            
+            gz_info("Body {} has contacts with Body {}", m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).name().c_str(), m_world->entity(static_cast<flecs::entity_t>(inBody2.GetUserData())).name().c_str());
+            
+            m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).destruct();
         }
 
         virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
@@ -176,8 +185,13 @@ namespace GZ {
 
         virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override
         {
-            gz_info("Body {} has contacts removed with Body {}", inSubShapePair.GetBody1ID().GetIndexAndSequenceNumber(), inSubShapePair.GetBody2ID().GetIndexAndSequenceNumber());
+            //gz_info("Body {} has contacts removed with Body {}", inSubShapePair.GetBody1ID().GetIndexAndSequenceNumber(), inSubShapePair.GetBody2ID().GetIndexAndSequenceNumber());
         }
+    private:
+        // We should store an array of contacts here
+        // resolve them before next game update
+        
+        World *m_world;
     };
 
 
@@ -244,7 +258,7 @@ namespace GZ {
 
 	void PhysicsModule::install_into(World& world, ComponentRegistry& reg)
 	{
-        if (!init())
+        if (!init(world))
             gz_error("Something wrong!");
 
         // System component initialization
@@ -252,8 +266,7 @@ namespace GZ {
 
         GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
         
-        GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
-        //static auto character_q = world.query<const TransformComponent, const CharacterComponent>();
+        world.component<RigidbodyComponent>().add(flecs::Exclusive);
 
         // Systems can be multithreaded, so we could take advantage of this
         System ecs_to_sim = world.system<const TransformComponent, const RigidbodyComponent>("ecs_to_sim")
@@ -261,6 +274,7 @@ namespace GZ {
             .multi_threaded()
             .each([&](WorldIter &it, size_t index, const TransformComponent& transform, const RigidbodyComponent& rigidbody) {
              m_body_interface->SetPositionAndRotationWhenChanged(rigidbody.id, to_jolt(transform.p), to_jolt(glm::normalize(transform.r)), EActivation::Activate);
+             m_body_interface->SetUserData(rigidbody.id, static_cast<u64>(it.entity(index).id()));
         });
 
 		System ecs_to_sim_char = world.system<const TransformComponent, const CharacterComponent>("ecs_to_sim_char")
@@ -270,6 +284,7 @@ namespace GZ {
 			m_main_character->SetPosition(to_jolt(transform.p));
 			m_main_character->SetRotation(to_jolt(glm::normalize(transform.r)));
 			m_main_character->SetLinearVelocity(to_jolt(char_comp.vel));
+            m_main_character->SetUserData(it.entity(index).id());
 		});
 
         // Calculate num physics ticks need to happen in current frame, this is needed since
@@ -363,7 +378,7 @@ namespace GZ {
 	}
 
 	// Basic setup following official jolt helloworld, with slight change
-	b8 PhysicsModule::init() {
+	b8 PhysicsModule::init(World &world) {
         gz_info("Init Physics...");
         
         // Can have custom allocator
@@ -442,7 +457,7 @@ namespace GZ {
         // A contact listener gets notified when bodies (are about to) collide, and when they separate again.
         // Note that this is called from a job so whatever you do here needs to be thread safe.
         // Registering one is entirely optional.
-        m_contact_listener = new MyContactListener();
+        m_contact_listener = new MyContactListener(world);
         m_physics_system.SetContactListener(m_contact_listener);
         
         // The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
