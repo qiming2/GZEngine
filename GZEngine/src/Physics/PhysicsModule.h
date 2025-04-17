@@ -55,9 +55,13 @@ namespace GZ {
         JPH::BodyID m_character_id;
     private: // Character stuff
         JPH::CharacterVirtual *m_main_character;
-    private: // runtime use
+    public: // runtime use, this is useful to expose
         f32 m_accumulated = 0.0f;
         size_t m_num_physics_ticks_cur_frame = 0;
+
+		// Default to 1 / 60 secs per tick
+		f32 m_simulation_step_time = 1.0f / 90.0f;
+		i32 m_collision_step_per_simulate_step = 1;
     private: // init setup
         b8 m_is_initialized = false;
         JPH::BroadPhaseLayerInterface *m_broad_phase_layer_interface;
@@ -69,9 +73,7 @@ namespace GZ {
         JPH::JobSystem *m_job_system;
         JPH::TempAllocator *m_temp_allocator;
         JPH::BodyInterface *m_body_interface;
-        // Default to 1 / 60 secs per tick
-        f32 m_simulation_step_time = 1.0f / 60.0f;
-        i32 m_collision_step_per_simulate_step = 1;
+        
     private: // Physic debug usage
         JPH::DebugRenderer *m_physics_renderer;
     };

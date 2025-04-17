@@ -387,7 +387,7 @@ namespace GZ {
 		auto e3 = world.entity("Player")
 			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
-			.set<CharacterComponent>({.vel = {0, 0.1, 0}})
+			.set<CharacterComponent>({.vel = {0, 0.0, 0}})
 			;
 
 		
@@ -425,8 +425,7 @@ namespace GZ {
 			vec3 right = glm::normalize(vec3{orientation[0].x, 0, orientation[0].z});
 			vec3 up = GZ_UP;
 			vec3 forward = -glm::normalize(glm::cross(right, up));
-			//t->p.y = 0.0f;
-			
+
 			vec2 move_axis = {0, 0};
 			b8 is_moving = false;
 			if (m_input->is_key_down(SCANCODE_W)) {
@@ -467,6 +466,9 @@ namespace GZ {
 		static f32 cam_pitch = 45.0f; // in degrees
 		static f32 cam_yaw = 45.0f; // in degrees
 		static f32 change_look_dir_speed = 50.0f;
+
+		static vec3 prevP = vec3(0, 0, 0);
+		static vec3 nextP = vec3(0, 0, 0);
 		world.system("Following Camera")
 			.kind(flecs::PostUpdate)
 			.write<CameraComponent, TransformComponent>()
@@ -475,9 +477,19 @@ namespace GZ {
 			Entity player = it.world().lookup("Player");
 			const CameraComponent* cam_comp = follow_cam.get<CameraComponent>();
 			if (!cam_comp || !cam_comp->is_primary) return;
-			const TransformComponent* player_t_comp = player.get<TransformComponent>();
+			TransformComponent* player_t_comp = player.get_mut<TransformComponent>();
+
+			if (m_physics_module.m_num_physics_ticks_cur_frame) {
+				prevP = nextP;
+				nextP = player_t_comp->p;
+			}
+			
+			player_t_comp->p = glm::mix(prevP, nextP, m_physics_module.m_accumulated / m_physics_module.m_simulation_step_time);
 
 			TransformComponent* cam_t_comp = follow_cam.get_mut<TransformComponent>();
+
+			// Instead of directly using TransformComponent, we should interpolate
+			// so to reduce stutter, we should do this in physics module
 
 			f32 y_delta = m_input->get_mouse_wheel_y_delta();
 			if (m_input->is_mouse_wheel_changed()) {

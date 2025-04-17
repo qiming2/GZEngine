@@ -171,11 +171,11 @@ namespace GZ {
 		virtual void OnContactAdded(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings) override
         {
             // we need another rigidbodycomponent on removed hook, otherwise invisible objects are still moving
-            if (!m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).is_alive() || !m_world->entity(static_cast<flecs::entity_t>(inBody2.GetUserData())).is_alive() ) return;
-            
-            gz_info("Body {} has contacts with Body {}", m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).name().c_str(), m_world->entity(static_cast<flecs::entity_t>(inBody2.GetUserData())).name().c_str());
-            
-            m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).destruct();
+			/*if (!m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).is_alive() || !m_world->entity(static_cast<flecs::entity_t>(inBody2.GetUserData())).is_alive() ) return;
+
+			gz_info("Body {} has contacts with Body {}", m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).name().c_str(), m_world->entity(static_cast<flecs::entity_t>(inBody2.GetUserData())).name().c_str());
+
+			m_world->entity(static_cast<flecs::entity_t>(inBody1.GetUserData())).destruct();*/
         }
 
         virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
@@ -312,7 +312,7 @@ namespace GZ {
 				// Settings for our update function
 				//CharacterVirtual::ExtendedUpdateSettings update_settings;
 
-				//// Update the character position
+				////// Update the character position
 				//m_main_character->ExtendedUpdate(m_simulation_step_time,
 				//	-m_main_character->GetUp() * m_physics_system.GetGravity().Length(),
 				//	update_settings,
@@ -322,7 +322,7 @@ namespace GZ {
 				//	{ },
 				//	*m_temp_allocator);
 
-				m_main_character->Update(m_simulation_step_time, to_jolt(vec3{ 0, 9.81, 0 }), m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
+                m_main_character->Update(m_simulation_step_time, {0, 0, 0}, m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
 				num_ticks--;
 			}
 
@@ -353,7 +353,6 @@ namespace GZ {
             .kind(flecs::OnUpdate)
             .multi_threaded()
 			.each([&](WorldIter& it, size_t index, TransformComponent& transform, const RigidbodyComponent& rigidbody) {
-
 			transform.p = to_glm(m_body_interface->GetPosition(rigidbody.id));
 			transform.r = glm::normalize(to_glm(m_body_interface->GetRotation(rigidbody.id)));
 		});
