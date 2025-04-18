@@ -20,6 +20,7 @@
 #include "MathUtil.h"
 #include "RenderModule.h"
 #include "Renderer.h"
+#include "CharacterModule.h"
 
 namespace GZ {
     using namespace JPH;
@@ -268,6 +269,19 @@ namespace GZ {
         
         world.component<RigidbodyComponent>().add(flecs::Exclusive);
 
+		// Calculate num physics ticks need to happen in current frame, this is needed since
+		// Jolt's character and physics world update are separate, and we want to take advantage of multithreaded system update
+		// so we pre calculate num ticks here
+		System pre_physics_update = world.system("pre_physics_update")
+			.kind(flecs::OnUpdate)
+			.run([&](WorldIter& it) {
+
+			m_num_physics_ticks_cur_frame = 0;
+			m_accumulated += it.delta_time();
+			m_num_physics_ticks_cur_frame = static_cast<size_t>(m_accumulated / m_simulation_step_time);
+			m_accumulated = std::fmodf(m_accumulated, m_simulation_step_time);
+		});
+
         // Systems can be multithreaded, so we could take advantage of this
         System ecs_to_sim = world.system<const TransformComponent, const RigidbodyComponent>("ecs_to_sim")
             .kind(flecs::OnUpdate)
@@ -277,27 +291,26 @@ namespace GZ {
              m_body_interface->SetUserData(rigidbody.id, static_cast<u64>(it.entity(index).id()));
         });
 
+
+        // This is only for characters
+		static vec3 prev_p = { 0, 0, 0 };
+		static vec3 next_p = { 0, 0, 0 };
+        static vec3 cached_cur_frame = {0, 0, 0};
 		System ecs_to_sim_char = world.system<const TransformComponent, const CharacterComponent>("ecs_to_sim_char")
 			.kind(flecs::OnUpdate)
 			.multi_threaded()
 			.each([&](WorldIter& it, size_t index, const TransformComponent& transform, const CharacterComponent& char_comp) {
-			m_main_character->SetPosition(to_jolt(transform.p));
+            if (!is_vec3_all_equal_epsilon(cached_cur_frame, transform.p)) {
+                prev_p = next_p = transform.p;
+                m_main_character->SetPosition(to_jolt(transform.p));
+            }
+			else if (!it.entity(index).has<Player>()) {
+				m_main_character->SetPosition(to_jolt(transform.p));
+			}
+			
 			m_main_character->SetRotation(to_jolt(glm::normalize(transform.r)));
 			m_main_character->SetLinearVelocity(to_jolt(char_comp.vel));
             m_main_character->SetUserData(it.entity(index).id());
-		});
-
-        // Calculate num physics ticks need to happen in current frame, this is needed since
-        // Jolt's character and physics world update are separate, and we want to take advantage of multithreaded system update
-        // so we pre calculate num ticks here
-		System pre_physics_update = world.system("pre_physics_update")
-			.kind(flecs::OnUpdate)
-			.run([&](WorldIter& it) {
-            
-            m_num_physics_ticks_cur_frame = 0;
-			m_accumulated += it.delta_time();
-			m_num_physics_ticks_cur_frame = static_cast<size_t>(m_accumulated / m_simulation_step_time);
-			m_accumulated = std::fmodf(m_accumulated, m_simulation_step_time);
 		});
 
 		// Character is also a physics update, so we need to run in phyiscs update system
@@ -326,6 +339,10 @@ namespace GZ {
 				num_ticks--;
 			}
 
+
+            // the main character update once per frame
+            //m_main_character->Update(it.delta_time(), {0, 0, 0}, m_physics_system.GetDefaultBroadPhaseLayerFilter(Layers::CHARACTER), m_physics_system.GetDefaultLayerFilter(Layers::CHARACTER), {}, {}, *m_temp_allocator);
+
 		});
 
 		System physics_update = world.system("physics_update")
@@ -339,12 +356,24 @@ namespace GZ {
             }
 		});
 
+		
 		System sim_to_ecs_char = world.system<TransformComponent, CharacterComponent>("sim_to_ecs_char")
 			.kind(flecs::OnUpdate)
 			.multi_threaded()
 			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
+            if (m_num_physics_ticks_cur_frame && it.entity(index).has<Player>()) {
+                prev_p = next_p;
+                next_p = to_glm(m_main_character->GetPosition());
+            }
 
-			transform.p = to_glm(m_main_character->GetPosition());
+            if (it.entity(index).has<Player>()) {
+				cached_cur_frame = glm::mix(prev_p, next_p, m_accumulated / m_simulation_step_time);
+				transform.p = cached_cur_frame;
+            }
+            else {
+                transform.p = to_glm(m_main_character->GetPosition());
+            }
+
 			transform.r = glm::normalize(to_glm(m_main_character->GetRotation()));
 			char_comp.vel = to_glm(m_main_character->GetLinearVelocity());
 		});

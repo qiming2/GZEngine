@@ -29,6 +29,7 @@
 #include "Physics/PhysicsModule.h"
 #include "Common/CommonModule.h"
 
+#include "Game/CharacterModule.h"
 
 #define USE_IMGUI 1
 
@@ -76,7 +77,6 @@ namespace GZ {
 		window_w = spec.window_width;
 		window_h = spec.window_height;
 		
-		// TODO(Qiming)(VULKAN)
 		gz_renderer = new Renderer();
 		gz_renderer->init((void *)window, world);
 
@@ -382,12 +382,14 @@ namespace GZ {
 			.set<MeshComponent>({ box_mesh })
 			;
 
+		world.component<Player>();
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
 		gz_renderer->submit_mesh(model_mesh);
 		auto e3 = world.entity("Player")
 			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
 			.set<CharacterComponent>({.vel = {0, 0.0, 0}})
+			.add<Player>();
 			;
 
 		
@@ -420,13 +422,13 @@ namespace GZ {
 			CharacterComponent* char_comp = player.get_mut<CharacterComponent>();
 
 			Entity follow_cam = it.world().lookup("Character Camera");
-			const TransformComponent *cam_t_comp = follow_cam.get<TransformComponent>();
+			const TransformComponent* cam_t_comp = follow_cam.get<TransformComponent>();
 			mat3 orientation = mat3_cast(cam_t_comp->r);
-			vec3 right = glm::normalize(vec3{orientation[0].x, 0, orientation[0].z});
+			vec3 right = glm::normalize(vec3{ orientation[0].x, 0, orientation[0].z });
 			vec3 up = GZ_UP;
 			vec3 forward = -glm::normalize(glm::cross(right, up));
 
-			vec2 move_axis = {0, 0};
+			vec2 move_axis = { 0, 0 };
 			b8 is_moving = false;
 			if (m_input->is_key_down(SCANCODE_W)) {
 				move_axis.y = 1.0f;
@@ -455,7 +457,7 @@ namespace GZ {
 			else {
 				char_comp->vel = vec3(0, 0, 0);
 			}
-			
+
 		});
 
 		static vec3 cam_dir = -glm::normalize(vec3{ 1, 1, 1 });
@@ -466,9 +468,6 @@ namespace GZ {
 		static f32 cam_pitch = 45.0f; // in degrees
 		static f32 cam_yaw = 45.0f; // in degrees
 		static f32 change_look_dir_speed = 50.0f;
-
-		static vec3 prevP = vec3(0, 0, 0);
-		static vec3 nextP = vec3(0, 0, 0);
 		world.system("Following Camera")
 			.kind(flecs::PostUpdate)
 			.write<CameraComponent, TransformComponent>()
@@ -478,14 +477,6 @@ namespace GZ {
 			const CameraComponent* cam_comp = follow_cam.get<CameraComponent>();
 			if (!cam_comp || !cam_comp->is_primary) return;
 			TransformComponent* player_t_comp = player.get_mut<TransformComponent>();
-
-			if (m_physics_module.m_num_physics_ticks_cur_frame) {
-				prevP = nextP;
-				nextP = player_t_comp->p;
-			}
-			
-			player_t_comp->p = glm::mix(prevP, nextP, m_physics_module.m_accumulated / m_physics_module.m_simulation_step_time);
-
 			TransformComponent* cam_t_comp = follow_cam.get_mut<TransformComponent>();
 
 			// Instead of directly using TransformComponent, we should interpolate

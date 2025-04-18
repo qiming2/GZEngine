@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "CommonModule.h"
 #include "RenderModule.h"
+#include "CharacterModule.h"
 #include "App.h"
 #include "MathUtil.h"
 #include "Input.h"
@@ -314,6 +315,8 @@ namespace GZ {
                 size_t i = 0;
                 auto e = world->lookup("Player");
                 std::shared_ptr<IDrawComponentInterfaceName> cur;
+                static std::string tag_str = std::string(" Tag");
+                static std::string component_str = std::string(" Component");
                 e.each([&](Identifier id) {
                     ImGui::PushID(i++);
                     void *comp = e.get_mut(id.raw_id());
@@ -322,13 +325,19 @@ namespace GZ {
                         cur->draw_imgui(comp, reg, world, &ctx);
                     }
                     else {
-                        const char * name = id.type_id().name().c_str();
+                        std::string name("");
+                        if (!id.is_entity()) {
+                            name = id.type_id().name().c_str() + tag_str;
+                        }
+                        else {
+                           name = id.entity().name().c_str() + component_str;
+                        }
                     
-                        if (name == nullptr) {
+                        if (name == "") {
                             gz_warn("No name on this component!");
                             return;
                         }
-                        ImGui::LabelText("", "%s Component is Not Drawable!", name);
+                        ImGui::LabelText("", "%s is Not Drawable!", name.c_str());
                     }
                     ImGui::PopID();
                 });

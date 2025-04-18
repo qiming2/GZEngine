@@ -106,6 +106,7 @@ list(APPEND INCLUDE_LISTS
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Physics"
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Mesh"
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Common"
+    "${CMAKE_SOURCE_DIR}/GZEngine/src/Game"
     "${CMAKE_SOURCE_DIR}/GZEngine/include"
 )
 

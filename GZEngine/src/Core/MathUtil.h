@@ -15,6 +15,8 @@ namespace GZ {
 
     constexpr f32 GZ_FLOAT_EPSILON = std::numeric_limits<f32>::epsilon();
 
+    constexpr vec3 GZ_VEC3_FLOAT_EPSILON = {GZ_FLOAT_EPSILON, GZ_FLOAT_EPSILON, GZ_FLOAT_EPSILON};
+
 	GZ_FORCE_INLINE f64 get_s_from_ns(u64 ns) {
 		return static_cast<f64>(ns) / SDL_NS_PER_SECOND;
 	}
@@ -39,6 +41,11 @@ namespace GZ {
     GZ_FORCE_INLINE b8 is_approximately_zero(float val) {
 //        gz_info("f_epsilon: {}", f_epsilon);
         return abs(val) <= scale_factor * (tolerance_factor * f_epsilon);
+    }
+
+    GZ_FORCE_INLINE b8 is_vec3_all_equal_epsilon(const vec3& a, const vec3& b) {
+        auto rets = glm::epsilonEqual(a, b, GZ_VEC3_FLOAT_EPSILON);
+        return rets[0] && rets[1] && rets[2];
     }
 
     // no normalization
