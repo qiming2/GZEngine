@@ -257,17 +257,21 @@ namespace GZ {
 
     GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW, GZ_COMPONENT_TYPE_END_IMPL_DRAW);
 
-	void PhysicsModule::install_into(World& world, ComponentRegistry& reg)
+	void PhysicsModule::install_into(const ModuleContext &module_ctx)
 	{
+        World &world = *module_ctx.world;
+        ComponentRegistry &reg = *module_ctx.reg;
         if (!init(world))
             gz_error("Something wrong!");
 
+        m_physics_renderer = new PhysicsDebugRenderer(module_ctx.renderer);
         // System component initialization
         GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
 
         GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
         
         world.component<RigidbodyComponent>().add(flecs::Exclusive);
+        world.component<CharacterComponent>().add(flecs::Exclusive);
 
 		// Calculate num physics ticks need to happen in current frame, this is needed since
 		// Jolt's character and physics world update are separate, and we want to take advantage of multithreaded system update
@@ -282,13 +286,36 @@ namespace GZ {
 			m_accumulated = std::fmodf(m_accumulated, m_simulation_step_time);
 		});
 
+        // Create bodies and characters
+        System update_dirty_rigidbody_components = world.system<const TransformComponent, const RigidbodyComponent>("update_dirty_components")
+            .term_at(1).second<DirtyTrait>()
+            .kind(flecs::OnUpdate)
+            .write<RigidbodyComponent>()
+            .each([&](flecs::entity e, const TransformComponent &t_comp, const RigidbodyComponent &r_comp) {
+            gz_info("Create bodies");
+            
+            m_body_interface->SetUserData(r_comp.id, static_cast<u64>(e.id()));
+            e.remove<RigidbodyComponent, DirtyTrait>();
+        });
+
+		System update_dirty_character_components = world.system<const TransformComponent, const CharacterComponent>("update_dirty_character_components")
+			.term_at(1).second<DirtyTrait>()
+			.kind(flecs::OnUpdate)
+            .write<CharacterComponent>()
+			.each([&](Entity e, const TransformComponent& t_comp, const CharacterComponent& r_comp) {
+			gz_info("Create Characters bodies");
+
+            e.set<CharacterComponent>(r_comp);
+            m_main_character->SetUserData(e.id());
+            e.remove<CharacterComponent, DirtyTrait>();
+		});
+
         // Systems can be multithreaded, so we could take advantage of this
         System ecs_to_sim = world.system<const TransformComponent, const RigidbodyComponent>("ecs_to_sim")
             .kind(flecs::OnUpdate)
             .multi_threaded()
-            .each([&](WorldIter &it, size_t index, const TransformComponent& transform, const RigidbodyComponent& rigidbody) {
+            .each([&](Entity e, const TransformComponent& transform, const RigidbodyComponent& rigidbody) {
              m_body_interface->SetPositionAndRotationWhenChanged(rigidbody.id, to_jolt(transform.p), to_jolt(glm::normalize(transform.r)), EActivation::Activate);
-             m_body_interface->SetUserData(rigidbody.id, static_cast<u64>(it.entity(index).id()));
         });
 
 
@@ -310,7 +337,6 @@ namespace GZ {
 			
 			m_main_character->SetRotation(to_jolt(glm::normalize(transform.r)));
 			m_main_character->SetLinearVelocity(to_jolt(char_comp.vel));
-            m_main_character->SetUserData(it.entity(index).id());
 		});
 
 		// Character is also a physics update, so we need to run in phyiscs update system
@@ -394,14 +420,8 @@ namespace GZ {
 		});
 	}
 
-	void PhysicsModule::uninstall_from(World& world, ComponentRegistry& reg)
+	void PhysicsModule::uninstall_from(const ModuleContext& ctx)
 	{
-
-	}
-
-	void PhysicsModule::pass_context(ModuleContext& ctx)
-	{
-        m_physics_renderer = new PhysicsDebugRenderer(ctx.renderer);
 
 	}
 

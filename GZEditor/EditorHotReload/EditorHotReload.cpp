@@ -46,6 +46,7 @@ namespace GZ {
         flecs::query<CameraComponent> cam_q;
         flecs::query<CameraComponent, TransformComponent> cam_trans_q;
 
+        ModuleContext *module_ctx;
         // Player
         Entity player_ent;
     public:
@@ -63,6 +64,7 @@ namespace GZ {
             window = data->window;
             physics_module = data->physics_module;
             render_module = data->render_module;
+            module_ctx = data->module_ctx;
 
             cam_q = world->query<CameraComponent>();
             cam_trans_q = world->query<CameraComponent, TransformComponent>();
@@ -322,15 +324,16 @@ namespace GZ {
                     void *comp = e.get_mut(id.raw_id());
                     cur = reg->get_draw_interface(id);
                     if (cur) {
-                        cur->draw_imgui(comp, reg, world, &ctx);
+                        cur->draw_imgui(comp, module_ctx, &ctx);
                     }
                     else {
                         std::string name("");
                         if (!id.is_entity()) {
-                            name = id.type_id().name().c_str() + tag_str;
+                            name = id.first().name().c_str() + tag_str;
                         }
                         else {
                            name = id.entity().name().c_str() + component_str;
+                           
                         }
                     
                         if (name == "") {
@@ -342,19 +345,8 @@ namespace GZ {
                     ImGui::PopID();
                 });
             
-                //comp_interface->draw_second_stuff(transform);
-            
-                static vec3 color;
-                ImGui::ColorEdit3("Good stuff", &color[0]);
-                ImGui::TextColored({0.5, 0.7, 0.5, 1.0}, "Yo yo how about some more fancy stuff");
-                ImGui::TextColored({0.4, 0.3, 0.1, 1.0}, "Yo yo how about different color?");
-                ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Yo yo this fancy stuff");
-                static b8 yaxi = false;
-                ImGui::Checkbox("Xiaoggasdasdasen ya xi!", &yaxi);
-                if (yaxi) {
-                    ImGui::TextColored({0.2, 0.3, 0.1, 1.0}, "Ya xi la!");
-                }
-                ImGui::End();
+
+				ImGui::End();
             }
         }
 

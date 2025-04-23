@@ -6,7 +6,7 @@ namespace GZ {
 
     GZ_CAMERA_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW, GZ_COMPONENT_TYPE_END_IMPL_DRAW);
 
-    void RenderModule::install_into(World &world, ComponentRegistry &reg) {
+    void RenderModule::install_into(const ModuleContext& module_ctx) {
         
         GZ_MESH_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
         
@@ -15,13 +15,8 @@ namespace GZ {
         GZ_CAMERA_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
     }
 
-    void RenderModule::uninstall_from(World &world, ComponentRegistry &reg) {
+    void RenderModule::uninstall_from(const ModuleContext& module_ctx) {
         
     }
-
-	void RenderModule::pass_context(ModuleContext& ctx)
-	{
-
-	}
 
 }

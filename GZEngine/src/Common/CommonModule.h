@@ -55,54 +55,57 @@ namespace GZ {
 	// Expose this for each ecs module
 	// register components, systems, triggers, hooks all here pre ticking the game
 	struct CommonModule final : Module {
-		void install_into(World &world, ComponentRegistry &reg) override;
-		void uninstall_from(World &world, ComponentRegistry &reg) override;
-		void pass_context(ModuleContext &ctx) override;
+		void install_into(const ModuleContext& ctx) override;
+		void uninstall_from(const ModuleContext& ctx) override;
 	};
 }
 
 // ------------------------- Sync point examples --------
 
 
-//        struct TestComponent {
-//            std::string test = "YoYo";
-//        };
-//        world.component<TestComponent>().add(flecs::Exclusive);
-//
-//        auto test_ent = world.entity().set<TestComponent, DirtyTrait>({"ssdasdqw"});
-//
-//        world.system<const TestComponent>("test_dirty")
-//            .term_at(0).second<DirtyTrait>()
-//            .write<TestComponent, ReadyTrait>()
-//            .kind(flecs::OnUpdate)
-//            .each([&](const Entity &ent, const TestComponent &test_comp) {
-//                ent.set<TestComponent, ReadyTrait>({"Ready to roll!"});
-//                ent.set<vec3>({});
-//                gz_info("With dirty matching {}", test_comp.test);
-//        });
-//
-//        System physics_update = world.system<const TestComponent>("test_update")
-//            .kind(flecs::OnUpdate)
-//            .run([=](WorldIter& it) {
-//                gz_info("Hello test");
-//                if (test_ent.has<TestComponent, ReadyTrait>()) {
-//                    gz_info("Has readytrait");
-//                } else {
-//                    gz_info("Does not have readytrait");
-//                }
-//
-//                if (test_ent.has<vec3>()) {
-//                    gz_info("has vec3");
-//                }
-//        });
-//
-//        world.system<const TestComponent>("test")
-//            .term_at(0).second<ReadyTrait>()
-//            .multi_threaded()
-//            .kind(flecs::OnUpdate)
-//            .each([&](Entity ent, const TestComponent &test_comp) {
-//                gz_info("without matching dirty {}", test_comp.test);
-//        });
+	//struct TestComponent {
+	//	std::string test = "YoYo";
+	//};
+	//world.component<TestComponent>().add(flecs::Exclusive);
+
+	//auto test_ent = world.entity().set<TestComponent, DirtyTrait>({ "ssdasdqw" });
+	
+
+	// Remove dirty trait is very important!!!
+	//world.system<const TestComponent>("test_dirty")
+	//.term_at(0).second<DirtyTrait>()
+	//.write<TestComponent>()
+	//.kind(flecs::OnUpdate)
+	//.each([&](const Entity& ent, const TestComponent& test_comp) {
+	//	ent.set<TestComponent>({ "Ready to roll!" });
+	//	ent.set<vec3>({});
+	//	ent.remove<TestComponent, DirtyTrait>();
+	//	gz_info("With dirty matching {}", test_comp.test);
+	//});
+
+	//System physics_update = world.system<const TestComponent>("test_update")
+	//.kind(flecs::OnUpdate)
+	//.run([=](WorldIter& it) {
+	//	gz_info("Hello test");
+	//	if (test_ent.has<TestComponent, ReadyTrait>()) {
+	//		gz_info("Has readytrait");
+	//	}
+	//	else {
+	//		gz_info("Does not have readytrait");
+	//	}
+
+	//	if (test_ent.has<vec3>()) {
+	//		gz_info("has vec3");
+	//	}
+	//});
+
+	//world.system<const TestComponent>("test")
+	//.term_at(0).second<ReadyTrait>()
+	//.multi_threaded()
+	//.kind(flecs::OnUpdate)
+	//.each([&](Entity ent, const TestComponent& test_comp) {
+	//	gz_info("without matching dirty {}", test_comp.test);
+	//});
         
 //        world.system("test_update")
 //            .kind(flecs::OnUpdate)

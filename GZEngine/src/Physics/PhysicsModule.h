@@ -29,9 +29,8 @@ namespace GZ {
 
     struct PhysicsModule : Module {
 	public: // Module interface
-		void install_into(World& world, ComponentRegistry& reg) override;
-        void uninstall_from(World &world, ComponentRegistry &reg) override;
-        void pass_context(ModuleContext &ctx) override;
+		void install_into(const ModuleContext& ctx) override;
+        void uninstall_from(const ModuleContext& ctx) override;
     public: // Tweakable vals, intend for quick debugging and testing, not really for shipping
 		b8 is_physics_debug_on = false;
     private: // system queries

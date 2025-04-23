@@ -31,7 +31,7 @@
 // third macro ends component definition scope, you should end with a ;
 
 #define GZ_COMPONENT_TYPE_DEFINE(GZ_COMPONENT) \
-	world.component<GZ_COMPONENT>()
+	module_ctx.world->component<GZ_COMPONENT>()
 #define GZ_COMPONENT_TYPE_MEMBER_DEFINE(GZ_COMPONENT_MEMBER_TYPE, GZ_COMPONENT_MEMBER_NAME) \
 	.member<GZ_COMPONENT_MEMBER_TYPE>(#GZ_COMPONENT_MEMBER_NAME)
 #define GZ_COMPONENT_TYPE_END_DEFINE(GZ_COMPONENT)
@@ -56,7 +56,7 @@ namespace GZ {
 
 	struct IDrawComponentInterfaceName {
 		virtual ~IDrawComponentInterfaceName() {}
-		virtual void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) {
+		virtual void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext *draw_ctx) {
 			gz_warn("This component does not have a draw function");
 		}
 	};
@@ -72,19 +72,19 @@ namespace GZ {
 // DrawComponentImpl definition
 #define GZ_COMPONENT_TYPE_IMPL_DRAW(GZ_COMPONENT) \
 	struct DrawComponentImplStructName(GZ_COMPONENT) final : IDrawComponentInterfaceName { \
-		void draw_imgui(void *comp, const ComponentRegistry *reg, World *world, DrawComponentContext *draw_ctx) override { \
-			ImGui::PushID(world->component<GZ_COMPONENT>().id());\
+		void draw_imgui(void *comp, const ModuleContext *module_ctx, DrawComponentContext *draw_ctx) override { \
+			ImGui::PushID(module_ctx->world->component<GZ_COMPONENT>().id());\
 			static const char *comp_name = #GZ_COMPONENT;\
 			GZ_COMPONENT *actual_comp = static_cast<GZ_COMPONENT *>(comp); \
 			
 #define GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW(GZ_COMPONENT_MEMBER_TYPE, GZ_COMPONENT_MEMBER_NAME) \
 			do { \
-				ComponentID GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_id) = world->component<GZ_COMPONENT_MEMBER_TYPE>().id(); \
-				std::shared_ptr<IDrawComponentInterfaceName> GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface) = reg->get_draw_interface(GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_id)); \
+				ComponentID GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_id) = module_ctx->world->component<GZ_COMPONENT_MEMBER_TYPE>().id(); \
+				std::shared_ptr<IDrawComponentInterfaceName> GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface) = module_ctx->reg->get_draw_interface(GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_id)); \
 				if (GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface) != nullptr) {\
 					const char* temp = draw_ctx->name.data(); \
 					draw_ctx->name = #GZ_COMPONENT_MEMBER_NAME; \
-                    GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface)->draw_imgui(&actual_comp->GZ_COMPONENT_MEMBER_NAME, reg, world, draw_ctx); \
+                    GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface)->draw_imgui(&actual_comp->GZ_COMPONENT_MEMBER_NAME, module_ctx, draw_ctx); \
 					draw_ctx->name = temp; \
 				} else { \
 					gz_warn("{} does not implement {} interface", #GZ_COMPONENT_MEMBER_TYPE, GZ_STR(IDrawComponentInterfaceName)); \
@@ -99,8 +99,8 @@ namespace GZ {
 // Register DrawComponentImpl definition
 #define GZ_COMPONENT_TYPE_IMPL_DRAW_REG(GZ_COMPONENT) \
 	do {\
-		ComponentID GZ_CAT(GZ_COMPONENT, _id) = world.component<GZ_COMPONENT>().id(); \
-		reg.draw_component_interfaces[GZ_CAT(GZ_COMPONENT, _id)] = \
+		ComponentID GZ_CAT(GZ_COMPONENT, _id) = module_ctx.world->component<GZ_COMPONENT>().id(); \
+		module_ctx.reg->draw_component_interfaces[GZ_CAT(GZ_COMPONENT, _id)] = \
 			std::make_shared<DrawComponentImplStructName(GZ_COMPONENT)>(); \
 	} while(0)
 #define GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG(GZ_COMPONENT_MEMBER_TYPE, GZ_COMPONENT_MEMBER_NAME) GZ_COMPONENT_TYPE_MEMBER_NOP(GZ_COMPONENT_MEMBER_TYPE, GZ_COMPONENT_MEMBER_NAME)

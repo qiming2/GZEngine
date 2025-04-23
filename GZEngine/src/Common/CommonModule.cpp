@@ -45,7 +45,7 @@ namespace GZ {
 	// Primitive draw component
 	struct DrawComponentImplStructName(vec4) final : IDrawComponentInterfaceName 
 	{ 
-		void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) override {
+		void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext *draw_ctx) override {
 			vec4 *my_comp = static_cast<vec4 *>(comp);
 			const char * label = draw_ctx ? draw_ctx->name.data() : LOCATION;
 			ImGui::DragFloat4(label, &my_comp->x);
@@ -87,7 +87,7 @@ namespace GZ {
     struct DrawComponentImplStructName(quat) final : IDrawComponentInterfaceName
     {
 		// This is weird
-        void draw_imgui(void* comp, const ComponentRegistry *registry, World *world, DrawComponentContext *draw_ctx) override {
+        void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext *draw_ctx) override {
 			
 			{
                 quat* my_comp = static_cast<quat*>(comp);
@@ -115,7 +115,7 @@ namespace GZ {
 
 	struct DrawComponentImplStructName(vec3) final : IDrawComponentInterfaceName
 	{
-		void draw_imgui(void* comp, const ComponentRegistry * registry, World * world, DrawComponentContext * draw_ctx) override {
+		void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext * draw_ctx) override {
 			vec3* my_comp = static_cast<vec3*>(comp);
 			const char* label = draw_ctx && draw_ctx->name.data() ? draw_ctx->name.data() : LOCATION;
 			ImGui::DragFloat3(label, &my_comp->x);
@@ -124,7 +124,7 @@ namespace GZ {
 
 	struct DrawComponentImplStructName(vec2) final : IDrawComponentInterfaceName
 	{
-		void draw_imgui(void* comp, const ComponentRegistry * registry, World * world, DrawComponentContext * draw_ctx) override {
+		void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext * draw_ctx) override {
 			vec2* my_comp = static_cast<vec2*>(comp);
 			const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
 			ImGui::DragFloat2(label, &my_comp->x);
@@ -133,7 +133,7 @@ namespace GZ {
 
 	struct DrawComponentImplStructName(b8) final : IDrawComponentInterfaceName
 	{
-		void draw_imgui(void* comp, const ComponentRegistry* registry, World* world, DrawComponentContext* draw_ctx) override {
+		void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext* draw_ctx) override {
 			b8* b8_comp = static_cast<b8*>(comp);
 			const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
 			ImGui::Checkbox(label, b8_comp);
@@ -142,7 +142,7 @@ namespace GZ {
 
     struct DrawComponentImplStructName(f32) final : IDrawComponentInterfaceName
     {
-        void draw_imgui(void* comp, const ComponentRegistry* registry, World* world, DrawComponentContext* draw_ctx) override {
+        void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext* draw_ctx) override {
             f32* f32_comp = static_cast<f32*>(comp);
             const char* label = draw_ctx ? draw_ctx->name.data() : LOCATION;
             ImGui::DragFloat(label, f32_comp);
@@ -151,9 +151,10 @@ namespace GZ {
 
 	GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW, GZ_COMPONENT_TYPE_END_IMPL_DRAW);
 
-	void CommonModule::install_into(World& world, ComponentRegistry &reg)
+	void CommonModule::install_into(const ModuleContext &module_ctx)
 	{
-		
+		World& world = *module_ctx.world;
+		ComponentRegistry &reg = *module_ctx.reg;
 		// we register primitive types first otherwise
 		GZ_b8_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
 		
@@ -204,15 +205,9 @@ namespace GZ {
 
 	}
 
-	void CommonModule::uninstall_from(World& world, ComponentRegistry &registry)
+	void CommonModule::uninstall_from(const ModuleContext &module_ctx)
 	{
 		// don't anything for now
-	}
-
-	
-	void CommonModule::pass_context(ModuleContext& ctx)
-	{
-
 	}
 
 }

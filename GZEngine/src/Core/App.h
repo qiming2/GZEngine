@@ -16,6 +16,8 @@
 #include "Profiler.h"
 #include "Input.h"
 
+#include "GameModule.h"
+
 namespace GZ {
 	struct AppSpec {
 		b8 headless = false;
@@ -47,6 +49,8 @@ namespace GZ {
 		// Modules for tweaking module related settings
 		PhysicsModule *physics_module;
 		RenderModule *render_module;
+
+		ModuleContext *module_ctx;
 	};
 
 	struct App {
@@ -65,11 +69,15 @@ namespace GZ {
 		// flecs ecs temporary prototyping
 		World world;
 		ComponentRegistry reg;
+		ModuleContext m_module_ctx;
         
         // expose physics for prototyping
         PhysicsModule m_physics_module;
 		CommonModule m_common_module;
 		RenderModule m_render_module;
+
+		// Game modules
+		GameModule m_game_module;
 	private: // editor stuff
 		EditorContext plugin_data;
 
@@ -104,7 +112,7 @@ namespace GZ {
         void private_end_frame();
 		void private_begin_render_frame();
 		void private_install_builtin_modules();
-		void private_game_install_modules();
+		void private_install_game_modules();
 	};
 
 	

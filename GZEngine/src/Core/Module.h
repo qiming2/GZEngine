@@ -17,10 +17,8 @@ namespace GZ {
 	};
 	struct Module {
 
-		void virtual install_into(World &world, ComponentRegistry &reg) = 0;
+		void virtual install_into(const ModuleContext& module_ctx) = 0;
 
-		void virtual uninstall_from(World &world, ComponentRegistry &reg) = 0;
-
-		void virtual pass_context(ModuleContext &ctx) = 0;
+		void virtual uninstall_from(const ModuleContext& module_ctx) = 0;
 	};
 }
