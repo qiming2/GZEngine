@@ -13,5 +13,8 @@ namespace GZ {
         void uninstall_from(const ModuleContext& ctx) override;
     public:
         void create_default_game_objects();
+    private:
+        SceneModule *m_scene_module;
+        TransformModule *m_transform_module;
     };
 }

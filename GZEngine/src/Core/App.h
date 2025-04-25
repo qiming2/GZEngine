@@ -12,6 +12,9 @@
 #include "Log.h"
 #include "PhysicsModule.h"
 #include "RenderModule.h"
+#include "SceneModule.h"
+#include "TransformModule.h"
+#include "CommonModule.h"
 #include "ComponentInterface.h"
 #include "Profiler.h"
 #include "Input.h"
@@ -46,10 +49,6 @@ namespace GZ {
         ed::EditorContext* m_node_context = nullptr;
         ImTextureID main_tex_id;
 
-		// Modules for tweaking module related settings
-		PhysicsModule *physics_module;
-		RenderModule *render_module;
-
 		ModuleContext *module_ctx;
 	};
 
@@ -71,13 +70,16 @@ namespace GZ {
 		ComponentRegistry reg;
 		ModuleContext m_module_ctx;
         
-        // expose physics for prototyping
-        PhysicsModule m_physics_module;
-		CommonModule m_common_module;
-		RenderModule m_render_module;
+		ModuleRegistry *m_module_reg;
 
-		// Game modules
-		GameModule m_game_module;
+		//SceneModule m_scene_module;
+		//TransformModule m_transform_module;
+		//PhysicsModule m_physics_module;
+		//CommonModule m_common_module;
+		//RenderModule m_render_module;
+
+		//// Game modules
+		//GameModule m_game_module;
 	private: // editor stuff
 		EditorContext plugin_data;
 
@@ -111,8 +113,9 @@ namespace GZ {
         void private_begin_frame();
         void private_end_frame();
 		void private_begin_render_frame();
-		void private_install_builtin_modules();
-		void private_install_game_modules();
+		void private_add_builtin_modules();
+		void private_add_game_modules();
+		void private_execute_all_module_stages();
 	};
 
 	

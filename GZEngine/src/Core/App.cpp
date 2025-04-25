@@ -130,6 +130,7 @@ namespace GZ {
 #else
         const char *plugin_path = "E:\\GZEngine\\build\\bin\\Debug\\GZEditorHotReload.dll";
 #endif
+		m_module_reg = ModuleRegistry::get_module_registry();
 		// init some plugin data so plugin data
 		plugin_data.world = &world;
 		plugin_data.reg = &reg;
@@ -137,8 +138,6 @@ namespace GZ {
 		plugin_data.gz_renderer = gz_renderer;
 		plugin_data.profiler = m_profiler;
         plugin_data.window = window;
-		plugin_data.physics_module = &m_physics_module;
-		plugin_data.render_module = &m_render_module;
 		plugin_data.module_ctx = &m_module_ctx;
 		ctx.userdata = &plugin_data;
 		
@@ -163,16 +162,21 @@ namespace GZ {
 		m_module_ctx.reg = &reg;
 		m_module_ctx.renderer = gz_renderer;
 		m_module_ctx.window = window;
+		m_module_ctx.module_reg = m_module_reg;
+		
+
 		// Init all ecs modules, systems, components
 		// Before runnning, we install builtin ecs modules
 		world.set_threads(4);
         
-        // Here should be sandbox/game logic modules
-        private_install_game_modules();
+        // Here should be sandbox/game logic modules before all builtin modules
+        private_add_game_modules();
 
         // builtin modules should happen after
-		private_install_builtin_modules();
+		private_add_builtin_modules();
 
+		private_execute_all_module_stages();
+		
 		// deserilize or create/install default entities to world
 		// Create some ents to test plugin ecs module
 		private_setup_initial_scene();
@@ -184,8 +188,8 @@ namespace GZ {
 		cr_plugin_close(ctx);
 
 		// TODO(Qiming): remove once refactored physics
-		m_physics_module.destroy_default_objects();
-        m_physics_module.deinit();
+		m_module_reg->uninstall_all_modules(m_module_ctx);
+		delete m_module_reg;
         
 		SDL_RemoveEventWatch(expose_event_watch, this);
 		gz_renderer->will_deinit();
@@ -338,65 +342,66 @@ namespace GZ {
 
 	}
 
-	void App::private_install_builtin_modules()
+	void App::private_add_builtin_modules()
 	{
-		
+		// Should be able to configure in the future
 		// Modules can be plugin
-		m_common_module.install_into(m_module_ctx);
-		m_physics_module.install_into(m_module_ctx);
-        m_render_module.install_into(m_module_ctx);
+		m_module_reg->add_module<CommonModule>();
+		m_module_reg->add_module<TransformModule>();
+		m_module_reg->add_module<SceneModule>();
+		m_module_reg->add_module<PhysicsModule>();
+		m_module_reg->add_module<RenderModule>();
+
 	}
 
 	void App::private_setup_initial_scene()
 	{
-		m_physics_module.create_default_objects();
 		// Temp add sphere
 		auto sphere_mesh = Mesh::get_uvsphere_mesh(0.5f);
 		auto box_mesh = Mesh::get_box_mesh();
 		gz_renderer->submit_mesh(sphere_mesh);
 		gz_renderer->submit_mesh(box_mesh);
-
-		auto flying_cam = world.entity("Flying Camera")
+		
+		auto flying_cam = m_module_reg->get_module<SceneModule>()->entity("Flying Camera")
 			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, true })
 			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
-		
-		auto char_cam = world.entity("Character Camera")
+
+		auto char_cam = m_module_reg->get_module<SceneModule>()->entity("Character Camera")
 			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 1000.0f, true, false})
 			.set<TransformComponent>({ .p = vec3{0.0, 2.0, 2.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
 
-		auto e1 = world.entity("Hello")
+		auto e1 = m_module_reg->get_module<SceneModule>()->entity("Hello")
 			.set<TransformComponent>({ vec3{1.0, 2.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
-			.set<RigidbodyComponent>({ m_physics_module.m_sphere_id })
+			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_sphere_id })
 			.set<MeshComponent>({ sphere_mesh })
 			;
 
 		// Prefab generation
 		auto box_prefab = world.prefab("Hello1")
 			.set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
-			.set<RigidbodyComponent>({ m_physics_module.m_box_id })
+			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_box_id })
 			.set<MeshComponent>({ box_mesh })
 			;
-
-		auto e2 = world.entity().is_a(box_prefab);
+		gz_info("QUAT {} {} {}", quat(1, 0, 0, 0),  quat{1, 0, 0, 0}, GZ_QUAT_IDENTITY);
+		auto e2 = m_module_reg->get_module<SceneModule>()->entity().is_a(box_prefab);
 		
 		// We need to multiply with two since box mesh from our mesh lib is +-0.5
-		auto floor_ent = world.entity("floor")
+		auto floor_ent = m_module_reg->get_module<SceneModule>()->entity("floor")
 			.set<TransformComponent>({ vec3{0.0, -1.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
-			.set<RigidbodyComponent>({ m_physics_module.m_floor_id })
+			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_floor_id })
 			.set<MeshComponent>({ box_mesh })
 			;
 
 		world.component<Player>();
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
 		gz_renderer->submit_mesh(model_mesh);
-		auto e3 = world.entity("Player")
+		auto e3 = m_module_reg->get_module<SceneModule>()->entity("Player")
 			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
 			.set<CharacterComponent>({.vel = {0, 0.0, 0}})
 			.add<Player>();
 			;
 
-		
 	}
 
 	void App::private_end_render_frame()
@@ -414,11 +419,16 @@ namespace GZ {
         
 	}
 
-	void App::private_install_game_modules()
+	void App::private_add_game_modules()
 	{
-		m_game_module.install_into(m_module_ctx);
 
-		
+		m_module_reg->add_module<GameModule>();
+	}
+
+	void App::private_execute_all_module_stages()
+	{
+		m_module_reg->install_all_modules(m_module_ctx);
+		m_module_reg->after_install_all_modules(m_module_ctx);
 	}
 
 }

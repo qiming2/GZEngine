@@ -420,9 +420,14 @@ namespace GZ {
 		});
 	}
 
+	void PhysicsModule::after_install(const ModuleContext& module_ctx)
+	{
+        create_default_objects();
+	}
+
 	void PhysicsModule::uninstall_from(const ModuleContext& ctx)
 	{
-
+        destroy_default_objects();
 	}
 
 	// Basic setup following official jolt helloworld, with slight change
@@ -601,33 +606,6 @@ namespace GZ {
             
     // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
     //gz_info("Sphere: pos: {}, vel: {}", position, velocity);
-
-    void PhysicsModule::simulate(f32 delta_time, World &world) {
-        
-        // DO ECS To Sim here but we don't have animation or anything that actually manipulate the transform
-        // maybe editor stuff?
-        //gz_info("Entered simulate");
-        
-
-        // System covered this already
-        // Only Set when teleporting or kinematic body
-		//q.each([&](const TransformComponent& t, const RigidbodyComponent& v) {
-
-  //          m_body_interface->SetPositionAndRotationWhenChanged(v.id, to_jolt(t.p), to_jolt(glm::normalize(t.r)), EActivation::Activate);
-		//});
-
-  //      m_accumulated += delta_time;
-  //      while (m_accumulated > m_simulation_step_time) {
-  //          // Step the world
-  //          m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);
-  //          m_accumulated -= m_simulation_step_time;
-  //      }
-
-  //      q1.each([&](TransformComponent& t, const RigidbodyComponent& v) {
-		//    t.p = to_glm(m_body_interface->GetPosition(v.id));
-  //          t.r = to_euler(glm::normalize(to_glm(m_body_interface->GetRotation(v.id))));
-		//});
-    }
 
     void PhysicsModule::destroy_default_objects() {
         m_body_interface->RemoveBody(m_sphere_id);

@@ -10,7 +10,7 @@
 #include "Renderer.h"
 #include "Log.h"
 #include "FileUtil.h"
-#include "CommonModule.h"
+#include "TransformModule.h"
 #include "RenderModule.h"
 #include "Profiler.h"
 
@@ -427,7 +427,7 @@ namespace GZ {
         world.each([&](const CameraComponent &cam_comp, const TransformComponent &t_comp){
 			if (!cam_comp.is_primary) return;
             ubo.proj = cam_comp.get_projection_matrix();
-            ubo.view = glm::inverse(t_comp.get_model_matrix());
+            ubo.view = glm::inverse(t_comp.get_matrix());
         });
 		
 		// This is necessary for vulkan, since vulkan'y is fliped
@@ -1885,7 +1885,7 @@ namespace GZ {
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh_comp.mesh_ref->vbuffer, offsets);
                 vkCmdBindIndexBuffer(commandBuffer, mesh_comp.mesh_ref->ibuffer, 0, VK_INDEX_TYPE_UINT32);
 
-                mat4 ent_model = t_comp.get_model_matrix();
+                mat4 ent_model = t_comp.get_matrix();
 
                 vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), glm::value_ptr(ent_model));
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);

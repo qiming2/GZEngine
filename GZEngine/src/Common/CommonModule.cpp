@@ -51,38 +51,7 @@ namespace GZ {
 			ImGui::DragFloat4(label, &my_comp->x);
 		}
 	};
-	
-	static float normalize_angle(float degrees) {
-		// 1. Wrap to [0, 360) range
-		degrees = std::fmod(degrees, 360.0f);
 
-		// 2. Shift to [-180, 180) for better UI display
-		if (degrees > 180.0f) {
-			degrees -= 360.0f;
-		}
-		else if (degrees < -180.0f) {
-			degrees += 360.0f;
-		}
-
-		// Optional: Snap near-threshold values to prevent jitter
-		const float epsilon = 0.001f;
-		if (std::abs(degrees - 180.0f) < epsilon) {
-			degrees = -180.0f;
-		}
-		if (std::abs(degrees + 180.0f) < epsilon) {
-			degrees = 180.0f;
-		}
-
-		return degrees;
-	}
-
-	static glm::vec3 normalize_angles(glm::vec3 euler_deg) {
-		return glm::vec3(
-			normalize_angle(euler_deg.x),
-			normalize_angle(euler_deg.y),
-			normalize_angle(euler_deg.z)
-		);
-	}
     // Primitive draw component
     struct DrawComponentImplStructName(quat) final : IDrawComponentInterfaceName
     {
@@ -105,11 +74,7 @@ namespace GZ {
 
 				*my_comp = glm::normalize(*my_comp * glm::quat(delta));
 				//*my_comp = glm::quat(glm::radians(euler_angles));
-
 			}
-           
-			
-			
         }
     };
 
@@ -149,11 +114,9 @@ namespace GZ {
         }
     };
 
-	GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW, GZ_COMPONENT_TYPE_END_IMPL_DRAW);
-
 	void CommonModule::install_into(const ModuleContext &module_ctx)
 	{
-		World& world = *module_ctx.world;
+		World &world = *module_ctx.world;
 		ComponentRegistry &reg = *module_ctx.reg;
 		// we register primitive types first otherwise
 		GZ_b8_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
@@ -182,26 +145,11 @@ namespace GZ {
 		GZ_VEC2_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
 
 		GZ_VEC2_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
-		// Complex component
-
-		GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
-
-		GZ_TRANSFORM_COMPONENT_VARS(GZ_COMPONENT_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_MEMBER_TYPE_IMPL_DRAW_REG, GZ_COMPONENT_TYPE_END_IMPL_DRAW_REG);
-
+		
         world.component<EditorTrait>();
         world.component<DirtyTrait>();
         world.component<LoadingTrait>();
         world.component<ReadyTrait>();
-		//// Need to register transform
-		//// This is what the above macro would expand to
-		//ComponentID vec3_id = world.component<vec3>().id();
-		//reg.draw_component_interfaces[vec3_id] = std::make_shared<DrawComponentImplStructName(vec3)>();
-		/*
-		auto transform_comp = world.component<TransformComponent>()
-			.member<vec3>("position")
-			.member<vec3>("scale");
-			.member<vec3>("rotation); 
-		*/
 
 	}
 

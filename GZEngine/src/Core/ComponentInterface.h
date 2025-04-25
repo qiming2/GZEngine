@@ -53,10 +53,11 @@ namespace GZ {
 	};
 
 	struct ComponentRegistry;
+	struct ModuleContext;
 
 	struct IDrawComponentInterfaceName {
 		virtual ~IDrawComponentInterfaceName() {}
-		virtual void draw_imgui(void* comp, const ModuleContext *module_ctx, DrawComponentContext *draw_ctx) {
+		virtual void draw_imgui(void *comp, const ModuleContext *module_ctx, DrawComponentContext *draw_ctx) {
 			gz_warn("This component does not have a draw function");
 		}
 	};

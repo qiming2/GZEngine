@@ -11,6 +11,9 @@ namespace GZ {
 
     void GameModule::install_into(const ModuleContext& module_ctx) {
         
+		m_scene_module = module_ctx.module_reg->get_module<SceneModule>();
+		m_transform_module = module_ctx.module_reg->get_module<TransformModule>();
+
 		static f32 rotate_scale = 2.0f;
 		static f32 move_speed = 15.0f;
 		static Input *m_input = module_ctx.input;
@@ -18,11 +21,11 @@ namespace GZ {
 		world.system("Character Controller")
 			.write<CharacterComponent, TransformComponent>()
 			.run([&](WorldIter& it) {
-			Entity player = it.world().lookup("Player");
+			Entity player = m_scene_module->lookup("Player");
 			TransformComponent* t = player.get_mut<TransformComponent>();
 			CharacterComponent* char_comp = player.get_mut<CharacterComponent>();
 
-			Entity follow_cam = it.world().lookup("Character Camera");
+			Entity follow_cam = m_scene_module->lookup("Character Camera");
 			const TransformComponent* cam_t_comp = follow_cam.get<TransformComponent>();
 			mat3 orientation = mat3_cast(cam_t_comp->r);
 			vec3 right = glm::normalize(vec3{ orientation[0].x, 0, orientation[0].z });
@@ -73,8 +76,8 @@ namespace GZ {
 			.kind(flecs::PostUpdate)
 			.write<CameraComponent, TransformComponent>()
 			.run([=](WorldIter& it) {
-			Entity follow_cam = it.world().lookup("Character Camera");
-			Entity player = it.world().lookup("Player");
+			Entity follow_cam = m_scene_module->lookup("Character Camera");
+			Entity player = m_scene_module->lookup("Player");
 			const CameraComponent* cam_comp = follow_cam.get<CameraComponent>();
 			if (!cam_comp || !cam_comp->is_primary) return;
 			TransformComponent* player_t_comp = player.get_mut<TransformComponent>();

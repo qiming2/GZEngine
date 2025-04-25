@@ -20,6 +20,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 #include <filesystem>
@@ -70,6 +71,7 @@ namespace GZ {
 	using quat = glm::quat;
 
 	using World = flecs::world;
+	using ScopedWorld = flecs::scoped_world;
 	using Entity = flecs::entity;
 	using System = flecs::system;
 	using WorldIter = flecs::iter;

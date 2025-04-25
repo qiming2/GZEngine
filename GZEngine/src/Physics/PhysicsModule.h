@@ -8,7 +8,7 @@
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Quat.h>
 
-#include "CommonModule.h"
+#include "TransformModule.h"
 #include "ComponentInterface.h"
 
 #define GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DO, GZ_COMPONENT_MEMBER_TYPE_DO, GZ_COMPONENT_TYPE_END) \
@@ -29,8 +29,9 @@ namespace GZ {
 
     struct PhysicsModule : Module {
 	public: // Module interface
-		void install_into(const ModuleContext& ctx) override;
-        void uninstall_from(const ModuleContext& ctx) override;
+		void install_into(const ModuleContext &module_ctx) override;
+        void after_install(const ModuleContext &module_ctx) override;
+        void uninstall_from(const ModuleContext&module_ctx) override;
     public: // Tweakable vals, intend for quick debugging and testing, not really for shipping
 		b8 is_physics_debug_on = false;
     private: // system queries
@@ -43,8 +44,6 @@ namespace GZ {
 
 		// Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
 		void destroy_default_objects();
-    
-        void simulate(f32 delta_time, World &world);
     
         void deinit();
     public: // Test and hack things together

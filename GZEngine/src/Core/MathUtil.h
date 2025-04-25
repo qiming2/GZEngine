@@ -8,6 +8,7 @@ namespace GZ {
     constexpr f32 GZ_TWO_PI = glm::two_pi<f32>();
     constexpr quat GZ_QUAT_IDENTITY = glm::identity<quat>();
     constexpr vec3 GZ_TRANSLATION_ZERO = vec3(0.0, 0.0, 0.0);
+    constexpr vec3 GZ_SCALE_ZERO = vec3(0.0, 0.0, 0.0);
 
     constexpr vec3 GZ_UP = vec3(0.0, 1.0, 0.0);
     constexpr vec3 GZ_RIGHT = vec3(1.0, 0.0, 0.0);
@@ -57,4 +58,36 @@ namespace GZ {
     GZ_FORCE_INLINE vec3 to_euler(const quat& normalized_qua) {
         return glm::degrees(glm::eulerAngles(normalized_qua));
     }
+
+	GZ_FORCE_INLINE float normalize_angle(float degrees) {
+		// 1. Wrap to [0, 360) range
+		degrees = std::fmod(degrees, 360.0f);
+
+		// 2. Shift to [-180, 180) for better UI display
+		if (degrees > 180.0f) {
+			degrees -= 360.0f;
+		}
+		else if (degrees < -180.0f) {
+			degrees += 360.0f;
+		}
+
+		// Optional: Snap near-threshold values to prevent jitter
+		const float epsilon = 0.001f;
+		if (std::abs(degrees - 180.0f) < epsilon) {
+			degrees = -180.0f;
+		}
+		if (std::abs(degrees + 180.0f) < epsilon) {
+			degrees = 180.0f;
+		}
+
+		return degrees;
+	}
+
+	GZ_FORCE_INLINE glm::vec3 normalize_angles(glm::vec3 euler_deg) {
+		return glm::vec3(
+			normalize_angle(euler_deg.x),
+			normalize_angle(euler_deg.y),
+			normalize_angle(euler_deg.z)
+		);
+	}
 }

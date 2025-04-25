@@ -26,8 +26,8 @@ namespace GZ {
         SDL_Window *window = nullptr;
         ImTextureID main_tex_id;
 
-        PhysicsModule *physics_module = nullptr;
-        RenderModule *render_module = nullptr;
+        PhysicsModule *m_physics_module = nullptr;
+		RenderModule* m_render_module = nullptr;
         
         b8 m_show_demo_window = true;
         b8 m_show_another_window = true;
@@ -49,6 +49,9 @@ namespace GZ {
         ModuleContext *module_ctx;
         // Player
         Entity player_ent;
+
+        // Scene Specific Data
+        SceneModule *m_scene_module;
     public:
         void editor_plugin_load(const EditorContext *data) {
             ImGui::SetCurrentContext(data->imgui_ctx);
@@ -62,9 +65,12 @@ namespace GZ {
             input = data->input;
             node_context = data->m_node_context;
             window = data->window;
-            physics_module = data->physics_module;
-            render_module = data->render_module;
+            
             module_ctx = data->module_ctx;
+
+			m_physics_module = data->module_ctx->module_reg->get_module_by_name<PhysicsModule>();
+			m_render_module = data->module_ctx->module_reg->get_module_by_name<RenderModule>();
+            m_scene_module = data->module_ctx->module_reg->get_module_by_name<SceneModule>(); 
 
             cam_q = world->query<CameraComponent>();
             cam_trans_q = world->query<CameraComponent, TransformComponent>();
@@ -89,8 +95,8 @@ namespace GZ {
 
             if (!m_num_total_cams) gz_warn("There is no camera in the scene!");
             
-            player_ent = world->lookup("Player");
-            if (!player_ent.is_alive()) gz_warn("Player Entity is not alive in the scene?");
+            player_ent = m_scene_module->lookup("Player");
+            if (!player_ent.is_valid()) gz_warn("Player Entity is not alive in the scene?");
         }
         
         void private_per_frame_param_update(EditorContext *data) {
@@ -193,7 +199,7 @@ namespace GZ {
             {
                 ImGui::Begin("Module window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
                 ImGui::Text("This window is for exposing module settings");
-                ImGui::Checkbox("Debug Physics", &physics_module->is_physics_debug_on);
+                ImGui::Checkbox("Debug Physics", &m_physics_module->is_physics_debug_on);
 
                 ImGui::End();
             }
@@ -300,28 +306,20 @@ namespace GZ {
                 ImGui::End();
             }
             {
-                ImGui::Begin("Another Window1");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-                ImGui::Text("Hello yeeeee from another window!");
-                ImGui::Text("Hello from another window second edition!");
-                ImGui::Text("Testtest!");
-                if (ImGui::Button("Tick Me"))
-                    gz_info("Oh yeah asd sa!");
+                ImGui::Begin("Properties Panel");
      
-                World *world = data->world;
                 ComponentRegistry *reg = data->reg;
-
                 DrawComponentContext ctx;
                 ctx.name = "position";
                 //compInter->draw_imgui(&transform->p, reg, world, &ctx);
 
                 size_t i = 0;
-                auto e = world->lookup("Player");
                 std::shared_ptr<IDrawComponentInterfaceName> cur;
                 static std::string tag_str = std::string(" Tag");
                 static std::string component_str = std::string(" Component");
-                e.each([&](Identifier id) {
+                player_ent.each([&](Identifier id) {
                     ImGui::PushID(i++);
-                    void *comp = e.get_mut(id.raw_id());
+                    void *comp = player_ent.get_mut(id.raw_id());
                     cur = reg->get_draw_interface(id);
                     if (cur) {
                         cur->draw_imgui(comp, module_ctx, &ctx);
@@ -344,7 +342,6 @@ namespace GZ {
                     }
                     ImGui::PopID();
                 });
-            
 
 				ImGui::End();
             }
