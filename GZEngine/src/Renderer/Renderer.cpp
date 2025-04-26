@@ -1901,7 +1901,7 @@ namespace GZ {
 				vkFreeMemory(device, m_physics_debug_vertex_buffer_memories[current_frame_index], nullptr);
 			}
 
-			ScopedProfiler debug_physics("Physics Debug timer");
+			gz_scoped_profiler("Physics Debug Draw timer");
 			if (!m_physics_debug_triangles.empty()) {
 				// generate some uvs
 				

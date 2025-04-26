@@ -30,18 +30,24 @@ namespace GZ {
 		return static_cast<f64>(ms) / SDL_MS_PER_SECOND;
 	}
 
+	GZ_FORCE_INLINE u64 get_ns_from_s(f64 s) {
+		return static_cast<u64>(s * SDL_NS_PER_SECOND);
+	}
+
+	GZ_FORCE_INLINE u64 get_ns_from_ms(f64 ms) {
+		return static_cast<u64>(ms * SDL_NS_PER_MS);
+	}
+
     constexpr f32 f_epsilon = std::numeric_limits<f32>::epsilon();
     constexpr f32 scale_factor = 1;
-    constexpr f32 tolerance_factor = 2;
+    constexpr f32 tolerance_factor = 1;
     GZ_FORCE_INLINE b8 is_approximately_equal(float a, float b) {
-//        gz_info("f_epsilon: {}", f_epsilon);
         double scale = std::fmax(abs(a), abs(b));
-        return abs(a - b) <= scale_factor * (tolerance_factor * f_epsilon);
+        return abs(a - b) < scale_factor * (tolerance_factor * f_epsilon);
     }
 
     GZ_FORCE_INLINE b8 is_approximately_zero(float val) {
-//        gz_info("f_epsilon: {}", f_epsilon);
-        return abs(val) <= scale_factor * (tolerance_factor * f_epsilon);
+        return abs(val) < scale_factor * (tolerance_factor * f_epsilon);
     }
 
     GZ_FORCE_INLINE b8 is_vec3_all_equal_epsilon(const vec3& a, const vec3& b) {

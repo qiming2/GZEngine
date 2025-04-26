@@ -21,7 +21,9 @@
 #include "RenderModule.h"
 #include "Renderer.h"
 #include "CharacterModule.h"
+#include "Profiler.h"
 
+#define gz_physics_scoped_profiler() gz_scoped_profiler("Physics")
 namespace GZ {
     using namespace JPH;
 
@@ -287,7 +289,7 @@ namespace GZ {
 		});
 
         // Create bodies and characters
-        System update_dirty_rigidbody_components = world.system<const TransformComponent, const RigidbodyComponent>("update_dirty_components")
+        System update_dirty_rigidbody_components = world.system<const TransformComponent, const RigidbodyComponent>("update_dirty_rigidbody_components")
             .term_at(1).second<DirtyTrait>()
             .kind(flecs::OnUpdate)
             .write<RigidbodyComponent>()
@@ -297,7 +299,7 @@ namespace GZ {
             m_body_interface->SetUserData(r_comp.id, static_cast<u64>(e.id()));
             e.remove<RigidbodyComponent, DirtyTrait>();
         });
-
+        
 		System update_dirty_character_components = world.system<const TransformComponent, const CharacterComponent>("update_dirty_character_components")
 			.term_at(1).second<DirtyTrait>()
 			.kind(flecs::OnUpdate)
@@ -344,6 +346,7 @@ namespace GZ {
 			.kind(flecs::OnUpdate)
 			.multi_threaded()
 			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
+            gz_physics_scoped_profiler();
 			size_t num_ticks = m_num_physics_ticks_cur_frame;
 			while (num_ticks) {
 				// Character update
@@ -374,7 +377,7 @@ namespace GZ {
 		System physics_update = world.system("physics_update")
             .kind(flecs::OnUpdate)
 			.run([&](WorldIter& it) {
-
+            gz_physics_scoped_profiler();
             size_t num_ticks = m_num_physics_ticks_cur_frame;
             while (num_ticks) {
                 m_physics_system.Update(m_simulation_step_time, m_collision_step_per_simulate_step, m_temp_allocator, m_job_system);

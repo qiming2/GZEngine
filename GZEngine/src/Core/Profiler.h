@@ -1,6 +1,8 @@
 #pragma once
 #include <array>
 
+#include "MathUtil.h"
+
 #define MAX_SCOPE_PROFILER 100
 #define MAX_PROFILER_FRAMES_IN_FLIGHT 2
 namespace GZ {
@@ -17,7 +19,8 @@ namespace GZ {
 	// This is a more accurate data that users can use
 	struct PerScopeProfilerData {
 		std::string name;
-		u64 measured_time = 1;
+		u64 measured_time = 0;
+		u64 new_scope_start_time = 1;
 		b8 is_started = false;
 	};
 
@@ -42,10 +45,20 @@ namespace GZ {
 		friend class ScopedProfiler;
 	private:
 		std::array<PerScopeProfilerData, MAX_SCOPE_PROFILER> m_perscope_profiler_data[MAX_PROFILER_FRAMES_IN_FLIGHT];
+		std::unordered_map<std::string, size_t> m_profile_name_to_index;
 		PerframeProfilerData m_perframe_profiler_data[MAX_PROFILER_FRAMES_IN_FLIGHT];
 	private:
 		size_t m_slot_index[MAX_PROFILER_FRAMES_IN_FLIGHT] = {0, 0};
 		size_t m_cur_frame_index = 1; // start with 1
+		
+	private:
+		void is_profiling_cur_frame();
+	private:
+		b8 m_is_profiling_cur_frame = true;
+		b8 m_is_profiling_everyframe = false;
+		u64 m_wait_time = get_ns_from_s(0.1f);
+		u64 m_last_profiling_time = 0;
+		u64 m_accumulated_time = 0;
 	};
 	
 	struct ScopedProfiler {
@@ -55,4 +68,9 @@ namespace GZ {
 		size_t m_given_slot;
 	};
 	
+#ifndef GZ_DIST
+	#define gz_scoped_profiler(name) ScopedProfiler __FILE_____LINE__(name)
+#elif
+	#define gz_scoped_profiler(name) 
+#endif
 }

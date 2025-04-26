@@ -28,6 +28,7 @@
 #include "Renderer/RenderModule.h"
 #include "Physics/PhysicsModule.h"
 #include "Common/CommonModule.h"
+#include "Core/TimerModule.h"
 
 #include "Game/CharacterModule.h"
 
@@ -218,7 +219,6 @@ namespace GZ {
             // so we call pre_render to get start new frames for imgui
             // and renderer
             
-			
 			while (SDL_PollEvent(&e)) {
 				switch (e.type) {
 				case SDL_EVENT_QUIT:
@@ -291,17 +291,17 @@ namespace GZ {
         
         // Even main_thread_blocked, we still want to run update and render
         // no events
+		private_begin_frame();
 		private_resize();
         
         // Maybe will stop rendering the frame if the window
         // is minimized
-        private_begin_frame();
         private_begin_render_frame();
 
 		cr_plugin_update(ctx);
 
         {
-            ScopedProfiler world_progress("World Progress");
+            gz_scoped_profiler("World Progress");
             world.progress(m_frame_data.deltaTime);
         }
 
@@ -319,7 +319,7 @@ namespace GZ {
         m_profiler->begin_frame();
 		m_input->begin_frame();
     }
-
+	
 	void App::private_begin_render_frame()
 	{
 		
@@ -339,7 +339,6 @@ namespace GZ {
 
 		f64 per_frame_ms = m_profiler->get_last_per_frame_data().measured_time / (f64)SDL_NS_PER_MS;
 		u64 fps = static_cast<u64>(floor(1.0 / per_frame_ms * 1000.0));
-
 	}
 
 	void App::private_add_builtin_modules()
@@ -347,6 +346,7 @@ namespace GZ {
 		// Should be able to configure in the future
 		// Modules can be plugin
 		m_module_reg->add_module<CommonModule>();
+		m_module_reg->add_module<TimerModule>();
 		m_module_reg->add_module<TransformModule>();
 		m_module_reg->add_module<SceneModule>();
 		m_module_reg->add_module<PhysicsModule>();

@@ -24,10 +24,28 @@ namespace GZ {
 	void Profiler::init()
 	{
 		Profiler::g_profiler_instance = Profiler();
+		g_profiler_instance.m_last_profiling_time = SDL_GetTicksNS();
+	}
+
+	void Profiler::is_profiling_cur_frame() {
+		if (m_is_profiling_everyframe) {
+			m_is_profiling_cur_frame = true;
+			return;
+		}
+		u64 cur_profiling_time = SDL_GetTicksNS();
+		u64 elapsed_time = cur_profiling_time - m_last_profiling_time + m_accumulated_time;
+		if (elapsed_time > m_wait_time) {
+			m_accumulated_time = elapsed_time - m_wait_time;
+			m_last_profiling_time = cur_profiling_time;
+			m_is_profiling_cur_frame = true;
+		}
+
 	}
 
 	void Profiler::begin_frame()
 	{
+		is_profiling_cur_frame();
+		if (!m_is_profiling_cur_frame) return;
 		// Using double buffer
 		m_cur_frame_index = (m_cur_frame_index + 1) % MAX_PROFILER_FRAMES_IN_FLIGHT;
 		PerframeProfilerData &cur_frame_profiler_data = m_perframe_profiler_data[m_cur_frame_index];
@@ -37,10 +55,15 @@ namespace GZ {
 
 		// Reset slot index
 		m_slot_index[m_cur_frame_index] = 0;
+
+		// Reset name map
+		m_profile_name_to_index.clear();
 	}
 	
 	void Profiler::end_frame()
 	{
+		if (!m_is_profiling_cur_frame) return;
+
 		PerframeProfilerData &cur_frame_profiler_data = m_perframe_profiler_data[m_cur_frame_index];
 		gz_core_assert(cur_frame_profiler_data.is_started, "Did you call Profiler::g_profiler_instance::start_frame() ?");
 		cur_frame_profiler_data.is_started = false;
@@ -48,30 +71,44 @@ namespace GZ {
 
 		// no need to check for end of scoped profiler since only scoped profiler
 		// can access the scope profiler func which should be implemented correctly
+		m_is_profiling_cur_frame = false;
 	}
 
 	size_t Profiler::start_scope_frame(const std::string &name)
 	{
+		if (!m_is_profiling_cur_frame) return 0;
 		std::array<PerScopeProfilerData, MAX_SCOPE_PROFILER> &cur_frame_perscope_profiler_data = m_perscope_profiler_data[m_cur_frame_index];
 		gz_core_assert(cur_frame_perscope_profiler_data.size() > m_slot_index[m_cur_frame_index], "Not Enough Scope profiler data slot!");
+		
+		auto it = m_profile_name_to_index.find(name);
+		size_t slot = 0;
+		if (it == m_profile_name_to_index.end()) {
+			slot = m_slot_index[m_cur_frame_index]++;
+			m_profile_name_to_index[name] = slot;
+			cur_frame_perscope_profiler_data[slot].measured_time = 0;
+			cur_frame_perscope_profiler_data[slot].name = name;
+		}
+		else {
+			slot = it->second;
+		}
 
-		size_t slot = m_slot_index[m_cur_frame_index]++;
-		gz_core_assert(cur_frame_perscope_profiler_data[slot].measured_time > 0 && !cur_frame_perscope_profiler_data[slot].is_started, "Did you call Profiler::g_profiler_instance::start_frame() twice or you forgot to close last start frame with end_frame() call?");
+		gz_core_assert(cur_frame_perscope_profiler_data[slot].new_scope_start_time > 0 && !cur_frame_perscope_profiler_data[slot].is_started, "Did you call Profiler::g_profiler_instance::start_frame() twice or you forgot to close last start frame with end_frame() call?");
 		
 		cur_frame_perscope_profiler_data[slot].is_started = true;
-		cur_frame_perscope_profiler_data[slot].measured_time = SDL_GetTicksNS();
-		cur_frame_perscope_profiler_data[slot].name = name;
+		cur_frame_perscope_profiler_data[slot].new_scope_start_time = SDL_GetTicksNS();
 
 		return slot;
 	}
 
 	void Profiler::end_scope_frame(size_t slot)
 	{
+		if (!m_is_profiling_cur_frame) return;
 		std::array<PerScopeProfilerData, MAX_SCOPE_PROFILER> &cur_frame_perscope_profiler_data = m_perscope_profiler_data[m_cur_frame_index];
 		gz_core_assert(cur_frame_perscope_profiler_data.size() > slot, "Index out of bound!");
 		gz_core_assert(cur_frame_perscope_profiler_data[slot].is_started, "Did you call start_scope_frame() ?");
 		cur_frame_perscope_profiler_data[slot].is_started = false;
-		cur_frame_perscope_profiler_data[slot].measured_time = SDL_GetTicksNS() - cur_frame_perscope_profiler_data[slot].measured_time;
+		cur_frame_perscope_profiler_data[slot].measured_time += SDL_GetTicksNS() - cur_frame_perscope_profiler_data[slot].new_scope_start_time;;
+		cur_frame_perscope_profiler_data[slot].new_scope_start_time = 1;
 	}
 	
 	GZ_FORCE_INLINE size_t get_last_frame_index(size_t p_cur_index) {
