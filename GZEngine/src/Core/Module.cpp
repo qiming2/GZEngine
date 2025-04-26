@@ -49,7 +49,24 @@ namespace GZ {
 		return true;
 	}
 
-	b8 ModuleRegistry::uninstall_all_modules(const ModuleContext &module_ctx)
+	b8 ModuleRegistry::end_install_all_modules(const ModuleContext& module_ctx)
+	{
+		size_t num_on_stack_modules = std::fmin(m_num_modules, NUM_MAX_ONSTACK_MODULES);
+
+		for (size_t i = 0; i < num_on_stack_modules; ++i) {
+			m_modules[i]->end_install(module_ctx);
+		}
+
+		if (m_num_modules > NUM_MAX_ONSTACK_MODULES) {
+			for (size_t i = 0; i < m_extended_modules.size(); ++i) {
+				m_extended_modules[i]->end_install(module_ctx);
+			}
+		}
+
+		return true;
+	}
+
+	b8 ModuleRegistry::uninstall_all_modules(const ModuleContext& module_ctx)
 	{
 		size_t num_on_stack_modules = std::fmin(m_num_modules, NUM_MAX_ONSTACK_MODULES);
 

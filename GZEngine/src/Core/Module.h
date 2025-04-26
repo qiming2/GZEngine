@@ -55,6 +55,8 @@ namespace GZ {
 
 		void virtual after_install(const ModuleContext& module_ctx) { gz_info("{} module: after_install not implemented", m_debug_name); };
 
+		void virtual end_install(const ModuleContext& module_ctx) { gz_info("{} module: end_install not implemented", m_debug_name); };
+
 		void virtual uninstall_from(const ModuleContext& module_ctx) = 0;
 
 		const char *get_module_debug_name() { return m_debug_name; }
@@ -130,6 +132,7 @@ namespace GZ {
 
 		b8 install_all_modules(const ModuleContext &module_ctx);
 		b8 after_install_all_modules(const ModuleContext &module_ctx);
+		b8 end_install_all_modules(const ModuleContext &module_ctx);
 		b8 uninstall_all_modules(const ModuleContext &module_ctx);
 		
 		

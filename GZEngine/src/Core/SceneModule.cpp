@@ -10,8 +10,7 @@ namespace GZ {
 
 		// Scene root singleton
 		m_world = module_ctx.world;
-		m_scene_root = m_world->entity("SceneRoot")
-			.set<TransformComponent>({GZ_TRANSLATION_ZERO, GZ_QUAT_IDENTITY, GZ_SCALE_ZERO});
+		
 	}
 	
 	void SceneModule::uninstall_from(const ModuleContext& module_ctx)
@@ -19,7 +18,13 @@ namespace GZ {
 
 	}
 
-	Entity SceneModule::lookup(const char *name)
+	void SceneModule::after_install(const ModuleContext& module_ctx)
+	{
+		m_scene_root = m_world->entity("SceneRoot")
+			.set<TransformComponent>({ GZ_TRANSLATION_ZERO, GZ_QUAT_IDENTITY, GZ_SCALE_ZERO });
+	}
+
+	Entity SceneModule::lookup(const char* name)
 	{
 		return m_scene_root.lookup(name);
 	}

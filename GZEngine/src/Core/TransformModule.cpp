@@ -32,7 +32,13 @@ namespace GZ {
 
 	}
 
-	mat4 TransformModule::world_transform(const Entity &entity)
+	void TransformModule::end_install(const ModuleContext& module_ctx)
+	{
+		m_scene_module = module_ctx.module_reg->get_module<SceneModule>();
+		m_scene_root = m_scene_module->get_scene_root_entity();
+	}
+
+	mat4 TransformModule::world_transform(const Entity& entity)
 	{
 		return mat4(1.0);
 	}

@@ -429,6 +429,7 @@ namespace GZ {
 	{
 		m_module_reg->install_all_modules(m_module_ctx);
 		m_module_reg->after_install_all_modules(m_module_ctx);
+		m_module_reg->end_install_all_modules(m_module_ctx);
 	}
 
 }

@@ -34,8 +34,11 @@ namespace GZ {
 	};
 
     struct TransformModule final : Module {
+	public:
         void install_into(const ModuleContext& module_ctx) override;
         void uninstall_from(const ModuleContext& module_ctx) override;
+		void end_install(const ModuleContext& module_ctx) override;
+	public:
 		mat4 world_transform(const Entity &entity);
 		GZ_FORCE_INLINE mat4 local_transform(const Entity &entity);
 		mat4 world_transform(EntityID entity);
@@ -45,6 +48,7 @@ namespace GZ {
 		SceneModule *m_scene_module = nullptr;
 		std::unordered_map<EntityID, mat4> m_world_transform_caches;
 		World *m_world = nullptr;
+		Entity m_scene_root;
     };
 }
 
