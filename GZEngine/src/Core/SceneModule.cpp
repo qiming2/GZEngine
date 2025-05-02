@@ -15,7 +15,12 @@ namespace GZ {
 	
 	void SceneModule::uninstall_from(const ModuleContext& module_ctx)
 	{
+		clear_scene();
+		m_scene_root.destruct();
+	}
 
+	void SceneModule::clear_scene() {
+		m_world->delete_with(flecs::ChildOf, m_scene_root);
 	}
 
 	void SceneModule::after_install(const ModuleContext& module_ctx)
@@ -31,7 +36,8 @@ namespace GZ {
 
 	Entity SceneModule::entity(const char *name)
 	{
-		return m_world->entity(name).child_of(m_scene_root);
+		return m_world->entity(name).child_of(m_scene_root)
+			.add<TransformComponent>();
 	}
 
 	Entity SceneModule::get_scene_root_entity() const

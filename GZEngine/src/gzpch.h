@@ -74,6 +74,7 @@ namespace GZ {
 	using ScopedWorld = flecs::scoped_world;
 	using Entity = flecs::entity;
 	using System = flecs::system;
+	using Observer = flecs::observer;
 	using WorldIter = flecs::iter;
 	using Identifier = flecs::id;
 	using IdentifierID = flecs::id_t;

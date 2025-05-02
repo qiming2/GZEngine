@@ -41,14 +41,22 @@ namespace GZ {
 	public:
 		mat4 world_transform(const Entity &entity);
 		GZ_FORCE_INLINE mat4 local_transform(const Entity &entity);
-		mat4 world_transform(EntityID entity);
-		GZ_FORCE_INLINE mat4 local_transform(EntityID entity);
+		void mark_entity_local_transform_dirty(const Entity &entity);
+
+		mat4 world_transform(EntityID entity_id);
+		GZ_FORCE_INLINE mat4 local_transform(EntityID entity_id);
+		void mark_entity_local_transform_dirty(EntityID entity_id);
+		
 		void update_world_transform();
 	private:
+		void private_mark_entity_local_transform_dirty_no_check(const Entity &entity);
 		SceneModule *m_scene_module = nullptr;
-		std::unordered_map<EntityID, mat4> m_world_transform_caches;
+		std::unordered_map<EntityID, mat4> m_world_transform_cache;
 		World *m_world = nullptr;
 		Entity m_scene_root;
+
+		Observer m_reparent_ob;
+		Observer m_on_set_ob;
     };
 }
 

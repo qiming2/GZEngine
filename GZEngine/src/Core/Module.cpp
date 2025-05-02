@@ -5,7 +5,7 @@
 namespace GZ {
 	const char* Module::invalid_module_name = "NONE";
 
-	ModuleRegistry *ModuleRegistry::get_module_registry()
+	ModuleRegistry *ModuleRegistry::create_global_module_registry()
 	{
 		static b8 is_initialized = false;
 		static ModuleRegistry * g_module_registry = nullptr;

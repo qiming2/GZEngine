@@ -7,6 +7,7 @@ namespace GZ {
     constexpr f32 GZ_PI = glm::pi<f32>();
     constexpr f32 GZ_TWO_PI = glm::two_pi<f32>();
     constexpr quat GZ_QUAT_IDENTITY = glm::identity<quat>();
+    constexpr mat4 GZ_MAT4_IDENTITY = glm::identity<mat4>();
     constexpr vec3 GZ_TRANSLATION_ZERO = vec3(0.0, 0.0, 0.0);
     constexpr vec3 GZ_SCALE_ZERO = vec3(0.0, 0.0, 0.0);
 

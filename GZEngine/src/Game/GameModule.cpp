@@ -4,6 +4,7 @@
 #include "PhysicsModule.h"
 #include "RenderModule.h"
 #include "MathUtil.h"
+#include "Input.h"
 
 namespace GZ {
 
@@ -26,6 +27,7 @@ namespace GZ {
 			CharacterComponent* char_comp = player.get_mut<CharacterComponent>();
 
 			Entity follow_cam = m_scene_module->lookup("Character Camera");
+			if (!follow_cam) return;
 			const TransformComponent* cam_t_comp = follow_cam.get<TransformComponent>();
 			mat3 orientation = mat3_cast(cam_t_comp->r);
 			vec3 right = glm::normalize(vec3{ orientation[0].x, 0, orientation[0].z });
@@ -78,6 +80,7 @@ namespace GZ {
 			.run([=](WorldIter& it) {
 			Entity follow_cam = m_scene_module->lookup("Character Camera");
 			Entity player = m_scene_module->lookup("Player");
+			if (!follow_cam) return;
 			const CameraComponent* cam_comp = follow_cam.get<CameraComponent>();
 			if (!cam_comp || !cam_comp->is_primary) return;
 			TransformComponent* player_t_comp = player.get_mut<TransformComponent>();

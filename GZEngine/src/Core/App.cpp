@@ -131,7 +131,7 @@ namespace GZ {
 #else
         const char *plugin_path = "E:\\GZEngine\\build\\bin\\Debug\\GZEditorHotReload.dll";
 #endif
-		m_module_reg = ModuleRegistry::get_module_registry();
+		m_module_reg = ModuleRegistry::create_global_module_registry();
 		// init some plugin data so plugin data
 		plugin_data.world = &world;
 		plugin_data.reg = &reg;
@@ -347,8 +347,8 @@ namespace GZ {
 		// Modules can be plugin
 		m_module_reg->add_module<CommonModule>();
 		m_module_reg->add_module<TimerModule>();
-		m_module_reg->add_module<TransformModule>();
 		m_module_reg->add_module<SceneModule>();
+		m_module_reg->add_module<TransformModule>();
 		m_module_reg->add_module<PhysicsModule>();
 		m_module_reg->add_module<RenderModule>();
 
@@ -364,7 +364,9 @@ namespace GZ {
 		
 		auto flying_cam = m_module_reg->get_module<SceneModule>()->entity("Flying Camera")
 			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, true })
-			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
+			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} })
+			;
+
 
 		auto char_cam = m_module_reg->get_module<SceneModule>()->entity("Character Camera")
 			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 1000.0f, true, false})
@@ -382,8 +384,8 @@ namespace GZ {
 			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_box_id })
 			.set<MeshComponent>({ box_mesh })
 			;
-		gz_info("QUAT {} {} {}", quat(1, 0, 0, 0),  quat{1, 0, 0, 0}, GZ_QUAT_IDENTITY);
-		auto e2 = m_module_reg->get_module<SceneModule>()->entity().is_a(box_prefab);
+
+		auto e2 = m_module_reg->get_module<SceneModule>()->entity("prefab hello1").is_a(box_prefab);
 		
 		// We need to multiply with two since box mesh from our mesh lib is +-0.5
 		auto floor_ent = m_module_reg->get_module<SceneModule>()->entity("floor")

@@ -2,15 +2,16 @@
 // ECSModule interface declaration
 #include <gzpch.h>
 
-#include "Renderer.h"
-#include "Input.h"
 #include "Log.h"
+struct SDL_Window;
 
 namespace GZ {
 	struct SceneModule;
 	struct TransformModule;
 	struct ComponentRegistry;
 	struct ModuleRegistry;
+	struct Renderer;
+	struct Input;
 	struct ModuleContext {
 		World *world;
 		ComponentRegistry *reg;
@@ -51,14 +52,20 @@ namespace GZ {
 		
 	public:
 		virtual ~Module() {};
+
+		// Initialize components, tags, systems, queries
 		void virtual install_into(const ModuleContext& module_ctx) = 0;
 
+		// Create some default entities necessary for modules to work
 		void virtual after_install(const ModuleContext& module_ctx) { gz_info("{} module: after_install not implemented", m_debug_name); };
 
+		// Get info from other modules, and finish installing
 		void virtual end_install(const ModuleContext& module_ctx) { gz_info("{} module: end_install not implemented", m_debug_name); };
 
+		// Clean up resources
 		void virtual uninstall_from(const ModuleContext& module_ctx) = 0;
 
+		// This is only used for debug usage
 		const char *get_module_debug_name() { return m_debug_name; }
 	protected:
 		void set_module_debug_name(const char* p_debug_name) {
@@ -71,7 +78,9 @@ namespace GZ {
 
 #define NUM_MAX_ONSTACK_MODULES 200
 	struct ModuleRegistry {
-		static ModuleRegistry *get_module_registry();
+
+		// Singleton module registry, needs to be freed at the end of the program
+		static ModuleRegistry *create_global_module_registry();
 	public:
 		~ModuleRegistry();
 		template<typename T>

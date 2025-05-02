@@ -13,6 +13,7 @@ namespace GZ {
         GZ_API Entity entity(const char *name = nullptr);
         GZ_API Entity lookup(const char *name);
         GZ_API EntityID get_scene_root_id() const;
+        GZ_API void clear_scene();
 
     private:
         Entity m_scene_root;
