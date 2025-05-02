@@ -6,6 +6,8 @@
 
 #include "Mesh.h"
 
+#include "TransformModule.h"
+
 namespace GZ {
 	
 	struct QueueFamilyIndices {
@@ -41,11 +43,13 @@ namespace GZ {
 		// Used by editor
 		void set_viewport_size(u32 w, u32 h);
 		void set_clear_value(vec4 clear_color = vec4(26/255.0f, 26/255.0f, 26/255.0f, 1.0));
+		void set_transform_module(TransformModule *scene_module);
 	public: // Geometry related
 		void submit_mesh(std::shared_ptr<Mesh> mesh);
     private: // From initialization
         void *window_handle; // Platform specific
         World world;
+		TransformModule *m_transform_module;
 	private: // Configurable value
 
 		u32 viewport_w = 0, viewport_h = 0;

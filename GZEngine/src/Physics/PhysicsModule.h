@@ -38,7 +38,7 @@ namespace GZ {
         
     public:
         b8 init(World &world);
-    
+
         // Temporary
         void create_default_objects();
 

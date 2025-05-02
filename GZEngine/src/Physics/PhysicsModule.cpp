@@ -342,10 +342,9 @@ namespace GZ {
 		});
 
 		// Character is also a physics update, so we need to run in phyiscs update system
-		System character_update = world.system<TransformComponent, CharacterComponent>("character_update")
+		System character_update = world.system("character_update")
 			.kind(flecs::OnUpdate)
-			.multi_threaded()
-			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
+			.run([&](WorldIter &it) {
             gz_physics_scoped_profiler();
 			size_t num_ticks = m_num_physics_ticks_cur_frame;
 			while (num_ticks) {
@@ -390,12 +389,14 @@ namespace GZ {
 			.kind(flecs::OnUpdate)
 			.multi_threaded()
 			.each([&](WorldIter& it, size_t index, TransformComponent& transform, CharacterComponent& char_comp) {
-            if (m_num_physics_ticks_cur_frame && it.entity(index).has<Player>()) {
+
+            Entity e = it.entity(index);
+            if (m_num_physics_ticks_cur_frame && e.has<Player>()) {
                 prev_p = next_p;
                 next_p = to_glm(m_main_character->GetPosition());
             }
 
-            if (it.entity(index).has<Player>()) {
+            if (e.has<Player>()) {
 				cached_cur_frame = glm::mix(prev_p, next_p, m_accumulated / m_simulation_step_time);
 				transform.p = cached_cur_frame;
             }
@@ -405,6 +406,7 @@ namespace GZ {
 
 			transform.r = glm::normalize(to_glm(m_main_character->GetRotation()));
 			char_comp.vel = to_glm(m_main_character->GetLinearVelocity());
+            e.modified<TransformComponent>();
 		});
 
 		System sim_to_ecs = world.system<TransformComponent, const RigidbodyComponent>("sim_to_ecs")
@@ -413,6 +415,8 @@ namespace GZ {
 			.each([&](WorldIter& it, size_t index, TransformComponent& transform, const RigidbodyComponent& rigidbody) {
 			transform.p = to_glm(m_body_interface->GetPosition(rigidbody.id));
 			transform.r = glm::normalize(to_glm(m_body_interface->GetRotation(rigidbody.id)));
+
+            it.entity(index).modified<TransformComponent>();
 		});
 
 		System physics_debug_draw = world.system("physics_debug_draw")

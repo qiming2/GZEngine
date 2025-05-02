@@ -10,7 +10,6 @@ namespace GZ {
 
 		// Scene root singleton
 		m_world = module_ctx.world;
-		
 	}
 	
 	void SceneModule::uninstall_from(const ModuleContext& module_ctx)

@@ -59,6 +59,7 @@ namespace GZ {
 
 				vec3 new_forward = glm::normalize(move_axis.x * right + move_axis.y * forward);
 				t->r = glm::quatLookAt(-new_forward, GZ_UP);
+				player.modified<TransformComponent>();
 			}
 			else {
 				char_comp->vel = vec3(0, 0, 0);
@@ -83,7 +84,7 @@ namespace GZ {
 			if (!follow_cam) return;
 			const CameraComponent* cam_comp = follow_cam.get<CameraComponent>();
 			if (!cam_comp || !cam_comp->is_primary) return;
-			TransformComponent* player_t_comp = player.get_mut<TransformComponent>();
+			const TransformComponent* player_t_comp = player.get<TransformComponent>();
 			TransformComponent* cam_t_comp = follow_cam.get_mut<TransformComponent>();
 
 			// Instead of directly using TransformComponent, we should interpolate
@@ -117,6 +118,8 @@ namespace GZ {
 			cam_dir = look_dir;
 			cam_t_comp->p = player_t_comp->p - cam_dir * cur_cam_dist;
 			cam_t_comp->r = glm::quatLookAt(look_dir, GZ_UP);
+
+			follow_cam.modified<TransformComponent>();
 		});
     }
 

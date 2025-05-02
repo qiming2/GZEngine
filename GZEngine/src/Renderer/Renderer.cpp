@@ -500,6 +500,11 @@ namespace GZ {
 		this->clear_color = clear_color;
 	}
 
+	void Renderer::set_transform_module(TransformModule* transform_module)
+	{
+		m_transform_module = transform_module;
+	}
+
 	void Renderer::submit_mesh(std::shared_ptr<Mesh> mesh)
 	{
 		// maybe no need to do this since we would upload to gpu immediately
@@ -1881,11 +1886,11 @@ namespace GZ {
 		// Draw meshes
 		{
             VkDeviceSize offsets[] = { 0 };
-            world.each([&](const TransformComponent &t_comp, const MeshComponent &mesh_comp) {
+            world.each([&](Entity e, const TransformComponent &t_comp, const MeshComponent &mesh_comp) {
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh_comp.mesh_ref->vbuffer, offsets);
                 vkCmdBindIndexBuffer(commandBuffer, mesh_comp.mesh_ref->ibuffer, 0, VK_INDEX_TYPE_UINT32);
 
-                mat4 ent_model = t_comp.get_matrix();
+                mat4 ent_model = m_transform_module->world_transform(e);
 
                 vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PerObjectPushConstant), glm::value_ptr(ent_model));
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[current_frame_index], 0, nullptr);

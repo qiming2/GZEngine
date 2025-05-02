@@ -58,5 +58,7 @@ namespace GZ {
     struct RenderModule final : Module {
         void install_into(const ModuleContext& ctx) override;
         void uninstall_from(const ModuleContext& ctx) override;
+    private:
+        Renderer *m_renderer;
     };
 }

@@ -351,7 +351,6 @@ namespace GZ {
 		m_module_reg->add_module<TransformModule>();
 		m_module_reg->add_module<PhysicsModule>();
 		m_module_reg->add_module<RenderModule>();
-
 	}
 
 	void App::private_setup_initial_scene()
@@ -367,32 +366,37 @@ namespace GZ {
 			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} })
 			;
 
-
 		auto char_cam = m_module_reg->get_module<SceneModule>()->entity("Character Camera")
 			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 1000.0f, true, false})
 			.set<TransformComponent>({ .p = vec3{0.0, 2.0, 2.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
 
-		auto e1 = m_module_reg->get_module<SceneModule>()->entity("Hello")
+		auto e1 = m_module_reg->get_module<SceneModule>()->entity("sphere")
 			.set<TransformComponent>({ vec3{1.0, 2.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_sphere_id })
 			.set<MeshComponent>({ sphere_mesh })
 			;
 
 		// Prefab generation
-		auto box_prefab = world.prefab("Hello1")
+		auto box_prefab = world.prefab("box_prefab")
 			.set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_box_id })
 			.set<MeshComponent>({ box_mesh })
 			;
 
-		auto e2 = m_module_reg->get_module<SceneModule>()->entity("prefab hello1").is_a(box_prefab);
+		auto e2 = m_module_reg->get_module<SceneModule>()->entity("box instance").is_a(box_prefab);
 		
+		auto test_transform_module = m_module_reg->get_module<SceneModule>()->entity("test_transform_hierarchy")
+			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+			.set<MeshComponent>({ box_mesh })
+			.child_of(e1)
+			;
 		// We need to multiply with two since box mesh from our mesh lib is +-0.5
 		auto floor_ent = m_module_reg->get_module<SceneModule>()->entity("floor")
 			.set<TransformComponent>({ vec3{0.0, -1.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
 			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_floor_id })
 			.set<MeshComponent>({ box_mesh })
 			;
+
 
 		world.component<Player>();
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
