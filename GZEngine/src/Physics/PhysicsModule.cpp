@@ -312,6 +312,8 @@ namespace GZ {
             e.remove<CharacterComponent, DirtyTrait>();
 		});
 
+
+        // TODO(Qiming): get world transform instead of local
         // Systems can be multithreaded, so we could take advantage of this
         System ecs_to_sim = world.system<const TransformComponent, const RigidbodyComponent>("ecs_to_sim")
             .kind(flecs::OnUpdate)
@@ -319,7 +321,6 @@ namespace GZ {
             .each([&](Entity e, const TransformComponent& transform, const RigidbodyComponent& rigidbody) {
              m_body_interface->SetPositionAndRotationWhenChanged(rigidbody.id, to_jolt(transform.p), to_jolt(glm::normalize(transform.r)), EActivation::Activate);
         });
-
 
         // This is only for characters
 		static vec3 prev_p = { 0, 0, 0 };

@@ -47,7 +47,6 @@ namespace GZ {
 		GZ_FORCE_INLINE mat4 local_transform(EntityID entity_id);
 		void mark_entity_local_transform_dirty(EntityID entity_id);
 		
-		void update_world_transform();
 	private:
 		void private_mark_entity_local_transform_dirty_no_check(const Entity &entity);
 		SceneModule *m_scene_module = nullptr;

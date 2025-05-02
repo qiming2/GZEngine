@@ -48,7 +48,6 @@ namespace GZ {
 			.event(flecs::OnRemove)
 			.each([&](flecs::iter& it, size_t i, const TransformComponent&) {
 			const Entity& e = it.world().id(it.entities()[i]).entity();
-			//gz_info("TransformComponent parent added {}", e.name().c_str());
 
 			// At the time of reparenting, it does not need to check whether
 			// this entity has transform component
@@ -61,8 +60,6 @@ namespace GZ {
 			.event(flecs::OnSet)
 			.each([&](flecs::iter& it, size_t i, const TransformComponent&) {
 			const Entity& e = it.world().id(it.entities()[i]).entity();
-			//gz_info("TransformComponent set on {}", e.name().c_str());
-			counter++;
 			if (e != m_scene_root)
 				mark_entity_local_transform_dirty(e);
 		});
@@ -117,11 +114,6 @@ namespace GZ {
 		Entity entity = m_world->id(entity_id).entity();
 		gz_assert(entity.has<TransformComponent>(), "Entity does not have transform component!");
 		private_mark_entity_local_transform_dirty_no_check(entity);
-	}
-
-	void TransformModule::update_world_transform()
-	{
-
 	}
 
 	void TransformModule::private_mark_entity_local_transform_dirty_no_check(const Entity &entity)
