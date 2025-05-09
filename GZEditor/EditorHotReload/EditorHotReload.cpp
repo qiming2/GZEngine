@@ -52,6 +52,7 @@ namespace GZ {
 
         // Scene Specific Data
         SceneModule *m_scene_module;
+        Entity m_scene_root;
     public:
         void editor_plugin_load(const EditorContext *data) {
             ImGui::SetCurrentContext(data->imgui_ctx);
@@ -97,6 +98,8 @@ namespace GZ {
             
             player_ent = m_scene_module->lookup("Player");
             if (!player_ent.is_valid()) gz_warn("Player Entity is not alive in the scene?");
+
+            m_scene_root = m_scene_module->get_scene_root_entity();
         }
         
         void private_per_frame_param_update(EditorContext *data) {
@@ -161,46 +164,43 @@ namespace GZ {
                 static float f = 0.0f;
                 static int counter = 0;
 
-                ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+                ImGui::Begin("Simple Config");                          // Create a window called "Hello, world!" and append into it.
 
                 ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
                 ImGui::Checkbox("Demo Window", &m_show_demo_window);      // Edit bools storing our window open/close state
                 ImGui::Checkbox("Another Window", &m_show_another_window);
                 ImGui::Checkbox("Node editor", &m_show_node_editor);
 
-                ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-                if (ImGui::ColorEdit3("clear color", (float*)&m_clear_color)) {
-                    data->gz_renderer->set_clear_value(m_clear_color);
-                } // Edit 3 floats representing a color
-
-                static TransformComponent comp;
-                // Test component draw ui
-                /*draw_component_imgui_ui_transform(&comp);*/
-
-                if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                    counter++;
-                ImGui::SameLine();
-                ImGui::Text("counter = %d", counter);
-                
-                f64 per_frame_ms = data->profiler->get_last_per_frame_data().measured_time / (f64)SDL_NS_PER_MS;
-                ImGui::TextWrapped("Application average %.5f ms/frame (%.2f FPS)", per_frame_ms, 1.0f / per_frame_ms * 1000.0f);
-
-                data->profiler->walk_last_perscope_frame_data([&](PerScopeProfilerData scope_profiler_data) {
-                    f64 scope_frame_ms = get_ms_from_ns(scope_profiler_data.measured_time);
-                    ImGui::TextWrapped("%s %.5f ms/frame1", scope_profiler_data.name.c_str(), scope_frame_ms);
-                });
-                
                 ImGui::End();
                 
+            }
+
+            {
+				ImGui::Begin("Stats Panel");
+
+				f64 per_frame_ms = data->profiler->get_last_per_frame_data().measured_time / (f64)SDL_NS_PER_MS;
+				ImGui::TextWrapped("Application average %.5f ms/frame (%.2f FPS)", per_frame_ms, 1.0f / per_frame_ms * 1000.0f);
+
+				data->profiler->walk_last_perscope_frame_data([&](PerScopeProfilerData scope_profiler_data) {
+					f64 scope_frame_ms = get_ms_from_ns(scope_profiler_data.measured_time);
+					ImGui::TextWrapped("%s %.5f ms/frame1", scope_profiler_data.name.c_str(), scope_frame_ms);
+				});
+
+				ImGui::End();
             }
 
             // 3. Show another simple window.
             if (m_show_another_window)
             {
                 ImGui::Begin("Module window", &m_show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+				if (ImGui::ColorEdit3("clear color", (float*)&m_clear_color)) {
+					data->gz_renderer->set_clear_value(m_clear_color);
+				} // Edit 3 floats representing a color
                 ImGui::Text("This window is for exposing module settings");
                 ImGui::Checkbox("Debug Physics", &m_physics_module->is_physics_debug_on);
-
+                if (ImGui::Button("Clear Scene")) {
+                    m_scene_module->clear_scene();
+                }
                 ImGui::End();
             }
             
@@ -262,6 +262,9 @@ namespace GZ {
 					// Switch cam mode
 					switch (m_primary_cam_index) {
 					case 0:
+                        if (!input->is_key_down(SCANCODE_LALT)) {
+                            return;
+                        }
 						private_flying_cam_controller(t_comp);
 						break;
 					case 1:
@@ -305,46 +308,135 @@ namespace GZ {
                 ImGui::PopStyleVar();
                 ImGui::End();
             }
-            {
-                ImGui::Begin("Properties Panel");
-     
-                ComponentRegistry *reg = data->reg;
-                DrawComponentContext ctx;
-                ctx.name = "position";
-                //compInter->draw_imgui(&transform->p, reg, world, &ctx);
 
-                size_t i = 0;
-                std::shared_ptr<IDrawComponentInterfaceName> cur;
-                static std::string tag_str = std::string(" Tag");
-                static std::string component_str = std::string(" Component");
-                player_ent.each([&](Identifier id) {
-                    ImGui::PushID(i++);
-                    void *comp = player_ent.get_mut(id.raw_id());
-                    cur = reg->get_draw_interface(id);
-                    if (cur) {
-                        cur->draw_imgui(comp, module_ctx, &ctx);
-                    }
-                    else {
-                        std::string name("");
-                        if (!id.is_entity()) {
-                            name = id.first().name().c_str() + tag_str;
-                        }
-                        else {
-                           name = id.entity().name().c_str() + component_str;
-                           
-                        }
-                    
-                        if (name == "") {
-                            gz_warn("No name on this component!");
-                            return;
-                        }
-                        ImGui::LabelText("", "%s is Not Drawable!", name.c_str());
-                    }
-                    ImGui::PopID();
-                });
+            // Entity Selection Context
+            static Entity selected_ent = Entity();
+			{
+				ImGui::Begin("Entity Tree");
+                ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.0f, 0.3333333402872086f, 0.4490196138620377f, 1.0f));
+
+				// 'selection_mask' is dumb representation of what may be user-side selection state.
+				//  You may retain selection state inside or outside your objects in whatever format you see fit.
+				// 'node_clicked' is temporary storage of what node we have clicked to process selection at the end
+				/// of the loop. May be a pointer to your own node type, etc.
+                static int selection_mask = 0;
+                size_t scene_entity_count = 0;
+				if (ImGui::TreeNodeEx("SceneRoot", ImGuiTreeNodeFlags_DefaultOpen))
+				{
+					static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+					static bool test_drag_and_drop = true;
+
+                    std::function<void(Entity)> draw_entity_tree = [&](Entity ent) {
+                        
+                        ent.children([&](Entity child){
+                            scene_entity_count++;
+                            ImGui::PushID(scene_entity_count);
+
+							ImGuiTreeNodeFlags node_flags = base_flags;
+							const bool is_selected = selected_ent == child;
+							if (is_selected)
+								node_flags |= ImGuiTreeNodeFlags_Selected;
+
+							b8 has_child = world->query_builder()
+								.with(EcsChildOf, child)
+								.build().is_true();
+
+                            if (has_child) {
+								bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", child.name().c_str() == nullptr ? "Unknown Entity" : child.name().c_str());
+								if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+									selected_ent = child;
+								if (test_drag_and_drop && ImGui::BeginDragDropSource())
+								{
+									ImGui::SetDragDropPayload("_TREENODE", NULL, 0);
+									ImGui::Text("This is a drag and drop source");
+									ImGui::EndDragDropSource();
+								}
+
+								if (node_open)
+								{
+									draw_entity_tree(child);
+									ImGui::TreePop();
+								}
+                            }
+                            else {
+                                node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+                                ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", child.name().c_str() == nullptr ? "Unknown Entity" : child.name().c_str());
+								if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+									selected_ent = child;
+								if (test_drag_and_drop && ImGui::BeginDragDropSource())
+								{
+									ImGui::SetDragDropPayload("_TREENODE", NULL, 0);
+									ImGui::Text("This is a drag and drop source");
+									ImGui::EndDragDropSource();
+								}
+                            }
+
+                            scene_entity_count++;
+                            ImGui::PopID();
+                        });
+                        
+                    };
+
+                    draw_entity_tree(m_scene_root);
+
+					ImGui::TreePop();
+				}
+                ImGui::PopStyleColor();
+
+				if (ImGui::BeginPopupContextWindow("Entity Menus"))
+				{
+					if (ImGui::MenuItem("Add Entity")) { gz_info("Add Entity!"); }
+					ImGui::EndPopup();
+				}
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered()) {
+                    selected_ent = Entity();
+                }
+                
+                
+				ImGui::End();
+			}
+
+			{
+				ImGui::Begin("Properties Panel");
+
+				ComponentRegistry* reg = data->reg;
+				DrawComponentContext ctx;
+                ctx.name = "TransformComponent";
+
+				size_t component_count = 0;
+				std::shared_ptr<IDrawComponentInterfaceName> cur;
+				static constexpr std::string_view component_str = " Component";
+				if (selected_ent.is_valid() && selected_ent != m_scene_root) {
+					selected_ent.each([&](Identifier id) {
+						ImGui::PushID(component_count++);
+						void* comp = selected_ent.get_mut(id.raw_id());
+						cur = reg->get_draw_interface(id);
+                        
+						if (cur) {
+							cur->draw_imgui(comp, module_ctx, &ctx);
+						}
+						else {
+							std::string name("");
+
+                            // Only draw component
+							if (id.is_entity()) {
+								name = id.entity().name().c_str();
+								if (name == "") {
+									gz_warn("No name on this component!");
+									return;
+								}
+								ImGui::LabelText("", "%s is Not Drawable!", name.c_str());
+							}
+						}
+						ImGui::PopID();
+					});
+                }
+                else {
+                    ImGui::TextColored({0, 1, 0, 1}, "Select Something...");
+                }
 
 				ImGui::End();
-            }
+			}
         }
 
         void private_follow_cam_controller(TransformComponent& t_comp) {

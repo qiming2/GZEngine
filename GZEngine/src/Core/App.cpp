@@ -166,13 +166,14 @@ namespace GZ {
 		m_module_ctx.module_reg = m_module_reg;
 		
 
-		// Init all ecs modules, systems, components
-		// Before runnning, we install builtin ecs modules
-		world.set_threads(4);
+		
+		private_config_world();
         
         // Here should be sandbox/game logic modules before all builtin modules
         private_add_game_modules();
 
+		// Init all ecs modules, systems, components
+		// Before runnning, we install builtin ecs modules
         // builtin modules should happen after
 		private_add_builtin_modules();
 
@@ -398,16 +399,55 @@ namespace GZ {
 			;
 
 
-		world.component<Player>();
 		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
 		gz_renderer->submit_mesh(model_mesh);
-		auto e3 = m_module_reg->get_module<SceneModule>()->entity("Player")
+		Entity e3 = m_module_reg->get_module<SceneModule>()->entity("Player")
 			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
 			.set<CharacterComponent>({.vel = {0, 0.0, 0}})
 			.add<Player>();
 			;
+		
+		//ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
+		////desc.serialize_entity_id = true;
+		////desc.serialize_type_info = true;
+		//flecs::string json = world.component<Player>().to_json();
+		//if (!json) {
+		//	// error
+		//	gz_info("Serialization failed: {}", json.c_str());
+		//}
+		//else {
+		//	gz_info("{}", json.c_str());
+		//}
+		//
+		////char_cam.destruct();
+		//const char *res = world.component<Player>().from_json(json);
+		//if (res) {
+		//	// error
+		//	gz_info("deserialization failure: {}", res);
+		//}
 
+		//flecs::serializer ser;
+		//
+		//ser.value_ = [](const struct ecs_serializer_t* ser,
+		//	ecs_entity_t type,
+		//	const void* value) -> int {
+
+		//};
+		//
+		//world.component<TransformComponent>()
+		//	.opaque({})
+		//	.serialize([](const flecs::serializer* s, const Sum* data) {
+		//	s->member("x");
+		//	s->value(data->a);
+		//	s->member("y");
+		//	s->value(data->b);
+
+		//	s->member("result");
+		//	s->value(data->a + data->b); // Serialize fake member
+		//	return 0;
+		//}).assign_bool()
+		//world.cursor<TransformComponent>().set_float()
 	}
 
 	void App::private_end_render_frame()
@@ -431,11 +471,24 @@ namespace GZ {
 		m_module_reg->add_module<GameModule>();
 	}
 
+	void App::private_config_world()
+	{
+		world.set_threads(4);
+#ifdef GZ_DEBUG
+		// Optional, gather statistics for explorer
+		world.import<flecs::stats>();
+
+		// Creates REST server on default port (27750)
+		world.set<flecs::Rest>({});
+#endif
+	}
+
 	void App::private_execute_all_module_stages()
 	{
 		m_module_reg->install_all_modules(m_module_ctx);
 		m_module_reg->after_install_all_modules(m_module_ctx);
 		m_module_reg->end_install_all_modules(m_module_ctx);
 	}
-
+	
 }
+

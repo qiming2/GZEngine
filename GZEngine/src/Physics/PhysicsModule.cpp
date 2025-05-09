@@ -20,7 +20,7 @@
 #include "MathUtil.h"
 #include "RenderModule.h"
 #include "Renderer.h"
-#include "CharacterModule.h"
+#include "GameModule.h"
 #include "Profiler.h"
 
 #define gz_physics_scoped_profiler() gz_scoped_profiler("Physics")
@@ -268,6 +268,9 @@ namespace GZ {
 
         m_physics_renderer = new PhysicsDebugRenderer(module_ctx.renderer);
         // System component initialization
+        world.component<JPH::BodyID>()
+            .member<u32>("mID");
+
         GZ_RIGIDBODY_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);
 
         GZ_CHARACTER_COMPONENT_VARS(GZ_COMPONENT_TYPE_DEFINE, GZ_COMPONENT_TYPE_MEMBER_DEFINE, GZ_COMPONENT_TYPE_END_DEFINE);

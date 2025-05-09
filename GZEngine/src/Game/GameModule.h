@@ -3,8 +3,7 @@
 #include "ComponentInterface.h"
 
 namespace GZ {
-
-
+    struct Player{};
 }
 
 namespace GZ {

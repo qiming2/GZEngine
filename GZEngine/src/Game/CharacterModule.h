@@ -2,5 +2,5 @@
 #include "Module.h"
 
 namespace GZ {
-	struct Player{};
+
 }

@@ -127,7 +127,7 @@ namespace GZ {
 		}
 
 		entity.children([&](Entity child) {
-			mark_entity_local_transform_dirty(child);
+			private_mark_entity_local_transform_dirty_no_check(child);
 		});
 	}
 

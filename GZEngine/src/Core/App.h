@@ -115,6 +115,7 @@ namespace GZ {
 		void private_begin_render_frame();
 		void private_add_builtin_modules();
 		void private_add_game_modules();
+		void private_config_world();
 		void private_execute_all_module_stages();
 	};
 
