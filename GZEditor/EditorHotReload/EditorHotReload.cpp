@@ -321,10 +321,26 @@ namespace GZ {
 				/// of the loop. May be a pointer to your own node type, etc.
                 static int selection_mask = 0;
                 size_t scene_entity_count = 0;
-				if (ImGui::TreeNodeEx("SceneRoot", ImGuiTreeNodeFlags_DefaultOpen))
+				
+                //Entity current_scene_prefab = m_scene_module->get_active_scene_prefab();
+                Entity current_scene = m_scene_module->get_active_scene();
+				const TagComponent* tag_scene = current_scene.get<TagComponent>();
+				const char* scene_name = tag_scene ? tag_scene->name.data() : "Unknown Scene";
+				if (ImGui::TreeNodeEx(scene_name, ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 					static bool test_drag_and_drop = true;
+
+					if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+						selected_ent = current_scene;
+					if (test_drag_and_drop && ImGui::BeginDragDropSource())
+					{
+						ImGui::SetDragDropPayload("_TREENODE", NULL, 0);
+						ImGui::Text("This is a drag and drop source");
+						ImGui::EndDragDropSource();
+					}
+
+					
 
                     std::function<void(Entity)> draw_entity_tree = [&](Entity ent) {
                         
@@ -341,9 +357,11 @@ namespace GZ {
 								.with(EcsChildOf, child)
 								.build().is_true();
 
+                            const TagComponent *tag = child.get<TagComponent>();
+                            const char *entity_name = tag ? tag->name.data() : "Unknown Entity";
                             if (has_child) {
-								bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", child.name().c_str() == nullptr ? "Unknown Entity" : child.name().c_str());
-								if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+								bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", entity_name);
+								if (ImGui::IsItemClicked() || ImGui::IsItemClicked(1) && !ImGui::IsItemToggledOpen())
 									selected_ent = child;
 								if (test_drag_and_drop && ImGui::BeginDragDropSource())
 								{
@@ -360,8 +378,8 @@ namespace GZ {
                             }
                             else {
                                 node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-                                ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", child.name().c_str() == nullptr ? "Unknown Entity" : child.name().c_str());
-								if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+                                ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", entity_name);
+								if (ImGui::IsItemClicked() || ImGui::IsItemClicked(1) && !ImGui::IsItemToggledOpen())
 									selected_ent = child;
 								if (test_drag_and_drop && ImGui::BeginDragDropSource())
 								{
@@ -376,16 +394,26 @@ namespace GZ {
                         });
                         
                     };
+                    /*if (current_scene_prefab)
+					    draw_entity_tree(current_scene_prefab);*/
+                    if (current_scene)
+                        draw_entity_tree(current_scene);
 
-                    draw_entity_tree(m_scene_root);
-
-					ImGui::TreePop();
+                    ImGui::TreePop();
 				}
                 ImGui::PopStyleColor();
 
 				if (ImGui::BeginPopupContextWindow("Entity Menus"))
 				{
-					if (ImGui::MenuItem("Add Entity")) { gz_info("Add Entity!"); }
+					if (ImGui::MenuItem("Add Entity")) {
+                        if (selected_ent) {
+                            m_scene_module->entity(selected_ent);
+                        }
+                        else {
+							m_scene_module->entity();
+                        }
+
+                    }
 					ImGui::EndPopup();
 				}
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered()) {

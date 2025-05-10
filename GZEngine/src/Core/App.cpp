@@ -356,57 +356,58 @@ namespace GZ {
 
 	void App::private_setup_initial_scene()
 	{
-		// Temp add sphere
-		auto sphere_mesh = Mesh::get_uvsphere_mesh(0.5f);
-		auto box_mesh = Mesh::get_box_mesh();
-		gz_renderer->submit_mesh(sphere_mesh);
-		gz_renderer->submit_mesh(box_mesh);
+		//// Temp add sphere
+		//auto sphere_mesh = Mesh::get_uvsphere_mesh(0.5f);
+		//auto box_mesh = Mesh::get_box_mesh();
+		//gz_renderer->submit_mesh(sphere_mesh);
+		//gz_renderer->submit_mesh(box_mesh);
+		//
+		//auto flying_cam = m_module_reg->get_module<SceneModule>()->entity("Flying Camera")
+		//	.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, true })
+		//	.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} })
+		//	;
+
+		//auto char_cam = m_module_reg->get_module<SceneModule>()->entity("Character Camera")
+		//	.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 1000.0f, true, false})
+		//	.set<TransformComponent>({ .p = vec3{0.0, 2.0, 2.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
+
+		//auto e1 = m_module_reg->get_module<SceneModule>()->entity("sphere")
+		//	.set<TransformComponent>({ vec3{1.0, 2.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+		//	.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_sphere_id })
+		//	.set<MeshComponent>({ sphere_mesh })
+		//	;
+
+		//// Prefab generation
+		//auto box_prefab = world.prefab("box_prefab")
+		//	.set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+		//	.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_box_id })
+		//	.set<MeshComponent>({ box_mesh })
+		//	;
+
+		//auto e2 = m_module_reg->get_module<SceneModule>()->entity("box instance").is_a(box_prefab);
+		//
+		//auto test_transform_module = m_module_reg->get_module<SceneModule>()->entity("test_transform_hierarchy")
+		//	.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+		//	.set<MeshComponent>({ box_mesh })
+		//	.child_of(e1)
+		//	;
+		//// We need to multiply with two since box mesh from our mesh lib is +-0.5
+		//auto floor_ent = m_module_reg->get_module<SceneModule>()->entity("floor")
+		//	.set<TransformComponent>({ vec3{0.0, -1.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
+		//	.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_floor_id })
+		//	.set<MeshComponent>({ box_mesh })
+		//	;
+
+
+		//std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
+		//gz_renderer->submit_mesh(model_mesh);
+		//Entity e3 = m_module_reg->get_module<SceneModule>()->entity("Player")
+		//	.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
+		//	.set<MeshComponent>({ model_mesh })
+		//	.set<CharacterComponent>({.vel = {0, 0.0, 0}})
+		//	.add<Player>();
+		//	;
 		
-		auto flying_cam = m_module_reg->get_module<SceneModule>()->entity("Flying Camera")
-			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 100.0f, true, true })
-			.set<TransformComponent>({ .p = vec3{0.0, 5.0, 5.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} })
-			;
-
-		auto char_cam = m_module_reg->get_module<SceneModule>()->entity("Character Camera")
-			.set<CameraComponent>({ GZ_PI * 0.25f, static_cast<f32>(window_w / window_h), 0.1f, 1000.0f, true, false})
-			.set<TransformComponent>({ .p = vec3{0.0, 2.0, 2.0}, .r = {glm::angleAxis(-GZ_PI * 0.25f, GZ_RIGHT)} });
-
-		auto e1 = m_module_reg->get_module<SceneModule>()->entity("sphere")
-			.set<TransformComponent>({ vec3{1.0, 2.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
-			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_sphere_id })
-			.set<MeshComponent>({ sphere_mesh })
-			;
-
-		// Prefab generation
-		auto box_prefab = world.prefab("box_prefab")
-			.set<TransformComponent>({ vec3{2.0, 2.0, 2.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
-			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_box_id })
-			.set<MeshComponent>({ box_mesh })
-			;
-
-		auto e2 = m_module_reg->get_module<SceneModule>()->entity("box instance").is_a(box_prefab);
-		
-		auto test_transform_module = m_module_reg->get_module<SceneModule>()->entity("test_transform_hierarchy")
-			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
-			.set<MeshComponent>({ box_mesh })
-			.child_of(e1)
-			;
-		// We need to multiply with two since box mesh from our mesh lib is +-0.5
-		auto floor_ent = m_module_reg->get_module<SceneModule>()->entity("floor")
-			.set<TransformComponent>({ vec3{0.0, -1.0, 0.0}, GZ_QUAT_IDENTITY, vec3{200.0, 2.0, 200.0} })
-			.set<RigidbodyComponent>({ m_module_reg->get_module<PhysicsModule>()->m_floor_id })
-			.set<MeshComponent>({ box_mesh })
-			;
-
-
-		std::shared_ptr<Mesh> model_mesh = Mesh::load_mesh_from_obj("asset/model/meng_yuan.obj");
-		gz_renderer->submit_mesh(model_mesh);
-		Entity e3 = m_module_reg->get_module<SceneModule>()->entity("Player")
-			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
-			.set<MeshComponent>({ model_mesh })
-			.set<CharacterComponent>({.vel = {0, 0.0, 0}})
-			.add<Player>();
-			;
 		
 		//ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
 		////desc.serialize_entity_id = true;

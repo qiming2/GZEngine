@@ -73,12 +73,14 @@ namespace GZ {
 	using World = flecs::world;
 	using ScopedWorld = flecs::scoped_world;
 	using Entity = flecs::entity;
+	using Prefab = flecs::entity;
 	using System = flecs::system;
 	using Observer = flecs::observer;
 	using WorldIter = flecs::iter;
 	using Identifier = flecs::id;
 	using IdentifierID = flecs::id_t;
 	using EntityID = flecs::entity_t;
+	using PrefabID = flecs::entity_t;
 	using ComponentID = flecs::entity_t;
 }
 
