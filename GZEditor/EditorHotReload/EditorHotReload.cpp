@@ -320,7 +320,6 @@ namespace GZ {
 				// 'node_clicked' is temporary storage of what node we have clicked to process selection at the end
 				/// of the loop. May be a pointer to your own node type, etc.
                 static int selection_mask = 0;
-                size_t scene_entity_count = 0;
 				
                 //Entity current_scene_prefab = m_scene_module->get_active_scene_prefab();
                 Entity current_scene = m_scene_module->get_active_scene();
@@ -345,8 +344,6 @@ namespace GZ {
                     std::function<void(Entity)> draw_entity_tree = [&](Entity ent) {
                         
                         ent.children([&](Entity child){
-                            scene_entity_count++;
-                            ImGui::PushID(scene_entity_count);
 
 							ImGuiTreeNodeFlags node_flags = base_flags;
 							const bool is_selected = selected_ent == child;
@@ -360,7 +357,7 @@ namespace GZ {
                             const TagComponent *tag = child.get<TagComponent>();
                             const char *entity_name = tag ? tag->name.data() : "Unknown Entity";
                             if (has_child) {
-								bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", entity_name);
+								bool node_open = ImGui::TreeNodeEx((void*)(intptr_t)child.id(), node_flags, " %s", entity_name);
 								if (ImGui::IsItemClicked() || ImGui::IsItemClicked(1) && !ImGui::IsItemToggledOpen())
 									selected_ent = child;
 								if (test_drag_and_drop && ImGui::BeginDragDropSource())
@@ -378,7 +375,7 @@ namespace GZ {
                             }
                             else {
                                 node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-                                ImGui::TreeNodeEx((void*)(intptr_t)scene_entity_count, node_flags, " %s", entity_name);
+                                ImGui::TreeNodeEx((void*)(intptr_t)child.id(), node_flags, " %s", entity_name);
 								if (ImGui::IsItemClicked() || ImGui::IsItemClicked(1) && !ImGui::IsItemToggledOpen())
 									selected_ent = child;
 								if (test_drag_and_drop && ImGui::BeginDragDropSource())
@@ -389,8 +386,6 @@ namespace GZ {
 								}
                             }
 
-                            scene_entity_count++;
-                            ImGui::PopID();
                         });
                         
                     };
@@ -406,14 +401,26 @@ namespace GZ {
 				if (ImGui::BeginPopupContextWindow("Entity Menus"))
 				{
 					if (ImGui::MenuItem("Add Entity")) {
+						
                         if (selected_ent) {
                             m_scene_module->entity(selected_ent);
                         }
                         else {
 							m_scene_module->entity();
                         }
-
                     }
+					if (ImGui::MenuItem("Serialize Entity Tree")) {
+						ecs_entity_to_json_desc_t desc;
+						desc.serialize_values = true;
+                        desc.serialize_entity_id = true; 
+                        if (selected_ent) {
+                            gz_info("{}", selected_ent.to_json(&desc));
+                        }
+                        else {
+                            //selected_ent.from_json();
+                        }
+
+					}
 					ImGui::EndPopup();
 				}
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered()) {

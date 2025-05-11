@@ -154,3 +154,13 @@ namespace GZ {
 		size_t m_num_modules = 0;
 	};
 }
+
+// Component formatter
+template<>
+struct fmt::formatter<flecs::string> : fmt::formatter<std::string>
+{
+	auto format(flecs::string &my_flecs_string, format_context& ctx) const -> decltype(ctx.out())
+	{
+		return fmt::format_to(ctx.out(), "{}", my_flecs_string.c_str());
+	}
+};

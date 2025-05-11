@@ -5,7 +5,7 @@
 namespace GZ {
     struct SceneRoot {}; // Singleton
     struct TagComponent {
-        std::string_view name;
+        std::string name;
     };
 
     struct SceneModule final : Module {

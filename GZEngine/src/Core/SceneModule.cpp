@@ -10,8 +10,20 @@ namespace GZ {
 		// Scene root singleton
 		m_world = module_ctx.world;
 
+		// Register reflection for std::string
+		m_world->component<std::string>()
+			.opaque(flecs::String) // Opaque type that maps to string
+			.serialize([](const flecs::serializer* s, const std::string* data) {
+			const char* str = data->c_str();
+			return s->value(flecs::String, &str); // Forward to serializer
+		})
+			.assign_string([](std::string* data, const char* value) {
+			*data = value; // Assign new value to std::string
+		});
+
 		m_world->component<TagComponent>()
-			.member<flecs::string>("name");
+			.member<std::string>("name");
+		
 	}
 	
 	void SceneModule::uninstall_from(const ModuleContext& module_ctx)
@@ -50,7 +62,23 @@ namespace GZ {
 				Prefab new_five = m_world->prefab("5").child_of(new_two).set<TagComponent>({"New 5"}).slot_of(m_cur_scene_prefab);;*/
 		//gz_info("Create Scene {}", new_three.path().c_str());
 
-		
+		const char* json = R"json(
+    {
+      "entities": [
+        {
+          "entity": "Parent",
+          "components": {
+          }
+        },
+        {
+          "entity": "Child",
+          "components": {
+            "ChildOf": "Parent"
+          }
+        }
+      ]
+    })json";
+
 		m_cur_scene = m_world->entity().child_of(m_scene_root)
 			.set<TagComponent>({ "New Scene" })
 			.add<TransformComponent>();
