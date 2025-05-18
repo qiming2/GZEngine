@@ -107,7 +107,7 @@ namespace GZ {
 		gz_core_assert(cur_frame_perscope_profiler_data.size() > slot, "Index out of bound!");
 		gz_core_assert(cur_frame_perscope_profiler_data[slot].is_started, "Did you call start_scope_frame() ?");
 		cur_frame_perscope_profiler_data[slot].is_started = false;
-		cur_frame_perscope_profiler_data[slot].measured_time += SDL_GetTicksNS() - cur_frame_perscope_profiler_data[slot].new_scope_start_time;;
+		cur_frame_perscope_profiler_data[slot].measured_time += SDL_GetTicksNS() - cur_frame_perscope_profiler_data[slot].new_scope_start_time;
 		cur_frame_perscope_profiler_data[slot].new_scope_start_time = 1;
 	}
 	

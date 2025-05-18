@@ -37,17 +37,36 @@ namespace GZ {
 			return module_type_id;
 		}
 		
+        template <class T>
+        static constexpr
+        std::string_view
+        type_name()
+        {
+            using namespace std;
+        #ifdef __clang__
+            string_view p = __PRETTY_FUNCTION__;
+            return string_view(p.data() + 53, p.size() - 53 - 1);
+        #elif defined(__GNUC__)
+            string_view p = __PRETTY_FUNCTION__;
+        #  if __cplusplus < 201402
+            return string_view(p.data() + 36, p.size() - 36 - 1);
+        #  else
+            return string_view(p.data() + 49, p.find(';', 49) - 49);
+        #  endif
+        #elif defined(_MSC_VER)
+            string_view p = __FUNCSIG__;
+            return string_view(p.data() + 84, p.size() - 84 - 7);
+        #endif
+        }
+        
 		template<typename T>
 		static const char *get_module_debug_name() {
 			static_assert(std::is_base_of_v<Module, T>);
-			const char *module_name = typeid(T).name();
+            static std::string s;
+            if (!s.empty()) return s.c_str();
 
-			// TODO(Qiming): This is only going to work on MSVC
-			for (size_t i = 0; i < std::strlen(module_name); ++i) {
-				if (module_name[i] == ' ') return static_cast<const char *>(module_name + (i + 1));
-			}
-
-			return module_name;
+            s = type_name<T>();
+			return s.c_str();
 		}
 		
 	public:

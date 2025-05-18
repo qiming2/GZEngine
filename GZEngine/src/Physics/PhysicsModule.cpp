@@ -419,7 +419,6 @@ namespace GZ {
 			.each([&](WorldIter& it, size_t index, TransformComponent& transform, const RigidbodyComponent& rigidbody) {
 			transform.p = to_glm(m_body_interface->GetPosition(rigidbody.id));
 			transform.r = glm::normalize(to_glm(m_body_interface->GetRotation(rigidbody.id)));
-
             it.entity(index).modified<TransformComponent>();
 		});
 

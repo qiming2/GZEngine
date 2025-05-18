@@ -54,6 +54,10 @@ namespace GZ {
         SceneModule *m_scene_module;
         Entity m_scene_root;
     public:
+        void editor_plugin_unload(const EditorContext *data) {
+            cam_q.destruct();
+            cam_trans_q.destruct();
+        }
         void editor_plugin_load(const EditorContext *data) {
             ImGui::SetCurrentContext(data->imgui_ctx);
 
@@ -73,8 +77,8 @@ namespace GZ {
 			m_render_module = data->module_ctx->module_reg->get_module_by_name<RenderModule>();
             m_scene_module = data->module_ctx->module_reg->get_module_by_name<SceneModule>(); 
 
-            cam_q = world->query<CameraComponent>();
-            cam_trans_q = world->query<CameraComponent, TransformComponent>();
+            cam_q = world->query<CameraComponent>("cam_q");
+            cam_trans_q = world->query<CameraComponent, TransformComponent>("cam_trans_q");
             m_num_total_cams = 0;
             m_primary_cam_index = 0;
             b8 has_primary_cam = false;
@@ -583,8 +587,10 @@ CR_EXPORT int cr_main(struct cr_plugin *ctx, enum cr_op operation) {
             hot_reload.editor_plugin_update(data);
             return true;
         case CR_UNLOAD:
+            hot_reload.editor_plugin_unload(data);
             return true; // preparing to a new reload
         case CR_CLOSE:
+            hot_reload.editor_plugin_unload(data);
             return true; // the plugin will close and not reload anymore
     }
 

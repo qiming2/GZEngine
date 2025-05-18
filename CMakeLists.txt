@@ -8,6 +8,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 message("linker configs...")
+if (WIN32)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+elseif (APPLE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+endif()
+
 # Debug configuration
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGZ_DEBUG")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
@@ -42,26 +48,28 @@ if (MSVC)
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 endif()
 
-
 # Have to come after configuration settings!
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine")
 target_compile_definitions(GZEngine PRIVATE GZ_MAKE_DLL)
+
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor")
+
 # Add hot reloading test
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEditor/EditorHotReload")
-
 
 message("Global configs...")
 # Define platform-specific settings
 if(WIN32)
     set(PLATFORM_DEFINES "GZ_PLATFORM_WINDOWS")
 elseif(APPLE)
+    # Set compiler flag for disabling RTTI
     set(PLATFORM_DEFINES "GZ_PLATFORM_APPLE")
 endif()
 
 # Platform-specific definitions
 target_compile_definitions(GZEngine PUBLIC ${PLATFORM_DEFINES})
 target_compile_definitions(GZEditor PUBLIC ${PLATFORM_DEFINES})
+target_compile_definitions(GZEditorHotReload PUBLIC ${PLATFORM_DEFINES})
 
 add_compile_definitions("$<$<CONFIG:Debug>:GZ_DEBUG>")
 add_compile_definitions("$<$<CONFIG:Release>:GZ_RELEASE>")
