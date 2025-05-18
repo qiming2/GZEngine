@@ -153,12 +153,12 @@ namespace GZ {
 
 	Entity SceneModule::lookup(const char* name)
 	{
-		return m_scene_root.lookup(name);
+		return m_cur_scene.lookup(name);
 	}
 
 	Entity SceneModule::entity(const char *name)
 	{
-		return m_world->entity().child_of(m_cur_scene)
+		return m_world->entity(name).child_of(m_cur_scene)
 			.set<TagComponent>({name == nullptr ? "New Entity" : name})
 			.add<TransformComponent>();
 	}
