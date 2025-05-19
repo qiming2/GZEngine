@@ -50,6 +50,7 @@
 namespace GZ {
 	struct DrawComponentContext {
 		std::string_view name;
+		Entity e;
 	};
 
 	struct ComponentRegistry;
@@ -74,7 +75,8 @@ namespace GZ {
 #define GZ_COMPONENT_TYPE_IMPL_DRAW(GZ_COMPONENT) \
 	struct DrawComponentImplStructName(GZ_COMPONENT) final : IDrawComponentInterfaceName { \
 		void draw_imgui(void *comp, const ModuleContext *module_ctx, DrawComponentContext *draw_ctx) override { \
-			ImGui::PushID(module_ctx->world->component<GZ_COMPONENT>().id());\
+			ComponentID comp_id = module_ctx->world->component<GZ_COMPONENT>().id();\
+			ImGui::PushID(comp_id);\
 			static const char *comp_name = #GZ_COMPONENT;\
 			GZ_COMPONENT *actual_comp = static_cast<GZ_COMPONENT *>(comp); \
 			
@@ -83,16 +85,18 @@ namespace GZ {
 				ComponentID GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_id) = module_ctx->world->component<GZ_COMPONENT_MEMBER_TYPE>().id(); \
 				std::shared_ptr<IDrawComponentInterfaceName> GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface) = module_ctx->reg->get_draw_interface(GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_id)); \
 				if (GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface) != nullptr) {\
-					const char* temp = draw_ctx->name.data(); \
-					draw_ctx->name = #GZ_COMPONENT_MEMBER_NAME; \
-                    GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface)->draw_imgui(&actual_comp->GZ_COMPONENT_MEMBER_NAME, module_ctx, draw_ctx); \
-					draw_ctx->name = temp; \
+					DrawComponentContext cur_draw_ctx;\
+					cur_draw_ctx.name = #GZ_COMPONENT_MEMBER_NAME;\
+                    GZ_CAT(GZ_COMPONENT_MEMBER_NAME, _comp_interface)->draw_imgui(&actual_comp->GZ_COMPONENT_MEMBER_NAME, module_ctx, &cur_draw_ctx); \
 				} else { \
 					gz_warn("{} does not implement {} interface", #GZ_COMPONENT_MEMBER_TYPE, GZ_STR(IDrawComponentInterfaceName)); \
 				}\
 			} while (0);
 				
 #define GZ_COMPONENT_TYPE_END_IMPL_DRAW(GZ_COMPONENT) \
+			if (draw_ctx->e) {\
+				draw_ctx->e.modified(comp_id);\
+			}\
 			ImGui::PopID();\
 		} \
 	}

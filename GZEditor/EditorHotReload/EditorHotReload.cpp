@@ -329,7 +329,7 @@ namespace GZ {
                 Entity current_scene = m_scene_module->get_active_scene();
 				const TagComponent* tag_scene = current_scene.get<TagComponent>();
 				const char* scene_name = tag_scene ? tag_scene->name.data() : "Unknown Scene";
-				if (ImGui::TreeNodeEx(scene_name, ImGuiTreeNodeFlags_DefaultOpen))
+				if (ImGui::TreeNodeEx(scene_name, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
 				{
 					static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 					static bool test_drag_and_drop = true;
@@ -414,9 +414,7 @@ namespace GZ {
                         }
                     }
 					if (ImGui::MenuItem("Serialize Entity Tree")) {
-						ecs_entity_to_json_desc_t desc;
-						desc.serialize_values = true;
-                        desc.serialize_entity_id = true; 
+						ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
                         if (selected_ent) {
                             gz_info("{}", selected_ent.to_json(&desc));
                         }
@@ -438,14 +436,15 @@ namespace GZ {
 			{
 				ImGui::Begin("Properties Panel");
 
-				ComponentRegistry* reg = data->reg;
-				DrawComponentContext ctx;
-                ctx.name = "TransformComponent";
-
 				size_t component_count = 0;
 				std::shared_ptr<IDrawComponentInterfaceName> cur;
 				static constexpr std::string_view component_str = " Component";
 				if (selected_ent.is_valid() && selected_ent != m_scene_root) {
+					ComponentRegistry* reg = data->reg;
+					DrawComponentContext ctx;
+					ctx.name = "TransformComponent";
+                    ctx.e = selected_ent;
+                    ImGui::Text("id: %d", selected_ent.id());
 					selected_ent.each([&](Identifier id) {
 						ImGui::PushID(component_count++);
 						void* comp = selected_ent.get_mut(id.raw_id());

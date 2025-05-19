@@ -424,10 +424,10 @@ namespace GZ {
 	{
 		UniformBufferObject ubo{};
 
-        world.each([&](const CameraComponent &cam_comp, const TransformComponent &t_comp){
+        world.each([&](const Entity e, const CameraComponent &cam_comp){
 			if (!cam_comp.is_primary) return;
             ubo.proj = cam_comp.get_projection_matrix();
-            ubo.view = glm::inverse(t_comp.get_matrix());
+            ubo.view = glm::inverse(m_transform_module->world_transform(e));
         });
 		
 		// This is necessary for vulkan, since vulkan'y is fliped

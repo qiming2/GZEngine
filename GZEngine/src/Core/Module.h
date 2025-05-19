@@ -55,7 +55,7 @@ namespace GZ {
         #  endif
         #elif defined(_MSC_VER)
             string_view p = __FUNCSIG__;
-            return string_view(p.data() + 84, p.size() - 84 - 7);
+            return string_view(p.data() + 103, p.size() - 103 - 7);
         #endif
         }
         

@@ -9,7 +9,6 @@ namespace GZ {
 	{
 		// Scene root singleton
 		m_world = module_ctx.world;
-
 		// Register reflection for std::string
 		m_world->component<std::string>()
 			.opaque(flecs::String) // Opaque type that maps to string
@@ -64,24 +63,71 @@ namespace GZ {
 
 		const char* json = R"json(
     {
-      "entities": [
-        {
-          "entity": "Parent",
-          "components": {
-          }
-        },
-        {
-          "entity": "Child",
-          "components": {
-            "ChildOf": "Parent"
-          }
-        }
+      "results": [
+		{"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}},
+        {"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}},
+        {"parent":"#754", "name":"#999", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des2"}}}
       ]
     })json";
 
-		m_cur_scene = m_world->entity().child_of(m_scene_root)
+		/*m_cur_scene = m_world->entity().child_of(m_scene_root)
 			.set<TagComponent>({ "New Scene" })
-			.add<TransformComponent>();
+			.add<TransformComponent>();*/
+		struct LoadContext {
+			std::vector<Entity> pre_loaded_entities;
+		};
+
+		LoadContext ctx;
+		ctx.pre_loaded_entities.emplace_back(m_world->entity());
+		ctx.pre_loaded_entities.emplace_back(m_world->entity());
+		ctx.pre_loaded_entities.emplace_back(m_world->entity());
+		flecs::from_json_desc_t desc;
+		desc.lookup_ctx = &ctx;
+		//desc.strict = true;
+		desc.name = "SceneLoadTest";
+
+		desc.lookup_action = [](const WorldID* world_id, const char *value, void* ctx) -> EntityID {
+			gz_info(value);
+			World world((WorldID *)world_id);
+
+			LoadContext *load_ctx = (LoadContext *)ctx;
+			if (!strcmp(value, "#888")) {
+				return load_ctx->pre_loaded_entities[1].id();
+			}
+			else if (!strcmp(value, "#999")) {
+				return load_ctx->pre_loaded_entities[2].id();
+			}
+			else if (!strcmp(value, "#754")) {
+				return load_ctx->pre_loaded_entities[0].id();
+			}
+
+			IdentifierID id = ecs_lookup(world_id, value);
+			
+			if (id) {
+				return id;
+			}
+			
+			gz_assert(false, "Should not reach here, Sceneload failed");
+			return 0;
+			
+		};
+		m_world->from_json(json, &desc);
+		m_scene_root.children([&](Entity child) {
+			m_cur_scene = child;
+		});
+		
+		// Entity json test
+		/*const char* json_test = R"json({"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"sphere"}}})json";
+		Entity e = m_world->entity();
+		if (!e.has<TagComponent>()) {
+			gz_info("does not have tag component");
+		}
+		e.from_json(json_test);
+		gz_info("{}", e.id());
+		*/
+
+		
+		
 
 		return m_cur_scene;
 	}

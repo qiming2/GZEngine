@@ -28,6 +28,8 @@ namespace GZ {
         GZ_API Prefab prefab();
         GZ_API b8 load_scene(Prefab scene_prefab);
 
+        
+
     private:
         Entity m_scene_root;
         Entity m_cur_scene;

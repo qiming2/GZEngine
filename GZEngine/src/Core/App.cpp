@@ -404,9 +404,9 @@ namespace GZ {
 		Entity e3 = m_module_reg->get_module<SceneModule>()->entity("Player")
 			.set<TransformComponent>({ vec3{1.0, 0.0, 1.0}, quat{1, 0, 0, 0}, vec3{1.0, 1.0, 1.0} })
 			.set<MeshComponent>({ model_mesh })
-			.set<CharacterComponent>({.vel = {0, 0.0, 0}})
+			.set<CharacterComponent>({ .vel = {0, 0.0, 0} })
 			.add<Player>();
-			;
+		;
 
 	}
 

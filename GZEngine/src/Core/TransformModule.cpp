@@ -2,7 +2,7 @@
 
 #include "ComponentInterface.h"
 #include "TransformModule.h"
-#include "MathUtil.h"
+
 
 namespace GZ {
 
@@ -23,7 +23,7 @@ namespace GZ {
 		auto transform_comp = world.component<TransformComponent>()
 			.member<vec3>("position")
 			.member<vec3>("scale");
-			.member<vec3>("rotation); 
+			.member<vec3>("rotation);
 		*/
 	}
 
@@ -79,6 +79,9 @@ namespace GZ {
 		Entity parent = entity.parent();
 		mat4 entity_world_transform = world_transform(parent) * local_transform(entity);
 		m_world_transform_cache[entity.id()] = entity_world_transform;
+		TransformComponent t_comp;
+		t_comp.from_mat4(entity_world_transform);
+		m_world_transform_component_cache[entity.id()] = t_comp;
 
 		return entity_world_transform;
 	}
@@ -89,17 +92,29 @@ namespace GZ {
 		return world_transform(m_world->id(entity_id).entity());
 	}
 
-	GZ_FORCE_INLINE mat4 TransformModule::local_transform(const Entity &entity)
+	TransformComponent TransformModule::world_transform_component(const Entity& entity)
 	{
-		gz_assert(entity.has<TransformComponent>(), "Entity does not have transform component!");
-		return entity.get<TransformComponent>()->get_matrix();
+		world_transform(entity);
+		return m_world_transform_component_cache[entity];
 	}
 
-	GZ_FORCE_INLINE mat4 TransformModule::local_transform(const EntityID entity_id)
+	TransformComponent TransformModule::world_transform_component(const EntityID entity_id)
+	{
+
+		return world_transform_component(m_world->id(entity_id).entity());
+	}
+
+	GZ_FORCE_INLINE mat4 TransformModule::local_transform(const Entity &entity) const
+	{
+		gz_assert(entity.has<TransformComponent>(), "Entity does not have transform component!");
+		return entity.get<TransformComponent>()->get_mat4();
+	}
+
+	GZ_FORCE_INLINE mat4 TransformModule::local_transform(const EntityID entity_id) const
 	{
 		Entity entity = m_world->id(entity_id).entity();
 		gz_assert(entity.has<TransformComponent>(), "Entity does not have transform component!");
-		return entity.get<TransformComponent>()->get_matrix();
+		return entity.get<TransformComponent>()->get_mat4();
 	}
 
 	void TransformModule::mark_entity_local_transform_dirty(const Entity &entity)
@@ -118,6 +133,14 @@ namespace GZ {
 
 	void TransformModule::private_mark_entity_local_transform_dirty_no_check(const Entity &entity)
 	{
+		private_mark_cache_dirty(entity);
+
+		entity.children([&](Entity child) {
+			private_mark_entity_local_transform_dirty_no_check(child);
+		});
+	}
+
+	void TransformModule::private_mark_cache_dirty(const Entity& entity) {
 		auto it = m_world_transform_cache.find(entity.id());
 		if (it == m_world_transform_cache.end()) {
 			return;
@@ -126,9 +149,14 @@ namespace GZ {
 			m_world_transform_cache.erase(it);
 		}
 
-		entity.children([&](Entity child) {
-			private_mark_entity_local_transform_dirty_no_check(child);
-		});
+		auto it_comp = m_world_transform_component_cache.find(entity.id());
+		if (it_comp == m_world_transform_component_cache.end()) {
+			return;
+		}
+		else {
+			m_world_transform_component_cache.erase(it_comp);
+		}
+		
 	}
 
 }

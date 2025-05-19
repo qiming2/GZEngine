@@ -10,6 +10,7 @@ namespace GZ {
     constexpr mat4 GZ_MAT4_IDENTITY = glm::identity<mat4>();
     constexpr vec3 GZ_TRANSLATION_ZERO = vec3(0.0, 0.0, 0.0);
     constexpr vec3 GZ_SCALE_ZERO = vec3(0.0, 0.0, 0.0);
+    constexpr vec3 GZ_SCALE_ONE = vec3(1.0, 1.0, 1.0);
 
     constexpr vec3 GZ_UP = vec3(0.0, 1.0, 0.0);
     constexpr vec3 GZ_RIGHT = vec3(1.0, 0.0, 0.0);

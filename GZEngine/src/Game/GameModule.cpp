@@ -89,7 +89,8 @@ namespace GZ {
 			if (!cam_comp || !cam_comp->is_primary) return;
 			const TransformComponent* player_t_comp = player.get<TransformComponent>();
 			TransformComponent* cam_t_comp = follow_cam.get_mut<TransformComponent>();
-
+			TransformComponent p_world_trans = m_transform_module->world_transform_component(player);
+			TransformComponent follow_world_trans = m_transform_module->world_transform_component(follow_cam);
 			// Instead of directly using TransformComponent, we should interpolate
 			// so to reduce stutter, we should do this in physics module
 
@@ -119,8 +120,15 @@ namespace GZ {
 			f32 yaw_radians = glm::radians(cam_yaw);
 			vec3 look_dir = glm::normalize(-vec3{ glm::cos(yaw_radians) * glm::cos(pitch_radians), glm::sin(pitch_radians), glm::sin(yaw_radians) * glm::cos(pitch_radians) });
 			cam_dir = look_dir;
-			cam_t_comp->p = player_t_comp->p - cam_dir * cur_cam_dist;
-			cam_t_comp->r = glm::quatLookAt(look_dir, GZ_UP);
+
+			TransformComponent updated_follow;
+			updated_follow.p = p_world_trans.p - cam_dir * cur_cam_dist;
+			updated_follow.r = glm::quatLookAt(look_dir, GZ_UP);
+			
+			cam_t_comp->from_mat4(glm::inverse(m_transform_module->world_transform(follow_cam.parent())) * updated_follow.get_mat4());
+			//*cam_t_comp = updated_follow;
+			/*cam_t_comp->p = player_t_comp->p - cam_dir * cur_cam_dist;
+			cam_t_comp->r = glm::quatLookAt(look_dir, GZ_UP);*/
 
 			follow_cam.modified<TransformComponent>();
 		});
