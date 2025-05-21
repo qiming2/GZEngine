@@ -9,6 +9,10 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine/vendor/flecs")
 message("Vma...!")
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine/vendor/VulkanMemoryAllocator")
 
+message("nlohmann_json!")
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine/vendor/nlohmann-json")
+
 message("glm...!")
 add_subdirectory("${CMAKE_SOURCE_DIR}/GZEngine/vendor/glm")
 target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE=ON)
@@ -77,6 +81,7 @@ list(APPEND VENDOR_INCLUDE_LISTS
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/tiny_obj/include"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/cr"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/glm/glm"
+    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/nlohmann-json/include/nlohmann"
     "${Vulkan_INCLUDE_DIRS}"
     "${JoltPhysics_SOURCE_DIR}/.."
 )
@@ -98,6 +103,8 @@ file(GLOB vendorSources
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/tiny_obj/include/*.h"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/VulkanMemoryAllocator/include/*.h"
     "${CMAKE_SOURCE_DIR}/GZEngine/vendor/cr/*.h"
+    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/nlohmann-json/include/nlohmann/json.hpp"
+    "${CMAKE_SOURCE_DIR}/GZEngine/vendor/nlohmann-json/include/nlohmann/json_fwd.hpp"
 )
 
 # Engine include
@@ -149,6 +156,7 @@ target_link_libraries(GZEngine PUBLIC
     glm::glm
     GPUOpen::VulkanMemoryAllocator
     Jolt
+    nlohmann_json::nlohmann_json
 )
 
 set_target_properties(flecs SDL3-shared PROPERTIES

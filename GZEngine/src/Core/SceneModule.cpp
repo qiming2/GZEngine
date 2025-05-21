@@ -1,10 +1,15 @@
 #include <gzpch.h>
 
+#define JSON_USE_IMPLICIT_CONVERSIONS 0
+#include <nlohmann/json.hpp>
+
 #include "SceneModule.h"
 #include "TransformModule.h"
 #include "MathUtil.h"
 
 namespace GZ {
+	using json = nlohmann::json;
+
 	void SceneModule::install_into(const ModuleContext& module_ctx)
 	{
 		// Scene root singleton
@@ -52,6 +57,28 @@ namespace GZ {
 	{
 		clear_scene();
 
+		m_cur_scene = m_world->entity().child_of(m_scene_root)
+			.set<TagComponent>({ "New Scene" })
+			.add<TransformComponent>();
+		
+		return m_cur_scene;
+	}
+
+	struct TestHeader {
+		i32 test = 3;
+		std::string name = "Hello Test";
+	};
+
+	void to_json(json& j, const TestHeader& header) {
+		j = json{{"test", header.test}, {"name", header.name}};
+	}
+
+	void from_json(const json& j, TestHeader& header) {
+		j.at("name").get_to(header.name);
+		j.at("test").get_to(header.test);
+	}
+
+	Entity SceneModule::load_scene(const std::string_view file_path) {
 		/*m_cur_scene_prefab = m_world->prefab("Scene")
 			.set<TagComponent>({"New Scene"});
 			Prefab new_one = m_world->prefab("1").child_of(m_cur_scene_prefab).set<TagComponent>({"New 1"}).slot_of(m_cur_scene_prefab);;
@@ -61,18 +88,34 @@ namespace GZ {
 				Prefab new_five = m_world->prefab("5").child_of(new_two).set<TagComponent>({"New 5"}).slot_of(m_cur_scene_prefab);;*/
 		//gz_info("Create Scene {}", new_three.path().c_str());
 
-		const char* json = R"json(
-    {
-      "results": [
-		{"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}},
-        {"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}},
-        {"parent":"#754", "name":"#999", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des2"}}}
-      ]
-    })json";
+		//const char* json_test_entities = R"json(
+  //  {
+  //    "results": [
+		//{"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}},
+  //      {"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}},
+  //      {"parent":"#754", "name":"#999", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des2"}}}
+  //    ]
+  //  })json";
+		//m_world->from_json(json_deserialized.c_str(), &desc);
 
-		/*m_cur_scene = m_world->entity().child_of(m_scene_root)
-			.set<TagComponent>({ "New Scene" })
-			.add<TransformComponent>();*/
+		// This is promising
+		json ex3 = {
+		  {"happy", true},
+		  {"pi", 3.141},
+		};
+
+		auto ex3_happy = ex3["happy"].template get<b8>();
+		ex3["results"].push_back(R"({"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}})");
+		ex3["results"].push_back(R"({"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}})");
+		ex3["results"].push_back(R"({"parent":"#754", "name":"#999", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des2"}}})");
+		ex3["test"] = TestHeader();
+		auto ex3_dumped = ex3.dump();
+
+		gz_warn("happy: {}, dumped: {}", ex3_happy, ex3_dumped);
+
+		auto new_json = json::parse(ex3_dumped);
+		TestHeader deser_header = new_json["test"].template get<TestHeader>();
+		gz_warn("{}, {}", deser_header.name, deser_header.test);
 		struct LoadContext {
 			std::vector<Entity> pre_loaded_entities;
 		};
@@ -86,11 +129,11 @@ namespace GZ {
 		//desc.strict = true;
 		desc.name = "SceneLoadTest";
 
-		desc.lookup_action = [](const WorldID* world_id, const char *value, void* ctx) -> EntityID {
+		desc.lookup_action = [](const WorldID* world_id, const char* value, void* ctx) -> EntityID {
 			gz_info(value);
-			World world((WorldID *)world_id);
+			World world((WorldID*)world_id);
 
-			LoadContext *load_ctx = (LoadContext *)ctx;
+			LoadContext* load_ctx = (LoadContext*)ctx;
 			if (!strcmp(value, "#888")) {
 				return load_ctx->pre_loaded_entities[1].id();
 			}
@@ -102,32 +145,25 @@ namespace GZ {
 			}
 
 			IdentifierID id = ecs_lookup(world_id, value);
-			
+
 			if (id) {
 				return id;
 			}
-			
+
 			gz_assert(false, "Should not reach here, Sceneload failed");
 			return 0;
-			
+
 		};
-		m_world->from_json(json, &desc);
+
+		std::string json_deserialized = ex3["results"][0].template get<std::string>();
+		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[0].id(), json_deserialized.c_str(), &desc);
+		json_deserialized = ex3["results"][1].template get<std::string>();
+		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[1].id(), json_deserialized.c_str(), &desc);
+		json_deserialized = ex3["results"][2].template get<std::string>();
+		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[2].id(), json_deserialized.c_str(), &desc);
 		m_scene_root.children([&](Entity child) {
 			m_cur_scene = child;
 		});
-		
-		// Entity json test
-		/*const char* json_test = R"json({"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"sphere"}}})json";
-		Entity e = m_world->entity();
-		if (!e.has<TagComponent>()) {
-			gz_info("does not have tag component");
-		}
-		e.from_json(json_test);
-		gz_info("{}", e.id());
-		*/
-
-		
-		
 
 		return m_cur_scene;
 	}

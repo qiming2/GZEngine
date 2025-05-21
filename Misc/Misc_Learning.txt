@@ -1,0 +1,4 @@
+Git:
+
+// Need to be at root folder
+git submodule add <url> GZEngine/vendor/<repo-name>

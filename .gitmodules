@@ -25,3 +25,6 @@
 [submodule "GZEngine/vendor/cr"]
 	path = GZEngine/vendor/cr
 	url = git@github.com:fungos/cr.git
+[submodule "GZEngine/vendor/nlohmann-json"]
+	path = GZEngine/vendor/nlohmann-json
+	url = git@github.com:qiming2/nlohmann-json.git

@@ -27,8 +27,7 @@ namespace GZ {
         GZ_API Prefab prefab(Prefab parent);
         GZ_API Prefab prefab();
         GZ_API b8 load_scene(Prefab scene_prefab);
-
-        
+        GZ_API Entity load_scene(const std::string_view file_path = nullptr);
 
     private:
         Entity m_scene_root;
