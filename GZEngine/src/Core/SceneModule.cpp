@@ -7,6 +7,8 @@
 #include "TransformModule.h"
 #include "MathUtil.h"
 
+#define SCENE_SERIALIZATION_VERSION 1
+#define SCENE_SERIALIZATION_MAGIC 0x87681426
 namespace GZ {
 	using json = nlohmann::json;
 
@@ -57,26 +59,27 @@ namespace GZ {
 	{
 		clear_scene();
 
-		m_cur_scene = m_world->entity().child_of(m_scene_root)
-			.set<TagComponent>({ "New Scene" })
-			.add<TransformComponent>();
-		
+//		m_cur_scene = m_world->entity().child_of(m_scene_root)
+//			.set<TagComponent>({ "New Scene" })
+//			.add<TransformComponent>();
+        load_scene();
 		return m_cur_scene;
 	}
 
-	struct TestHeader {
-		i32 test = 3;
-		std::string name = "Hello Test";
-	};
+    struct SceneMetaData {
+        const u32 magic = 0x87681426;
+        const u32 version = SCENE_SERIALIZATION_VERSION;
+        SceneMetaData() = default;
+    };
 
-	void to_json(json& j, const TestHeader& header) {
-		j = json{{"test", header.test}, {"name", header.name}};
-	}
+    void to_json(json& j, const SceneMetaData& scene_meta) {
+        j = json{{"magic", scene_meta.magic}, {"version", scene_meta.version}};
+    }
 
-	void from_json(const json& j, TestHeader& header) {
-		j.at("name").get_to(header.name);
-		j.at("test").get_to(header.test);
-	}
+    void from_json(const json& j, SceneMetaData& scene_meta) {
+        j.at("magic").get_to((u32&)scene_meta.magic);
+        j.at("version").get_to((u32&)scene_meta.version);
+    }
 
 	Entity SceneModule::load_scene(const std::string_view file_path) {
 		/*m_cur_scene_prefab = m_world->prefab("Scene")
@@ -99,27 +102,29 @@ namespace GZ {
 		//m_world->from_json(json_deserialized.c_str(), &desc);
 
 		// This is promising
-		json ex3 = {
+		json json_scene = {
 		  {"happy", true},
 		  {"pi", 3.141},
 		};
 
-		auto ex3_happy = ex3["happy"].template get<b8>();
-		ex3["results"].push_back(R"({"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}})");
-		ex3["results"].push_back(R"({"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des"}}})");
-		ex3["results"].push_back(R"({"parent":"#754", "name":"#999", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"json_des2"}}})");
-		ex3["test"] = TestHeader();
-		auto ex3_dumped = ex3.dump();
+		auto json_scene_happy = json_scene["happy"].template get<b8>();
+		json_scene["results"].push_back(R"({"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"New Scene"}}})");
+		json_scene["results"].push_back(R"({"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"Loaded 1"}}})");
+		json_scene["results"].push_back(R"({"parent":"#754", "name":"#999", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"Loaded 2"}}})");
+        
+        SceneMetaData scene_meta;
+        json_scene["scene_meta"] = scene_meta;
+		auto json_scene_dumped = json_scene.dump();
 
-		gz_warn("happy: {}, dumped: {}", ex3_happy, ex3_dumped);
+		gz_warn("happy: {}, dumped: {}", json_scene_happy, json_scene_dumped);
 
-		auto new_json = json::parse(ex3_dumped);
-		TestHeader deser_header = new_json["test"].template get<TestHeader>();
-		gz_warn("{}, {}", deser_header.name, deser_header.test);
+		auto new_json = json::parse(json_scene_dumped);
+        SceneMetaData deser_header = new_json["scene_meta"].template get<SceneMetaData>();
+        gz_warn("Loaded scene magic: {}, version: {}", deser_header.magic, deser_header.version);
 		struct LoadContext {
 			std::vector<Entity> pre_loaded_entities;
 		};
-
+        
 		LoadContext ctx;
 		ctx.pre_loaded_entities.emplace_back(m_world->entity());
 		ctx.pre_loaded_entities.emplace_back(m_world->entity());
@@ -155,11 +160,11 @@ namespace GZ {
 
 		};
 
-		std::string json_deserialized = ex3["results"][0].template get<std::string>();
+		std::string json_deserialized = json_scene["results"][0].template get<std::string>();
 		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[0].id(), json_deserialized.c_str(), &desc);
-		json_deserialized = ex3["results"][1].template get<std::string>();
+		json_deserialized = json_scene["results"][1].template get<std::string>();
 		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[1].id(), json_deserialized.c_str(), &desc);
-		json_deserialized = ex3["results"][2].template get<std::string>();
+		json_deserialized = json_scene["results"][2].template get<std::string>();
 		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[2].id(), json_deserialized.c_str(), &desc);
 		m_scene_root.children([&](Entity child) {
 			m_cur_scene = child;

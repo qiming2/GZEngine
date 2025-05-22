@@ -62,8 +62,8 @@ namespace GZ {
 	public:
 		GZ_API mat4 world_transform(const Entity &entity);
 		GZ_API mat4 world_transform(EntityID entity_id);
-		GZ_API GZ_FORCE_INLINE mat4 local_transform(const Entity &entity) const;
-		GZ_API GZ_FORCE_INLINE mat4 local_transform(EntityID entity_id) const;
+        GZ_FORCE_INLINE GZ_API mat4 local_transform(const Entity &entity) const;
+        GZ_FORCE_INLINE GZ_API mat4 local_transform(EntityID entity_id) const;
 		GZ_API TransformComponent world_transform_component(const Entity& entity);
 		GZ_API TransformComponent world_transform_component(EntityID entity_id);
 

@@ -52,6 +52,7 @@ namespace GZ {
 
         // Scene Specific Data
         SceneModule *m_scene_module;
+        TransformModule *m_transform_module;
         Entity m_scene_root;
     public:
         void editor_plugin_unload(const EditorContext *data) {
@@ -76,6 +77,7 @@ namespace GZ {
 			m_physics_module = data->module_ctx->module_reg->get_module_by_name<PhysicsModule>();
 			m_render_module = data->module_ctx->module_reg->get_module_by_name<RenderModule>();
             m_scene_module = data->module_ctx->module_reg->get_module_by_name<SceneModule>(); 
+            m_transform_module = data->module_ctx->module_reg->get_module_by_name<TransformModule>();
 
             cam_q = world->query<CameraComponent>("cam_q");
             cam_trans_q = world->query<CameraComponent, TransformComponent>("cam_trans_q");
@@ -249,66 +251,67 @@ namespace GZ {
                     });
                 }
 
-                cam_trans_q.each([&](Entity ent, CameraComponent &cam_comp, TransformComponent &t_comp){
-                    if (cam_comp.is_perspective) {
-                        if (cam_comp.aspect != static_cast<f32>(main_scene_cur_window_size.x / main_scene_cur_window_size.y)) {
-                            cam_comp.fov_y = glm::radians(45.0f);
-                            cam_comp.aspect = static_cast<f32>(main_scene_cur_window_size.x / main_scene_cur_window_size.y);
+                world->defer([&] {
+                    cam_trans_q.each([&](Entity ent, CameraComponent &cam_comp, TransformComponent &t_comp){
+                        if (cam_comp.is_perspective) {
+                            if (cam_comp.aspect != static_cast<f32>(main_scene_cur_window_size.x / main_scene_cur_window_size.y)) {
+                                cam_comp.fov_y = glm::radians(45.0f);
+                                cam_comp.aspect = static_cast<f32>(main_scene_cur_window_size.x / main_scene_cur_window_size.y);
+                            }
+                        } else {
+                            if (cam_comp.viewport_w != main_scene_cur_window_size.x || cam_comp.viewport_h != main_scene_cur_window_size.y) {
+                                cam_comp.viewport_w = main_scene_cur_window_size.x;
+                                cam_comp.viewport_h = main_scene_cur_window_size.y;
+                            }
                         }
-                    } else {
-                        if (cam_comp.viewport_w != main_scene_cur_window_size.x || cam_comp.viewport_h != main_scene_cur_window_size.y) {
-                            cam_comp.viewport_w = main_scene_cur_window_size.x;
-                            cam_comp.viewport_h = main_scene_cur_window_size.y;
-                        }
-                    }
 
-                    if (!cam_comp.is_primary) return;
-					// Switch cam mode
-					switch (m_primary_cam_index) {
-					case 0:
-                        if (!input->is_key_down(SCANCODE_LALT)) {
-                            return;
+                        if (!cam_comp.is_primary) return;
+                        // Switch cam mode
+                        switch (m_primary_cam_index) {
+                        case 0:
+                            if (!input->is_key_down(SCANCODE_LALT)) {
+                                return;
+                            }
+                            private_flying_cam_controller(ent, t_comp);
+                            break;
+                        case 1:
+                            //private_follow_cam_controller(t_comp);
+                            break;
                         }
-						private_flying_cam_controller(t_comp);
-						break;
-					case 1:
-						//private_follow_cam_controller(t_comp);
-                        break;
-					}
-                    
-                    b8 is_relative_mode = SDL_GetWindowRelativeMouseMode(window);
-                    int w, h;
-                    SDL_GetWindowSize(window, &w, &h);
-                    if (is_main_view_focused) {
-                        
-                        if (input->is_key_pressed(SCANCODE_H)) {
-                            m_show_cursor = !m_show_cursor;
-                            gz_info("Change cursor visibility");
-                        }
-                        
-                        if (!m_show_cursor && !is_relative_mode) {
-                            SDL_WarpMouseInWindow(window, rect.x + rect.w / 2.0f, rect.y + rect.h / 2.0f);
-                            SDL_SetWindowRelativeMouseMode(window, !m_show_cursor);
-                            SDL_SetWindowMouseRect(window, &rect);
-                            gz_info("Hiding cursor");
-                        } else if (m_show_cursor && is_relative_mode) {
-                            SDL_WarpMouseInWindow(window, rect.x + rect.w / 2.0f, rect.y + rect.h / 2.0f);
-                            SDL_SetWindowRelativeMouseMode(window, !m_show_cursor);
-                            SDL_SetWindowMouseRect(window, NULL);
-                            gz_info("Show cursor");
-                        }
-                        
-
-                    } else {
-                        if (is_relative_mode) {
-                            SDL_WarpMouseInWindow(window, rect.x + rect.w / 2.0f, rect.y + rect.h / 2.0f);
-                            SDL_SetWindowRelativeMouseMode(window, false);
-                            SDL_SetWindowMouseRect(window, NULL);
-                        }
-                    }
-                    
+                    });
                 });
+                
+                
+                b8 is_relative_mode = SDL_GetWindowRelativeMouseMode(window);
+                int w, h;
+                SDL_GetWindowSize(window, &w, &h);
+                if (is_main_view_focused) {
+                    
+                    if (input->is_key_pressed(SCANCODE_H)) {
+                        m_show_cursor = !m_show_cursor;
+                        gz_info("Change cursor visibility");
+                    }
+                    
+                    if (!m_show_cursor && !is_relative_mode) {
+                        SDL_WarpMouseInWindow(window, rect.x + rect.w / 2.0f, rect.y + rect.h / 2.0f);
+                        SDL_SetWindowRelativeMouseMode(window, !m_show_cursor);
+                        SDL_SetWindowMouseRect(window, &rect);
+                        gz_info("Hiding cursor");
+                    } else if (m_show_cursor && is_relative_mode) {
+                        SDL_WarpMouseInWindow(window, rect.x + rect.w / 2.0f, rect.y + rect.h / 2.0f);
+                        SDL_SetWindowRelativeMouseMode(window, !m_show_cursor);
+                        SDL_SetWindowMouseRect(window, NULL);
+                        gz_info("Show cursor");
+                    }
+                    
 
+                } else {
+                    if (is_relative_mode) {
+                        SDL_WarpMouseInWindow(window, rect.x + rect.w / 2.0f, rect.y + rect.h / 2.0f);
+                        SDL_SetWindowRelativeMouseMode(window, false);
+                        SDL_SetWindowMouseRect(window, NULL);
+                    }
+                }
                 ImGui::PopStyleVar();
                 ImGui::End();
             }
@@ -342,8 +345,6 @@ namespace GZ {
 						ImGui::Text("This is a drag and drop source");
 						ImGui::EndDragDropSource();
 					}
-
-					
 
                     std::function<void(Entity)> draw_entity_tree = [&](Entity ent) {
                         
@@ -444,7 +445,7 @@ namespace GZ {
 					DrawComponentContext ctx;
 					ctx.name = "TransformComponent";
                     ctx.e = selected_ent;
-                    ImGui::Text("id: %d", selected_ent.id());
+                    ImGui::Text("id: %llu", selected_ent.id());
 					selected_ent.each([&](Identifier id) {
 						ImGui::PushID(component_count++);
 						void* comp = selected_ent.get_mut(id.raw_id());
@@ -487,7 +488,9 @@ namespace GZ {
             t_comp.r = glm::quatLookAt(look_dir, GZ_UP);
         }
 
-        void private_flying_cam_controller(TransformComponent &t_comp) {
+        void private_flying_cam_controller(Entity ent, TransformComponent &t_comp) {
+            
+            TransformComponent world_t_comp = m_transform_module->world_transform_component(ent);
 			static f32 move_speed = 2.0f;
 			static f32 acceleration = 2.0f;
 
@@ -496,27 +499,27 @@ namespace GZ {
 			vec3 up = glm::normalize(orientation[1].xyz());
 			vec3 forward = -glm::normalize(orientation[2].xyz());
 			if (input->is_key_down(SCANCODE_W)) {
-				t_comp.p += forward * frame_data.deltaTime * move_speed;
+                world_t_comp.p += forward * frame_data.deltaTime * move_speed;
 			}
 
 			if (input->is_key_down(SCANCODE_S)) {
-				t_comp.p -= forward * frame_data.deltaTime * move_speed;
+                world_t_comp.p -= forward * frame_data.deltaTime * move_speed;
 			}
 
 			if (input->is_key_down(SCANCODE_A)) {
-				t_comp.p -= right * frame_data.deltaTime * move_speed;
+                world_t_comp.p -= right * frame_data.deltaTime * move_speed;
 			}
 
 			if (input->is_key_down(SCANCODE_D)) {
-				t_comp.p += right * frame_data.deltaTime * move_speed;
+                world_t_comp.p += right * frame_data.deltaTime * move_speed;
 			}
 
 			if (input->is_key_down(SCANCODE_Q)) {
-				t_comp.p -= up * frame_data.deltaTime * move_speed;
+                world_t_comp.p -= up * frame_data.deltaTime * move_speed;
 			}
 
 			if (input->is_key_down(SCANCODE_E)) {
-				t_comp.p += up * frame_data.deltaTime * move_speed;
+                world_t_comp.p += up * frame_data.deltaTime * move_speed;
 			}
 
 
@@ -566,7 +569,10 @@ namespace GZ {
 				pitch_delta *= glm::angleAxis(glm::radians(GZ_PI * frame_data.deltaTime * 10.0f), -GZ_RIGHT);
 			}
 
-			t_comp.r = glm::normalize(yaw_delta * t_comp.r * pitch_delta);
+            world_t_comp.r = glm::normalize(yaw_delta * world_t_comp.r * pitch_delta);
+            t_comp.from_mat4(glm::inverse(m_transform_module->world_transform(ent.parent())) * world_t_comp.get_mat4());
+
+            ent.modified<TransformComponent>();
         }
     };
 }
