@@ -1,6 +1,7 @@
 #pragma once
 #include "Module.h"
 #include "ComponentInterface.h"
+#include "TransformModule.h"
 
 namespace GZ {
     struct SceneRoot {}; // Singleton
@@ -34,5 +35,6 @@ namespace GZ {
         Entity m_cur_scene;
         Prefab m_cur_scene_prefab;
         World *m_world; // the whole ecs
+        TransformModule *m_transform_module;
     };
 }

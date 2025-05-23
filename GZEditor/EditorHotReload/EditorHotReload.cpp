@@ -415,7 +415,9 @@ namespace GZ {
                         }
                     }
 					if (ImGui::MenuItem("Serialize Entity Tree")) {
-						ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
+						ecs_entity_to_json_desc_t desc;
+                        desc.serialize_values = true;
+                        desc.serialize_full_paths = true;
                         if (selected_ent) {
                             gz_info("{}", selected_ent.to_json(&desc));
                         }

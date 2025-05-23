@@ -159,4 +159,9 @@ namespace GZ {
 		
 	}
 
+    void TransformModule::clear_cache() {
+        m_world_transform_cache.clear();
+        m_world_transform_component_cache.clear();
+    }
+
 }

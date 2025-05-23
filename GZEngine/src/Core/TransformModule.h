@@ -68,7 +68,8 @@ namespace GZ {
 		GZ_API TransformComponent world_transform_component(EntityID entity_id);
 
 		GZ_API void mark_entity_local_transform_dirty(const Entity& entity);
-		GZ_API void mark_entity_local_transform_dirty(EntityID entity_id);
+        GZ_API void mark_entity_local_transform_dirty(EntityID entity_id);
+		GZ_API void clear_cache();
 		
 	private:
 		void private_mark_cache_dirty(const Entity& entity);
