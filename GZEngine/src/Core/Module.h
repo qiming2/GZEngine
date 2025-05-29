@@ -73,7 +73,7 @@ namespace GZ {
 		virtual ~Module() {};
 
 		// Initialize components, tags, systems, queries
-		void virtual install_into(const ModuleContext& module_ctx) = 0;
+        void virtual install_into(const ModuleContext& module_ctx) { gz_info("{} module: install_into not implemented", m_debug_name); };
 
 		// Create some default entities necessary for modules to work
 		void virtual after_install(const ModuleContext& module_ctx) { gz_info("{} module: after_install not implemented", m_debug_name); };
@@ -82,7 +82,7 @@ namespace GZ {
 		void virtual end_install(const ModuleContext& module_ctx) { gz_info("{} module: end_install not implemented", m_debug_name); };
 
 		// Clean up resources
-		void virtual uninstall_from(const ModuleContext& module_ctx) = 0;
+        void virtual uninstall_from(const ModuleContext& module_ctx) { gz_info("{} module: uninstall_from not implemented", m_debug_name); };
 
 		// This is only used for debug usage
 		const char *get_module_debug_name() { return m_debug_name; }

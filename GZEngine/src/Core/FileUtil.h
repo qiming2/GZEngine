@@ -10,5 +10,6 @@ namespace GZ {
 
     struct FileSystemUtil {
         GZ_API static void get_current_dir(std::string &out_dir);
+        GZ_API static b8 create_new_dir(const char *path);
     };
 }

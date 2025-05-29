@@ -116,6 +116,7 @@ list(APPEND INCLUDE_LISTS
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Mesh"
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Common"
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Game"
+    "${CMAKE_SOURCE_DIR}/GZEngine/src/Project"
     "${CMAKE_SOURCE_DIR}/GZEngine/include"
 )
 
@@ -132,6 +133,8 @@ file(GLOB_RECURSE sources
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Mesh/*.cpp"
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Common/*.cpp"
     "${CMAKE_SOURCE_DIR}/GZEngine/src/Common/*.h"
+    "${CMAKE_SOURCE_DIR}/GZEngine/src/Project/*.cpp"
+    "${CMAKE_SOURCE_DIR}/GZEngine/src/Project/*.h"
 )
 
 add_library(GZEngine SHARED

@@ -3,13 +3,15 @@
 #define JSON_USE_IMPLICIT_CONVERSIONS 0
 #include <nlohmann/json.hpp>
 
+#include "Project/ProjectModule.h"
+
 #include "SceneModule.h"
 #include "TransformModule.h"
 #include "MathUtil.h"
 #include "FileUtil.h"
 
-#define SCENE_SERIALIZATION_VERSION 1
-#define SCENE_SERIALIZATION_MAGIC 0x87681426
+#define GZ_SCENE_SERIALIZATION_VERSION 1
+#define GZ_SCENE_SERIALIZATION_MAGIC 0x87681426
 namespace GZ {
 	using json = nlohmann::json;
 
@@ -18,6 +20,7 @@ namespace GZ {
 		// Scene root singleton
 		m_world = module_ctx.world;
         m_transform_module = module_ctx.module_reg->get_module<TransformModule>();
+        m_project_module = module_ctx.module_reg->get_module<ProjectModule>();
 		// Register reflection for std::string
 		m_world->component<std::string>()
 			.opaque(flecs::String) // Opaque type that maps to string
@@ -65,12 +68,14 @@ namespace GZ {
 //			.set<TagComponent>({ "New Scene" })
 //			.add<TransformComponent>();
         load_scene();
+        std::string default_scene_path = m_project_module->get_projcet_dir() + "HelloWorld1.json";
+        save_scene(default_scene_path);
 		return m_cur_scene;
 	}
 
     struct SceneMetaData {
-        const u32 magic = 1230;
-        const u32 version = SCENE_SERIALIZATION_VERSION;
+        const u32 magic = GZ_SCENE_SERIALIZATION_MAGIC;
+        const u32 version = GZ_SCENE_SERIALIZATION_VERSION;
         SceneMetaData() = default;
     };
 
@@ -83,7 +88,7 @@ namespace GZ {
         j.at("version").get_to((u32&)scene_meta.version);
     }
 
-	Entity SceneModule::load_scene(const std::string_view file_path) {
+	Entity SceneModule::load_scene(const std::string &file_path) {
 		/*m_cur_scene_prefab = m_world->prefab("Scene")
 			.set<TagComponent>({"New Scene"});
 			Prefab new_one = m_world->prefab("1").child_of(m_cur_scene_prefab).set<TagComponent>({"New 1"}).slot_of(m_cur_scene_prefab);;
@@ -121,7 +126,10 @@ namespace GZ {
 //		gz_warn("happy: {}, dumped: {}", json_scene_happy, json_scene_dumped);
 
         std::string deser_json;
-        FileUtil::read_entire_file("HelloWorld.json", deser_json);
+        
+        std::string default_scene_path = m_project_module->get_projcet_dir() + "HelloWorld.json";
+        
+        FileUtil::read_entire_file(default_scene_path.c_str(), deser_json);
         auto new_json = json::parse(deser_json);
         SceneMetaData deser_header = new_json["scene_meta"].template get<SceneMetaData>();
         gz_warn("Loaded scene magic: {}, version: {}", deser_header.magic, deser_header.version);
@@ -135,8 +143,8 @@ namespace GZ {
 		ctx.pre_loaded_entities.emplace_back(m_world->entity());
 		flecs::from_json_desc_t desc;
 		desc.lookup_ctx = &ctx;
-		//desc.strict = true;
-		desc.name = "SceneLoadTest";
+		desc.strict = true;
+		desc.name = "Load Scene";
 
 		desc.lookup_action = [](const WorldID* world_id, const char* value, void* ctx) -> EntityID {
 			gz_info(value);
@@ -159,7 +167,7 @@ namespace GZ {
 				return id;
 			}
 
-			gz_assert(false, "Should not reach here, Sceneload failed");
+			gz_warn("Reference unknown entity {}", value);
 			return 0;
 
 		};
@@ -173,12 +181,58 @@ namespace GZ {
 		m_scene_root.children([&](Entity child) {
 			m_cur_scene = child;
 		});
-
-//        FileUtil::save_file("HelloWorld.json", json_scene_dumped);
         
         m_transform_module->clear_cache();
 		return m_cur_scene;
 	}
+
+    void SceneModule::iterate_scene_tree_preorder(SceneIterFunc func, void *ctx) {
+        private_iterate_scene_tree_preorder(func, ctx, m_scene_root);
+    }
+
+    void SceneModule::private_iterate_scene_tree_preorder(SceneIterFunc func, void *ctx, Entity parent) {
+        parent.children([func, ctx, parent, this](Entity child) {
+            func(m_world, parent, child, ctx);
+            private_iterate_scene_tree_preorder(func, ctx, child);
+        });
+    }
+
+    b8 SceneModule::save_scene(const std::string &file_path) {
+        std::string save_path;
+        if (file_path.empty()) {
+            save_path = m_project_module->get_projcet_dir();
+        } else {
+            save_path = file_path;
+        }
+
+        SceneMetaData scene_meta;
+        json json_scene;
+        json_scene["scene_meta"] = scene_meta;
+        
+        SceneIterFunc add_name = [&](World *world, Entity parent, Entity ent, void *ctx) {
+            if (ent.name().size() != 0) {
+                json_scene["entity_names"].push_back(ent.name().c_str());
+            } else {
+                std::string name = "#" + std::to_string(ent.id());
+                json_scene["entity_names"].push_back(name.c_str());
+            }
+        };
+        
+        iterate_scene_tree_preorder(add_name, nullptr);
+        
+        ecs_entity_to_json_desc_t desc;
+        desc.serialize_values = true;
+        desc.serialize_full_paths = true;
+        
+        SceneIterFunc ser_entity = [&](World *world, Entity parent, Entity ent, void *ctx) {
+            json_scene["entities"].push_back(ent.to_json(&desc));
+        };
+        
+        iterate_scene_tree_preorder(ser_entity, nullptr);
+
+        std::string json_dumped = json_scene.dump();
+        return FileUtil::save_file(save_path.c_str(), json_dumped.c_str());
+    }
 
 	Prefab SceneModule::get_active_scene_prefab()
 	{

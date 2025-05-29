@@ -29,6 +29,7 @@
 #include "Physics/PhysicsModule.h"
 #include "Common/CommonModule.h"
 #include "Core/TimerModule.h"
+#include "Project/ProjectModule.h"
 
 #include "Game/CharacterModule.h"
 
@@ -346,7 +347,8 @@ namespace GZ {
 	{
 		// Should be able to configure in the future
 		// Modules can be plugin
-		m_module_reg->add_module<CommonModule>();
+        m_module_reg->add_module<CommonModule>();
+		m_module_reg->add_module<ProjectModule>();
 		m_module_reg->add_module<TimerModule>();
 		m_module_reg->add_module<SceneModule>();
 		m_module_reg->add_module<TransformModule>();

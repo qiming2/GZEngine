@@ -1,14 +1,18 @@
 #pragma once
 #include "Module.h"
 #include "ComponentInterface.h"
-#include "TransformModule.h"
+
 
 namespace GZ {
+    
+    struct TransformModule;
+    struct ProjectModule;
     struct SceneRoot {}; // Singleton
     struct TagComponent {
         std::string name;
     };
 
+    using SceneIterFunc = std::function<void(World *world, Entity parent, Entity ent, void *ctx)>;
     struct SceneModule final : Module {
         void install_into(const ModuleContext& ctx) override;
         void uninstall_from(const ModuleContext& ctx) override;
@@ -17,8 +21,7 @@ namespace GZ {
         GZ_API Entity get_scene_root_entity() const;
         GZ_API Entity entity(const char *name = nullptr);
         GZ_API Entity entity(Entity parent, const char* name = nullptr);
-
-        // Deprecated
+        
         GZ_API Entity lookup(const char *name);
         GZ_API EntityID get_scene_root_id() const;
         GZ_API void clear_scene();
@@ -28,13 +31,18 @@ namespace GZ {
         GZ_API Prefab prefab(Prefab parent);
         GZ_API Prefab prefab();
         GZ_API b8 load_scene(Prefab scene_prefab);
-        GZ_API Entity load_scene(const std::string_view file_path = "");
-
+        GZ_API Entity load_scene(const std::string &file_path = "");
+        GZ_API b8 save_scene(const std::string &file_path = "");
+        
+        GZ_API void iterate_scene_tree_preorder(SceneIterFunc func, void *ctx);
+    private:
+        void private_iterate_scene_tree_preorder(SceneIterFunc func, void *ctx, Entity parent);
     private:
         Entity m_scene_root;
         Entity m_cur_scene;
         Prefab m_cur_scene_prefab;
         World *m_world; // the whole ecs
         TransformModule *m_transform_module;
+        ProjectModule *m_project_module;
     };
 }

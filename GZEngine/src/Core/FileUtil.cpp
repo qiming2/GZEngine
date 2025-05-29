@@ -45,10 +45,10 @@ namespace GZ {
         return true;
     }
 
-    b8 FileUtil::save_file(const char *path, const std::string &out_str) {
+    b8 FileUtil::save_file(const char *path, const std::string &in_str) {
         std::string valid_host_path;
         get_valid_host_system_path(path, valid_host_path);
-        if (!SDL_SaveFile(valid_host_path.c_str(), (void *)out_str.data(), out_str.size())) {
+        if (!SDL_SaveFile(valid_host_path.c_str(), (void *)in_str.data(), in_str.size())) {
             gz_critical(SDL_GetError());
             SDL_ClearError();
             return false;
@@ -67,5 +67,15 @@ namespace GZ {
         
         out_dir = read_dir;
         SDL_free((void *)read_dir);
+    }
+
+    b8 FileSystemUtil::create_new_dir(const char *path) {
+        if (!SDL_CreateDirectory(path)) {
+            gz_critical(SDL_GetError());
+            SDL_ClearError();
+            return false;
+        }
+        
+        return true;
     }
 }
