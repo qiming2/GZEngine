@@ -9,7 +9,7 @@ namespace GZ {
         cur_project_dir = default_project_dir;
     }
 
-    const std::string &ProjectModule::get_projcet_dir() {
+    const std::string &ProjectModule::get_project_dir() {
         return cur_project_dir;
     }
 

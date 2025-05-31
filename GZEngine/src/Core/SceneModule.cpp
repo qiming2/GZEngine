@@ -64,12 +64,11 @@ namespace GZ {
 	{
 		clear_scene();
 
-//		m_cur_scene = m_world->entity().child_of(m_scene_root)
-//			.set<TagComponent>({ "New Scene" })
-//			.add<TransformComponent>();
-        load_scene();
-        std::string default_scene_path = m_project_module->get_projcet_dir() + "HelloWorld1.json";
-        save_scene(default_scene_path);
+		m_cur_scene = m_world->entity().child_of(m_scene_root)
+			.set<TagComponent>({ "New Scene" })
+			.add<TransformComponent>();
+//        load_scene();
+//        std::string default_scene_path = m_project_module->get_projcet_dir() + "HelloWorld1.json";
 		return m_cur_scene;
 	}
 
@@ -109,16 +108,14 @@ namespace GZ {
 		//m_world->from_json(json_deserialized.c_str(), &desc);
 
 		// This is promising
-//		json json_scene = {
-//		  {"happy", true},
-//		  {"pi", 3.141},
-//		};
-//
-//		auto json_scene_happy = json_scene["happy"].template get<b8>();
-//		json_scene["results"].push_back(R"({"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"New Scene"}}})");
-//		json_scene["results"].push_back(R"({"parent":"#754", "name":"#888", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"Loaded 1"}}})");
-//		json_scene["results"].push_back(R"({"parent":"#754", "name":"#999", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"Loaded 2"}}})");
-        
+//        json json_scene;
+//        json_scene["entity_names"].push_back("#756");
+//        json_scene["entity_names"].push_back("#755");
+//        json_scene["entity_names"].push_back("#754");
+//		json_scene["entities"].push_back(R"({"parent":"GZ.SceneRoot", "name":"#754", "components":{"GZ.TransformComponent":{"p":{"x":0, "y":0, "z":0}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"New Scene"}}})");
+//		json_scene["entities"].push_back(R"({"parent":"#754", "name":"#755", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"Loaded 1"}}})");
+//		json_scene["entities"].push_back(R"({"parent":"#754", "name":"#756", "components":{"GZ.TransformComponent":{"p":{"x":1, "y":7.2881717682, "z":1}, "r":{"x":0, "y":0, "z":0, "w":1}, "s":{"x":1, "y":1, "z":1}}, "GZ.TagComponent":{"name":"Loaded 2"}}})");
+//        
 //        SceneMetaData scene_meta;
 //        json_scene["scene_meta"] = scene_meta;
 //		std::string json_scene_dumped = json_scene.dump();
@@ -127,20 +124,27 @@ namespace GZ {
 
         std::string deser_json;
         
-        std::string default_scene_path = m_project_module->get_projcet_dir() + "HelloWorld.json";
+        std::string default_scene_path = m_project_module->get_project_dir() + file_path;
         
         FileUtil::read_entire_file(default_scene_path.c_str(), deser_json);
         auto new_json = json::parse(deser_json);
+//        auto new_json = json_scene;
         SceneMetaData deser_header = new_json["scene_meta"].template get<SceneMetaData>();
         gz_warn("Loaded scene magic: {}, version: {}", deser_header.magic, deser_header.version);
 		struct LoadContext {
-			std::vector<Entity> pre_loaded_entities;
+            std::unordered_map<std::string, Entity> pre_loaded_entities;
 		};
         
 		LoadContext ctx;
-		ctx.pre_loaded_entities.emplace_back(m_world->entity());
-		ctx.pre_loaded_entities.emplace_back(m_world->entity());
-		ctx.pre_loaded_entities.emplace_back(m_world->entity());
+        for (auto ent_name : new_json["entity_names"]) {
+            std::string name = ent_name.template get<std::string>();
+            Entity new_ent = m_world->entity();
+            ctx.pre_loaded_entities[name] = new_ent;
+//            gz_info("QG: {} {}", name, new_ent.name().c_str());
+        }
+        
+        m_cur_scene = ctx.pre_loaded_entities["#754"];
+        m_cur_scene.child_of(m_scene_root);
 		flecs::from_json_desc_t desc;
 		desc.lookup_ctx = &ctx;
 		desc.strict = true;
@@ -151,15 +155,11 @@ namespace GZ {
 			World world((WorldID*)world_id);
 
 			LoadContext* load_ctx = (LoadContext*)ctx;
-			if (!strcmp(value, "#888")) {
-				return load_ctx->pre_loaded_entities[1].id();
-			}
-			else if (!strcmp(value, "#999")) {
-				return load_ctx->pre_loaded_entities[2].id();
-			}
-			else if (!strcmp(value, "#754")) {
-				return load_ctx->pre_loaded_entities[0].id();
-			}
+            
+            auto it = load_ctx->pre_loaded_entities.find(value);
+            if (it != load_ctx->pre_loaded_entities.end()) {
+                return it->second.id();
+            }
 
 			IdentifierID id = ecs_lookup(world_id, value);
 
@@ -172,15 +172,16 @@ namespace GZ {
 
 		};
 
-		std::string json_deserialized = new_json["results"][0].template get<std::string>();
-		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[0].id(), json_deserialized.c_str(), &desc);
-		json_deserialized = new_json["results"][1].template get<std::string>();
-		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[1].id(), json_deserialized.c_str(), &desc);
-		json_deserialized = new_json["results"][2].template get<std::string>();
-		ecs_entity_from_json(m_world->get_world(), ctx.pre_loaded_entities[2].id(), json_deserialized.c_str(), &desc);
-		m_scene_root.children([&](Entity child) {
-			m_cur_scene = child;
-		});
+        size_t ent_index = 0;
+        
+        for (auto pair : ctx.pre_loaded_entities) {
+            if (ent_index == 0) {
+                // First entity is cur scene root
+                m_cur_scene = pair.second;
+            }
+            std::string json_deserialized = new_json["entities"][ent_index].template get<std::string>();
+            ecs_entity_from_json(m_world->get_world(), pair.second.id(), json_deserialized.c_str(), &desc);
+        }
         
         m_transform_module->clear_cache();
 		return m_cur_scene;
@@ -200,9 +201,9 @@ namespace GZ {
     b8 SceneModule::save_scene(const std::string &file_path) {
         std::string save_path;
         if (file_path.empty()) {
-            save_path = m_project_module->get_projcet_dir();
+            save_path = m_project_module->get_project_dir() + "testest.gzscn";
         } else {
-            save_path = file_path;
+            save_path = m_project_module->get_project_dir() + file_path;
         }
 
         SceneMetaData scene_meta;
@@ -217,15 +218,15 @@ namespace GZ {
                 json_scene["entity_names"].push_back(name.c_str());
             }
         };
-        
+
         iterate_scene_tree_preorder(add_name, nullptr);
         
-        ecs_entity_to_json_desc_t desc;
+        ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
         desc.serialize_values = true;
         desc.serialize_full_paths = true;
         
         SceneIterFunc ser_entity = [&](World *world, Entity parent, Entity ent, void *ctx) {
-            json_scene["entities"].push_back(ent.to_json(&desc));
+            json_scene["entities"].push_back(std::string(ent.to_json(&desc).c_str()));
         };
         
         iterate_scene_tree_preorder(ser_entity, nullptr);

@@ -27,7 +27,7 @@ namespace GZ {
         GZ_API void clear_scene();
         GZ_API Entity create_new_scene();
         GZ_API Prefab get_active_scene_prefab();
-        GZ_API Prefab get_active_scene();
+        GZ_API Entity get_active_scene();
         GZ_API Prefab prefab(Prefab parent);
         GZ_API Prefab prefab();
         GZ_API b8 load_scene(Prefab scene_prefab);

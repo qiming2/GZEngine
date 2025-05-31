@@ -334,7 +334,7 @@ namespace GZ {
 				const char* scene_name = tag_scene ? tag_scene->name.data() : "Unknown Scene";
 				if (ImGui::TreeNodeEx(scene_name, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow))
 				{
-					static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+                    static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 					static bool test_drag_and_drop = true;
 
 					if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
@@ -405,6 +405,11 @@ namespace GZ {
 
 				if (ImGui::BeginPopupContextWindow("Entity Menus"))
 				{
+                    if (m_scene_module->get_active_scene() == selected_ent) {
+                        if (ImGui::MenuItem("Serialize Scene")) {
+                            m_scene_module->save_scene("TestScene.gzscn");
+                        }
+                    }
 					if (ImGui::MenuItem("Add Entity")) {
 						
                         if (selected_ent) {
@@ -419,7 +424,9 @@ namespace GZ {
                         desc.serialize_values = true;
                         desc.serialize_full_paths = true;
                         if (selected_ent) {
-                            gz_info("{}", selected_ent.to_json(&desc));
+                            auto ser = selected_ent.to_json(&desc);
+                            gz_info("{}", ser.c_str());
+                            selected_ent.from_json(ser);
                         }
                         else {
                             //selected_ent.from_json();

@@ -5,7 +5,7 @@
 namespace GZ {
     struct ProjectModule final : Module {
     void install_into(const ModuleContext& module_ctx) override;
-    GZ_API const std::string &get_projcet_dir();
+    GZ_API const std::string &get_project_dir();
     GZ_API void load_project(const std::string &proj_dir);
 
     private:
